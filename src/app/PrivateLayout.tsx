@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import { getAccessToken } from '@/utils/authToken'
+import { useAuthGuard } from '@/utils/useAuthGuard'
 
 const PUBLIC_PATHS = ['/login', '/register']
 
@@ -10,6 +11,8 @@ export default function PrivateLayout({ children }: { children: React.ReactNode 
   const router = useRouter()
   const pathname = usePathname()
   const [checking, setChecking] = useState(true)
+  useAuthGuard()
+
 
   useEffect(() => {
     // Si estamos en ruta pública, dejamos pasar sin validar

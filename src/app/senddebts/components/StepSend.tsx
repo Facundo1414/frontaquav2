@@ -4,9 +4,20 @@ import { sendAndScrape } from '@/lib/api'
 import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { Button } from '@/components/ui/button'
+import { Loader2 } from 'lucide-react'
 
 export function StepSend() {
-  const { setProcessedFile , fileNameFiltered, setActiveStep } = useSendDebtsContext()
+  const {
+    setProcessedFile,
+    fileNameFiltered,
+    setActiveStep,
+    setRawData,
+    setProcessedData,
+    setFilteredData,
+    setFileNameFiltered,
+    setNotWhatsappData
+  } = useSendDebtsContext()
+
   const [message, setMessage] = useState(
     "Hola, te enviamos un recordatorio de tu deuda pendiente. ¡Gracias!"
   )
@@ -36,12 +47,32 @@ export function StepSend() {
     }
   }
 
+  const handleCancel = () => {
+    setRawData([])
+    setProcessedData([])
+    setFilteredData([])
+    setFileNameFiltered("")
+    setProcessedFile(null)
+    setNotWhatsappData("")
+    setActiveStep(0)
+  }
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="w-full h-full flex flex-col"
+      className="w-full h-full flex flex-col relative"
     >
+      {/* Overlay de envío */}
+      {loading && (
+        <div className="absolute inset-0 z-50 flex flex-col justify-center items-center bg-black/30 backdrop-blur-sm">
+          <Loader2 className="animate-spin h-12 w-12 text-white mb-4" />
+          <p className="text-white font-semibold text-lg">
+            Enviando deudas, por favor espere...
+          </p>
+        </div>
+      )}
+
       <div className="flex-1 space-y-4 overflow-auto">
         <div>
           <h3 className="text-lg font-semibold">Enviar deudas filtradas</h3>
@@ -66,8 +97,16 @@ export function StepSend() {
         </div>
       </div>
 
-      {/* Botón abajo, ancho completo, alineado a la izquierda */}
-      <div className="pt-4">
+      {/* Botones */}
+      <div className="mt-auto flex items-center gap-4 pt-4">
+        <Button
+          variant="outline"
+          onClick={handleCancel}
+          disabled={loading}
+          className='bg-red-100'
+        >
+          Cancelar
+        </Button>
         <Button
           onClick={handleSend}
           disabled={loading}

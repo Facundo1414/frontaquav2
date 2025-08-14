@@ -5,20 +5,30 @@ import { motion } from 'framer-motion'
 import { Button } from '@/components/ui/button'
 import { getFileByName } from '@/lib/api'
 import { Loader2 } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { Home } from 'lucide-react'
 
 export function StepDownload() {
-  const { processedFile, notWhatsappData } = useSendDebtsContext()
-  const [statusResults, setStatusResults] = useState<string | null>(null)
-  const [statusNotWhats, setStatusNotWhats] = useState<string | null>(null)
+  const router = useRouter()
+  const {
+    processedFile,
+    notWhatsappData,
+    setRawData,
+    setProcessedData,
+    setFilteredData,
+    setActiveStep,
+    setFileNameFiltered,
+    setProcessedFile,
+    setNotWhatsappData,
+  } = useSendDebtsContext()  
+
   const [loadingResults, setLoadingResults] = useState(false)
   const [loadingNotWhats, setLoadingNotWhats] = useState(false)
 
   const handleDownloadResults = () => {
     if (!processedFile) {
-      setStatusResults("No hay archivo disponible para descargar.")
       return
     }
-    setStatusResults(null)
     setLoadingResults(true)
 
     const url = window.URL.createObjectURL(processedFile)
@@ -31,15 +41,12 @@ export function StepDownload() {
     window.URL.revokeObjectURL(url)
 
     setLoadingResults(false)
-    setStatusResults("Archivo descargado correctamente.")
   }
 
   const handleDownloadNotWhatsApp = async () => {
     if (!notWhatsappData) {
-      setStatusNotWhats("No hay archivo de 'sin WhatsApp' disponible.")
       return
     }
-    setStatusNotWhats(null)
     setLoadingNotWhats(true)
 
     try {
@@ -52,13 +59,21 @@ export function StepDownload() {
       a.click()
       a.remove()
       window.URL.revokeObjectURL(url)
-      setStatusNotWhats("Archivo descargado correctamente.")
     } catch (error) {
       console.error(error)
-      setStatusNotWhats("Error al descargar el archivo.")
     } finally {
       setLoadingNotWhats(false)
     }
+  }
+
+    const handleResetAndGoHome = () => {
+    setRawData([])
+    setProcessedData([])
+    setFilteredData([])
+    setFileNameFiltered("")
+    setProcessedFile(null)
+    setNotWhatsappData("")
+    router.push('/home')
   }
 
   return (
@@ -77,9 +92,6 @@ export function StepDownload() {
             Acá podés descargar el archivo con todos los clientes a los que se les envió el mensaje.
             En la columna <strong>motivo</strong> se listan aquellos que no pudieron recibirlo y la razón correspondiente.
             </p>
-            {statusResults && (
-            <p className="text-sm text-muted-foreground">{statusResults}</p>
-            )}
         </div>
         <Button
             onClick={handleDownloadResults}
@@ -105,9 +117,6 @@ export function StepDownload() {
             <p className="text-sm text-muted-foreground">
             Acá podés descargar todos los clientes que no tienen WhatsApp y que fueron filtrados en el primer paso.
             </p>
-            {statusNotWhats && (
-            <p className="text-sm text-muted-foreground">{statusNotWhats}</p>
-            )}
         </div>
         <Button
             onClick={handleDownloadNotWhatsApp}
@@ -124,8 +133,12 @@ export function StepDownload() {
             )}
         </Button>
         </div>
-
-
+      </div>
+              {/* 🔹 Botón Volver a Home */}
+      <div className="flex flex-col justify-top h-full  rounded-lg">
+        <Button variant="outline" onClick={handleResetAndGoHome} className='bg-green-400'>
+          <Home className="w-4 h-4" />
+        </Button>
       </div>
     </motion.div>
   )
