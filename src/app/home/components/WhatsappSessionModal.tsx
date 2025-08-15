@@ -17,23 +17,46 @@ export const WhatsappSessionModal: React.FC<WhatsappSessionModalProps> = ({ open
   const [qrCode, setQrCode] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isSessionReady, setIsSessionReady] = useState(false)
+  const [statusMessage, setStatusMessage] = useState<string | null>(null)
 
   useEffect(() => {
+    let interval: NodeJS.Timeout
+
     const checkAndInitialize = async () => {
       setIsLoading(true)
       try {
-        const isActive = await getIsLoggedIn()
-        if (isActive) {
+        // 1️⃣ Revisar si la sesión ya está activa
+        const statusResponse = await getIsLoggedIn()
+        if (statusResponse.isActive) {
           setIsSessionReady(true)
           toast.success('Sesión activa en WhatsApp')
         } else {
-          await initializeWhatsAppSession()
-          const qrString = await fetchQrCode()
-          const qrImage = await QRCode.toDataURL(qrString)
-          setQrCode(qrImage)
+          // 2️⃣ Inicializar sesión en el worker
+          const initResponse = await initializeWhatsAppSession()
+          setStatusMessage(initResponse.message || 'Iniciando sesión...')
+
+          // 3️⃣ Obtener QR desde backend principal
+          const qrResponse = await fetchQrCode()
+          if (qrResponse.qr) {
+            const qrImage = await QRCode.toDataURL(qrResponse.qr)
+            setQrCode(qrImage)
+          }
+          setStatusMessage(qrResponse.message || 'Escaneá el QR para iniciar sesión')
+
+          // 4️⃣ Polling hasta que la sesión se active
+          interval = setInterval(async () => {
+            const activeResponse = await getIsLoggedIn()
+            if (activeResponse.isActive) {
+              clearInterval(interval)
+              setIsSessionReady(true)
+              setStatusMessage('Sesión iniciada correctamente')
+              toast.success('Sesión iniciada correctamente')
+            }
+          }, 15000)
         }
-      } catch (err) {
-        toast.error('Error al iniciar sesión en WhatsApp')
+      } catch (err: any) {
+        console.error(err)
+        toast.error(err.message || 'Error al iniciar sesión en WhatsApp')
       } finally {
         setIsLoading(false)
       }
@@ -41,6 +64,10 @@ export const WhatsappSessionModal: React.FC<WhatsappSessionModalProps> = ({ open
 
     if (open) {
       checkAndInitialize()
+    }
+
+    return () => {
+      if (interval) clearInterval(interval)
     }
   }, [open])
 
@@ -65,7 +92,7 @@ export const WhatsappSessionModal: React.FC<WhatsappSessionModalProps> = ({ open
         ) : (
           <div className="flex flex-col md:flex-row gap-6 py-4">
             {/* QR Code */}
-            <div className="flex-1 flex justify-center items-center">
+            <div className="flex-1 flex flex-col justify-center items-center">
               {qrCode && (
                 <Image
                   src={qrCode}
@@ -74,6 +101,9 @@ export const WhatsappSessionModal: React.FC<WhatsappSessionModalProps> = ({ open
                   height={220}
                   className="border rounded"
                 />
+              )}
+              {statusMessage && (
+                <p className="mt-4 text-center text-sm text-muted-foreground">{statusMessage}</p>
               )}
             </div>
 

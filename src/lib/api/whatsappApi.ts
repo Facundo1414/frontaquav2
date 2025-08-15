@@ -6,7 +6,7 @@ export const initializeWhatsAppSession = async () => {
   const { data } = await api.get("/whatsapp/init", {
     headers: { Authorization: `Bearer ${token}` },
   });
-  return data;
+  return data; // ya devuelve message, isAuthenticated, isNew
 };
 
 export const fetchQrCode = async () => {
@@ -14,7 +14,7 @@ export const fetchQrCode = async () => {
   const { data } = await api.get("/whatsapp/qr", {
     headers: { Authorization: `Bearer ${token}` },
   });
-  return data.qr;
+  return data; // Devuelve { qr, message, status, isAuthenticated, timestamp }
 };
 
 export const getIsLoggedIn = async () => {
@@ -22,7 +22,7 @@ export const getIsLoggedIn = async () => {
   const { data } = await api.get("/whatsapp/status", {
     headers: { Authorization: `Bearer ${token}` },
   });
-  return data.isActive;
+  return data; // Devuelve { isActive, timestamp }
 };
 
 export const logoutWhatsappSession = async () => {
@@ -30,6 +30,5 @@ export const logoutWhatsappSession = async () => {
   const { data } = await api.get("/whatsapp/logout", {
     headers: { Authorization: `Bearer ${token}` },
   });
-  return data;
+  return data; // Devuelve { message, timestamp }
 };
-
