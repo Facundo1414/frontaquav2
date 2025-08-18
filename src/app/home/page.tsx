@@ -8,6 +8,8 @@ import { Check, Mail, MessageCircle, Plus, HelpCircle } from 'lucide-react'
 import { ServiceCard } from './components/ServiceCard'
 import { ModalEnDesarrollo } from './components/modal-en-desarrollo'
 import { WhatsappSessionModal } from './components/WhatsappSessionModal'
+import { useWhatsappStatus } from '@/hooks/useWhatsappStatus'
+import { getIsLoggedIn, initializeWhatsAppSession } from '@/lib/api'
 
 export default function HomePage() {
   const router = useRouter()
@@ -15,21 +17,51 @@ export default function HomePage() {
   const [isSessionReady, setIsSessionReady] = useState(false)
   const [modalVisible, setModalVisible] = useState(false)
   const [modalDevVisible, setModalDevVisible] = useState(false) // nuevo modal
+  const { status, loading } = useWhatsappStatus()
+
+
+const handleClick = () => {
+  if (status !== 'authenticated') {
+    toast.warning('Inicia sesión en WhatsApp para continuar')
+    setModalVisible(true)
+  } else {
+    router.push('/senddebts')
+  }
+}
 
   useEffect(() => {
-    setTimeout(() => {
-      setIsSessionReady(true)
-      setIsInitializing(false)
-    }, 1500)
-  }, [])
-
-  const handleClick = () => {
-    if (!isSessionReady) {
-      toast.warning('Inicia sesión en WhatsApp para continuar')
-    } else {
-      router.push('/senddebts')
+    const initSessionIfNeeded = async () => {
+      if (modalVisible && status !== 'authenticated') {
+        setIsInitializing(true)
+        try {
+          const result = await initializeWhatsAppSession()
+          if (result.isAuthenticated) {
+            setIsSessionReady(true)
+          } else {
+            setIsSessionReady(false)
+          }
+        } catch (err) {
+          console.error('Error iniciando sesión WhatsApp:', err)
+          setIsSessionReady(false)
+        } finally {
+          setIsInitializing(false)
+        }
+      }
     }
-  }
+
+    initSessionIfNeeded()
+  }, [modalVisible])
+
+  useEffect(() => {
+    if (!modalVisible) return;
+    const interval = setInterval(async () => {
+      const data = await getIsLoggedIn()
+      setIsSessionReady(data.isActive)
+    }, 5000) // chequea cada 5 segundos
+
+    return () => clearInterval(interval)
+  }, [modalVisible])
+
 
   return (
     <>
@@ -82,6 +114,38 @@ export default function HomePage() {
           color="bg-blue-500"
         />
       </div>
+
+      {/* Sección de feedback de sesión WhatsApp */}
+        <div className="mt-10 p-6 bg-white rounded-lg shadow-md flex flex-col items-center space-y-4">
+          <h3 className="text-xl font-semibold">Estado de WhatsApp</h3>
+
+          {loading ? (
+            <div className="flex items-center space-x-2">
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500" />
+              <span>Cargando estado de la sesión...</span>
+            </div>
+          ) : status === 'authenticated' ? (
+            <div className="flex items-center space-x-2">
+              <Check className="text-green-500 w-6 h-6" />
+              <span>Sesión activa. ¡Listo para enviar mensajes!</span>
+            </div>
+          ) : status === 'ready' ? (
+            <div className="flex items-center space-x-2">
+              <span>QR generado. Escanea para iniciar sesión.</span>
+            </div>
+          ) : status === 'pending' ? (
+            <div className="flex items-center space-x-2">
+              <div className="animate-pulse h-6 w-6 bg-yellow-400 rounded-full" />
+              <span>Sesión pendiente...</span>
+            </div>
+          ) : (
+            <div className="flex items-center space-x-2">
+              <span>Sesión desconectada o no iniciada. Por favor, inicia sesión.</span>
+            </div>
+          )}
+        </div>
+
+
 
       {/* Modal para sesión de WhatsApp */}
       <Dialog open={modalVisible} onOpenChange={setModalVisible}>

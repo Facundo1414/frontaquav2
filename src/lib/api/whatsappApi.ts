@@ -32,3 +32,11 @@ export const logoutWhatsappSession = async () => {
   });
   return data; // Devuelve { message, timestamp }
 };
+
+export const status = async () => {
+  const token = getAccessToken();
+  const { data } = await api.get("/whatsapp/status", {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return data; // Devuelve { isActive, timestamp }
+};
