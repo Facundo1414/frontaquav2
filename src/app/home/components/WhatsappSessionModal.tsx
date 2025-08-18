@@ -23,44 +23,56 @@ export const WhatsappSessionModal: React.FC<WhatsappSessionModalProps> = ({ open
     let interval: NodeJS.Timeout
 
     const checkAndInitialize = async () => {
-      setIsLoading(true)
-      try {
-        // 1️⃣ Revisar si la sesión ya está activa
-        const statusResponse = await getIsLoggedIn()
-        if (statusResponse.isActive) {
-          setIsSessionReady(true)
-          toast.success('Sesión activa en WhatsApp')
-        } else {
-          // 2️⃣ Inicializar sesión en el worker
-          const initResponse = await initializeWhatsAppSession()
-          setStatusMessage(initResponse.message || 'Iniciando sesión...')
-
-          // 3️⃣ Obtener QR desde backend principal
-          const qrResponse = await fetchQrCode()
-          if (qrResponse.qr) {
-            const qrImage = await QRCode.toDataURL(qrResponse.qr)
-            setQrCode(qrImage)
-          }
-          setStatusMessage(qrResponse.message || 'Escaneá el QR para iniciar sesión')
-
-          // 4️⃣ Polling hasta que la sesión se active
-          interval = setInterval(async () => {
-            const activeResponse = await getIsLoggedIn()
-            if (activeResponse.isActive) {
-              clearInterval(interval)
-              setIsSessionReady(true)
-              setStatusMessage('Sesión iniciada correctamente')
-              toast.success('Sesión iniciada correctamente')
-            }
-          }, 15000)
-        }
-      } catch (err: any) {
-        console.error(err)
-        toast.error(err.message || 'Error al iniciar sesión en WhatsApp')
-      } finally {
-        setIsLoading(false)
+    setIsLoading(true)
+    try {
+      // 1️⃣ Revisar si la sesión ya está activa
+      const statusResponse = await getIsLoggedIn()
+      if (statusResponse.isActive) {
+        setIsSessionReady(true)
+        setStatusMessage('Sesión ya activa en WhatsApp')
+        toast.success('Sesión activa en WhatsApp')
+        return // 🚀 no seguimos
       }
-    }
+
+      // 2️⃣ Inicializar sesión en el worker
+      const initResponse = await initializeWhatsAppSession()
+      setStatusMessage(initResponse.message || 'Iniciando sesión...')
+
+      // 3️⃣ Obtener QR desde backend principal
+      const qrResponse = await fetchQrCode()
+
+      // ✅ Si ya está autenticado, no necesitamos QR
+      if (qrResponse.isAuthenticated) {
+        setIsSessionReady(true)
+        setStatusMessage('Sesión ya autenticada en WhatsApp')
+        toast.success('Sesión ya autenticada en WhatsApp')
+        return
+      }
+
+      if (qrResponse.qr) {
+        const qrImage = await QRCode.toDataURL(qrResponse.qr)
+        setQrCode(qrImage)
+      }
+      setStatusMessage(qrResponse.message || 'Escaneá el QR para iniciar sesión')
+
+      // 4️⃣ Polling hasta que la sesión se active
+      interval = setInterval(async () => {
+        const activeResponse = await getIsLoggedIn()
+        if (activeResponse.isActive) {
+          clearInterval(interval)
+          setIsSessionReady(true)
+          setStatusMessage('Sesión iniciada correctamente')
+          toast.success('Sesión iniciada correctamente')
+        }
+      }, 15000)
+  } catch (err: any) {
+    console.error(err)
+    toast.error(err.message || 'Error al iniciar sesión en WhatsApp')
+  } finally {
+    setIsLoading(false)
+  }
+}
+
 
     if (open) {
       checkAndInitialize()

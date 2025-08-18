@@ -18,9 +18,14 @@ export function StepSend() {
     setNotWhatsappData
   } = useSendDebtsContext()
 
-  const [message, setMessage] = useState(
-    "Hola, te enviamos un recordatorio de tu deuda pendiente. ¡Gracias!"
-  )
+const [message, setMessage] = useState(`Hola \${clientName}, te envío el PDF actualizado de la CUOTA PLAN DE PAGOS. 
+Por favor, no dejes que venza. Puedes realizar el abono en cualquier Rapipago, Pago Fácil o a través de Mercado Pago.
+
+🌐 Cclip 🔹 Al servicio de Aguas Cordobesas.`);
+
+
+
+
   const [loading, setLoading] = useState(false)
   const [status, setStatus] = useState<string | null>(null)
 
