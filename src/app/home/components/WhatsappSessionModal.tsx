@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { initializeWhatsAppSession, fetchQrCode, getIsLoggedIn } from '@/lib/api'
+import { initializeWhatsAppSession, fetchQrCode } from '@/lib/api'
+import { getWhatsappStatus } from '@/lib/api/whatsappApi'
 import QRCode from 'qrcode'
 import { toast } from 'sonner'
 import Image from 'next/image'
@@ -18,6 +19,7 @@ export const WhatsappSessionModal: React.FC<WhatsappSessionModalProps> = ({ open
   const [isLoading, setIsLoading] = useState(true)
   const [isSessionReady, setIsSessionReady] = useState(false)
   const [statusMessage, setStatusMessage] = useState<string | null>(null)
+  const [sessionStatus, setSessionStatus] = useState<string | null>(null)
 
   useEffect(() => {
     let interval: NodeJS.Timeout
@@ -26,11 +28,12 @@ export const WhatsappSessionModal: React.FC<WhatsappSessionModalProps> = ({ open
     setIsLoading(true)
     try {
       // 1️⃣ Revisar si la sesión ya está activa
-      const statusResponse = await getIsLoggedIn()
-      if (statusResponse.isActive) {
+      const statusResponse = await getWhatsappStatus()
+      setSessionStatus(statusResponse.status)
+      if (statusResponse.status === 'authenticated') {
         setIsSessionReady(true)
-        setStatusMessage('Sesión ya activa en WhatsApp')
-        toast.success('Sesión activa en WhatsApp')
+        setStatusMessage('Sesión ya autenticada en WhatsApp')
+        toast.success('Sesión autenticada en WhatsApp')
         return // 🚀 no seguimos
       }
 
@@ -44,6 +47,7 @@ export const WhatsappSessionModal: React.FC<WhatsappSessionModalProps> = ({ open
       // ✅ Si ya está autenticado, no necesitamos QR
       if (qrResponse.isAuthenticated) {
         setIsSessionReady(true)
+        setSessionStatus('authenticated')
         setStatusMessage('Sesión ya autenticada en WhatsApp')
         toast.success('Sesión ya autenticada en WhatsApp')
         return
@@ -57,8 +61,9 @@ export const WhatsappSessionModal: React.FC<WhatsappSessionModalProps> = ({ open
 
       // 4️⃣ Polling hasta que la sesión se active
       interval = setInterval(async () => {
-        const activeResponse = await getIsLoggedIn()
-        if (activeResponse.isActive) {
+        const activeResponse = await getWhatsappStatus()
+        setSessionStatus(activeResponse.status)
+        if (activeResponse.status === 'authenticated') {
           clearInterval(interval)
           setIsSessionReady(true)
           setStatusMessage('Sesión iniciada correctamente')
@@ -97,9 +102,9 @@ export const WhatsappSessionModal: React.FC<WhatsappSessionModalProps> = ({ open
               Cargando sesión de WhatsApp...
             </div>
           </div>
-        ) : isSessionReady ? (
+        ) : isSessionReady && sessionStatus === 'authenticated' ? (
           <div className="text-center py-6 text-green-600 font-semibold">
-            Sesión ya activa. ¡Listo para enviar mensajes!
+            ¡Listo para enviar mensajes!
           </div>
         ) : (
           <div className="flex flex-col md:flex-row gap-6 py-4">

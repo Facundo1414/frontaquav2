@@ -9,7 +9,8 @@ import { ServiceCard } from './components/ServiceCard'
 import { ModalEnDesarrollo } from './components/modal-en-desarrollo'
 import { WhatsappSessionModal } from './components/WhatsappSessionModal'
 import { useWhatsappStatus } from '@/hooks/useWhatsappStatus'
-import { getIsLoggedIn, initializeWhatsAppSession } from '@/lib/api'
+import { initializeWhatsAppSession } from '@/lib/api'
+import { getWhatsappStatus } from '@/lib/api/whatsappApi'
 
 export default function HomePage() {
   const router = useRouter()
@@ -55,13 +56,25 @@ const handleClick = () => {
   useEffect(() => {
     if (!modalVisible) return;
     const interval = setInterval(async () => {
-      const data = await getIsLoggedIn()
+      const data = await getWhatsappStatus()
       setIsSessionReady(data.isActive)
     }, 5000) // chequea cada 5 segundos
 
     return () => clearInterval(interval)
   }, [modalVisible])
 
+
+
+  // Mensajes claros según status
+  const statusMessages: Record<string, string> = {
+    pending: 'Esperando inicio de sesión... (No hay cliente en memoria)',
+    ready: 'QR generado. Escanea para iniciar sesión.',
+    authenticated: 'Sesión activa. ¡Listo para enviar mensajes!',
+    disconnected: 'Sesión desconectada. Vuelve a iniciar sesión.',
+    initializing: 'Inicializando sesión de WhatsApp...',
+    restoring: 'Restaurando sesión guardada, por favor espera...',
+    inactive: 'Sesión inactiva. Por favor, inicia sesión.',
+  };
 
   return (
     <>
@@ -116,34 +129,22 @@ const handleClick = () => {
       </div>
 
       {/* Sección de feedback de sesión WhatsApp */}
-        <div className="mt-10 p-6 bg-white rounded-lg shadow-md flex flex-col items-center space-y-4">
-          <h3 className="text-xl font-semibold">Estado de WhatsApp</h3>
-
-          {loading ? (
-            <div className="flex items-center space-x-2">
-              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500" />
-              <span>Cargando estado de la sesión...</span>
-            </div>
-          ) : status === 'authenticated' ? (
-            <div className="flex items-center space-x-2">
-              <Check className="text-green-500 w-6 h-6" />
-              <span>Sesión activa. ¡Listo para enviar mensajes!</span>
-            </div>
-          ) : status === 'ready' ? (
-            <div className="flex items-center space-x-2">
-              <span>QR generado. Escanea para iniciar sesión.</span>
-            </div>
-          ) : status === 'pending' ? (
-            <div className="flex items-center space-x-2">
-              <div className="animate-pulse h-6 w-6 bg-yellow-400 rounded-full" />
-              <span>Sesión pendiente...</span>
-            </div>
-          ) : (
-            <div className="flex items-center space-x-2">
-              <span>Sesión desconectada o no iniciada. Por favor, inicia sesión.</span>
-            </div>
-          )}
-        </div>
+      <div className="mt-10 p-6 bg-white rounded-lg shadow-md flex flex-col items-center space-y-4">
+        <h3 className="text-xl font-semibold">Estado de WhatsApp</h3>
+        {loading ? (
+          <div className="flex items-center space-x-2">
+            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500" />
+            <span>Cargando estado de la sesión...</span>
+          </div>
+        ) : (
+          <div className="flex items-center space-x-2">
+            {status === 'authenticated' && <Check className="text-green-500 w-6 h-6" />}
+            {status === 'ready' && <span role="img" aria-label="qr">📱</span>}
+            {status === 'pending' && <div className="animate-pulse h-6 w-6 bg-yellow-400 rounded-full" />}
+            <span>{statusMessages[status] || 'Estado desconocido'}</span>
+          </div>
+        )}
+      </div>
 
 
 
