@@ -9,7 +9,7 @@ export const sendAndScrape = async (
 
   try {
     const response = await api.post(
-      "/process/process-file",
+      "/api/process/process-file",
       {
         filename: fileName,
         message: caption,
