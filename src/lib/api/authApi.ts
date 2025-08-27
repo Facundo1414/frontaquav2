@@ -21,7 +21,9 @@ export const checkValidateToken = async (): Promise<boolean> => {
   const token = getAccessToken();
 
   try {
-  const response = await api.post("/api/auth/validate-token", { accessToken: token });
+    const response = await api.post("/api/auth/validate-token", {
+      accessToken: token,
+    });
     return response.status === 200;
   } catch {
     return false;
