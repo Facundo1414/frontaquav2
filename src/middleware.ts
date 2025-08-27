@@ -3,7 +3,7 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
-// Rutas que no requieren autenticación
+// Rutas que no requieren autenticación.
 const PUBLIC_PATHS = [
   '/login',
   '/register',
