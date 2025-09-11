@@ -69,7 +69,7 @@ export const WhatsappSessionModal: React.FC<WhatsappSessionModalProps> = ({ open
           setStatusMessage('Sesión iniciada correctamente')
           toast.success('Sesión iniciada correctamente')
         }
-      }, 15000)
+      }, 20000)
   } catch (err: any) {
     console.error(err)
     toast.error(err.message || 'Error al iniciar sesión en WhatsApp')

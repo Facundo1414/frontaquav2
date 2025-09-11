@@ -58,7 +58,7 @@ const handleClick = () => {
     const interval = setInterval(async () => {
       const data = await getWhatsappStatus()
       setIsSessionReady(data.isActive)
-    }, 5000) // chequea cada 5 segundos
+    }, 30000) // chequea cada 30 segundos
 
     return () => clearInterval(interval)
   }, [modalVisible])
