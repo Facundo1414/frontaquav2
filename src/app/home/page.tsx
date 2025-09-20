@@ -1,83 +1,75 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { toast } from 'sonner'
+import {  useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Check, Mail, MessageCircle, Plus, HelpCircle } from 'lucide-react'
 import { ServiceCard } from './components/ServiceCard'
 import { ModalEnDesarrollo } from './components/modal-en-desarrollo'
 import { WhatsappSessionModal } from './components/WhatsappSessionModal'
-import { useWhatsappStatus } from '@/hooks/useWhatsappStatus'
-import { initializeWhatsAppSession } from '@/lib/api'
-import { getWhatsappStatus } from '@/lib/api/whatsappApi'
+import { useWhatsappSessionContext } from '@/app/providers/context/whatsapp/WhatsappSessionContext'
+import { simpleWaState } from '@/lib/api/simpleWaApi'
+
 
 export default function HomePage() {
   const router = useRouter()
-  const [isInitializing, setIsInitializing] = useState(true)
-  const [isSessionReady, setIsSessionReady] = useState(false)
+  // Eliminamos flags duplicados; se deriva de status global (navbar) o se muestra modal
   const [modalVisible, setModalVisible] = useState(false)
   const [modalDevVisible, setModalDevVisible] = useState(false) // nuevo modal
-  const { status, loading } = useWhatsappStatus()
+  // Consumimos el snapshot global (estado único)
+  const { snapshot, updateFromStatus } = useWhatsappSessionContext() as any
+  // Nuevo modelo simplificado: snapshot.state ('none'|'launching'|'waiting_qr'|'syncing'|'ready'|'closing')
+  const effectiveState = snapshot?.state || 'none'
+  const isReady = !!snapshot?.ready
 
 
-const handleClick = () => {
-  if (status !== 'authenticated') {
-    toast.warning('Inicia sesión en WhatsApp para continuar')
-    setModalVisible(true)
+const handleClick = async () => {
+  // Consultar snapshot orquestador actual para evitar abrir modal innecesario
+  try {
+    const st = await simpleWaState(); // { worker, authenticated, ready, hasQR, qr? }
+    const mappedState = st.ready
+      ? 'ready'
+      : (st.authenticated
+          ? 'syncing'
+          : (st.hasQR ? 'waiting_qr' : 'launching'));
+    updateFromStatus({ state: mappedState, qr: st.qr || null });
+    if (st.ready || st.authenticated) {
+      router.push('/senddebts');
+      return;
+    }
+  } catch {/* ignorar y continuar */}
+  if (!isReady) {
+    setModalVisible(true);
   } else {
-    router.push('/senddebts')
+    router.push('/senddebts');
   }
 }
 
-  useEffect(() => {
-    const initSessionIfNeeded = async () => {
-      if (modalVisible && status !== 'authenticated') {
-        setIsInitializing(true)
-        try {
-          const result = await initializeWhatsAppSession()
-          if (result.isAuthenticated) {
-            setIsSessionReady(true)
-          } else {
-            setIsSessionReady(false)
-          }
-        } catch (err) {
-          console.error('Error iniciando sesión WhatsApp:', err)
-          setIsSessionReady(false)
-        } finally {
-          setIsInitializing(false)
-        }
-      }
-    }
+  // Eliminada lógica de init duplicada: el modal ya llama a /init y abre SSE.
 
-    initSessionIfNeeded()
-  }, [modalVisible])
 
-  useEffect(() => {
-    if (!modalVisible) return;
-    const interval = setInterval(async () => {
-      const data = await getWhatsappStatus()
-      setIsSessionReady(data.isActive)
-    }, 30000) // chequea cada 30 segundos
-
-    return () => clearInterval(interval)
-  }, [modalVisible])
 
 
 
   // Mensajes claros según status
   const statusMessages: Record<string, string> = {
-    pending: 'Esperando inicio de sesión... (No hay cliente en memoria)',
-    ready: 'QR generado. Escanea para iniciar sesión.',
-    authenticated: 'Sesión activa. ¡Listo para enviar mensajes!',
-    disconnected: 'Sesión desconectada. Vuelve a iniciar sesión.',
-    initializing: 'Inicializando sesión de WhatsApp...',
-    restoring: 'Restaurando sesión guardada, por favor espera...',
-    inactive: 'Sesión inactiva. Por favor, inicia sesión.',
-  };
+    none: 'Iniciá sesión para comenzar.',
+    launching: 'Inicializando...',
+    waiting_qr: 'Escaneá el QR para iniciar sesión.',
+    syncing: 'Autenticado. Sincronizando...',
+    ready: 'Sesión lista.',
+    closing: 'Cerrando sesión...'
+  }
+
+  function getAccessToken(): string {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('accessToken') || ''
+    }
+    return ''
+  }
 
   return (
-    <>
+  <div className="flex w-full min-h-screen">
+      <div className="flex-1 px-6 pb-10">
       {/* Header */}
       <div className="relative flex justify-between items-center bg-white shadow-md rounded-lg p-6 mb-6">
         <div 
@@ -108,12 +100,14 @@ const handleClick = () => {
           onClick={handleClick}
           color="bg-teal-500"
         />
-        <ServiceCard
-          icon={<MessageCircle className="w-6 h-6 text-white" />}
-          title="Iniciar sesión en WhatsApp"
-          onClick={() => setModalVisible(true)}
-          color="bg-blue-500"
-        />
+  {!isReady && (
+          <ServiceCard
+            icon={<MessageCircle className="w-6 h-6 text-white" />}
+            title="Iniciar sesión en WhatsApp"
+            onClick={() => setModalVisible(true)}
+            color="bg-blue-500"
+          />
+        )}
         <ServiceCard
           icon={<Plus className="w-6 h-6 text-white" />}
           title="Guardar Clientes"
@@ -131,48 +125,30 @@ const handleClick = () => {
       {/* Sección de feedback de sesión WhatsApp */}
       <div className="mt-10 p-6 bg-white rounded-lg shadow-md flex flex-col items-center space-y-4">
         <h3 className="text-xl font-semibold">Estado de WhatsApp</h3>
-        {loading ? (
-          <div className="flex items-center space-x-2">
-            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500" />
-            <span>Cargando estado de la sesión...</span>
-          </div>
-        ) : (
-          <div className="flex items-center space-x-2">
-            {status === 'authenticated' && <Check className="text-green-500 w-6 h-6" />}
-            {status === 'ready' && <span role="img" aria-label="qr">📱</span>}
-            {status === 'pending' && <div className="animate-pulse h-6 w-6 bg-yellow-400 rounded-full" />}
-            <span>{statusMessages[status] || 'Estado desconocido'}</span>
-          </div>
-        )}
+        <div className="flex items-center space-x-2">
+          {effectiveState === 'ready' && <Check className="text-green-500 w-6 h-6" />}
+          {effectiveState === 'syncing' && <div className="animate-spin h-6 w-6 border-2 border-green-500 border-t-transparent rounded-full" />}
+          {effectiveState === 'waiting_qr' && <span role="img" aria-label="qr">📱</span>}
+          {!['ready','syncing','waiting_qr'].includes(effectiveState) && (
+            <div className="animate-pulse h-6 w-6 bg-yellow-400 rounded-full" />
+          )}
+          <span>{statusMessages[effectiveState] || 'Estado desconocido'}</span>
+        </div>
       </div>
 
 
 
-      {/* Modal para sesión de WhatsApp */}
-      <Dialog open={modalVisible} onOpenChange={setModalVisible}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Iniciando sesión en WhatsApp</DialogTitle>
-          </DialogHeader>
-          {isInitializing ? (
-            <div className="flex items-center space-x-2 py-4">
-              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary" />
-              <span>Verificando sesión activa...</span>
-            </div>
-          ) : (
-            <div className="flex items-center space-x-2 py-4">
-              <Check className="text-green-500" />
-              <span>Sesión activa. ¡Listo para enviar!</span>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
-
-      {/* Modal en desarrollo */}
+      {/* Modal en desarrollo (otros features) */}
       <ModalEnDesarrollo open={modalDevVisible} onOpenChange={setModalDevVisible} />
 
-      {/* Modal de whatsapp */}
-      <WhatsappSessionModal open={modalVisible} onOpenChange={setModalVisible} />
-    </>
+      {/* Modal WhatsApp unificado (usa SSE + regeneraciones) */}
+      <WhatsappSessionModal
+        open={modalVisible}
+        onOpenChange={setModalVisible}
+        token={getAccessToken() || ''}
+        autoCloseOnAuth
+      />
+      </div>
+    </div>
   )
 }

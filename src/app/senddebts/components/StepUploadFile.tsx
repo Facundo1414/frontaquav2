@@ -11,6 +11,7 @@ import {
 } from '@/lib/api'
 import { parseExcelBlob, parseExcelBlobWithIndexMapping } from '@/utils/parseExcelBlob'
 import { useSendDebtsContext } from '@/app/providers/context/SendDebtsContext'
+import { useWhatsappSessionContext } from '@/app/providers/context/whatsapp/WhatsappSessionContext'
 
 export default function StepUploadFile() {
   const [file, setFile] = useState<File | null>(null)
@@ -19,6 +20,8 @@ export default function StepUploadFile() {
   const fileInputRef = useRef<HTMLInputElement | null>(null)
 
   const { setActiveStep, setRawData, setFilteredData, setFileNameFiltered, setNotWhatsappData } = useSendDebtsContext()
+  const { snapshot } = useWhatsappSessionContext()
+  const syncing = !snapshot?.ready
 
   const processFile = async (selected: File) => {
     setFile(selected)
@@ -36,6 +39,9 @@ export default function StepUploadFile() {
   }
 
   const handleUpload = async () => {
+    if (syncing) {
+      return toast.info('Esperá a que termine la sincronización de WhatsApp antes de filtrar.');
+    }
     if (!file) return toast.error('Seleccioná un archivo primero')
 
     try {
@@ -134,13 +140,16 @@ export default function StepUploadFile() {
 
       {/* Botones abajo */}
       <div className="mt-auto flex items-center gap-4 pt-4">
-        <Button variant="secondary" onClick={handleCancel} disabled={uploading} className='bg-red-100'>
+        <Button variant="secondary" onClick={handleCancel} disabled={uploading || syncing} className='bg-red-100'>
           Eliminar
         </Button>
-        <Button onClick={handleUpload} disabled={!file || uploading}>
+        <Button onClick={handleUpload} disabled={!file || uploading || syncing}>
           {uploading ? 'Filtrando...' : 'Filtrar archivo'}
         </Button>
       </div>
+      {syncing && (
+        <p className="text-xs mt-2 text-amber-600">Sincronizando WhatsApp… Podés ver el estado arriba. Las acciones estarán disponibles en segundos.</p>
+      )}
     </motion.div>
   )
 }

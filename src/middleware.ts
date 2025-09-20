@@ -12,7 +12,6 @@ const PUBLIC_PATHS = [
   '/_next',
   '/images',
   '/fonts',
-  '/frontaquav2/public/bg_topEspacioClientes.jpg'
 ]
 
 export function middleware(request: NextRequest) {

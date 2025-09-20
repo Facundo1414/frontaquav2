@@ -2,6 +2,7 @@
 import { useSendDebtsContext } from '@/app/providers/context/SendDebtsContext'
 import { sendAndScrape } from '@/lib/api'
 import { useState } from 'react'
+import { useWhatsappSessionContext } from '@/app/providers/context/whatsapp/WhatsappSessionContext'
 import { motion } from 'framer-motion'
 import { Button } from '@/components/ui/button'
 import { Loader2 } from 'lucide-react'
@@ -17,6 +18,9 @@ export function StepSend() {
     setFileNameFiltered,
     setNotWhatsappData
   } = useSendDebtsContext()
+  const { snapshot } = useWhatsappSessionContext()
+  // Nuevo modelo: snapshot?.ready indica disponibilidad total. Consideramos "syncing" si no está ready aún.
+  const syncing = !snapshot?.ready
 
 const [message, setMessage] = useState(`Hola \${clientName}, te envío el PDF actualizado de la CUOTA PLAN DE PAGOS. 
 Por favor, no dejes que venza. Puedes realizar el abono en cualquier Rapipago, Pago Fácil o a través de Mercado Pago.
@@ -30,6 +34,10 @@ Por favor, no dejes que venza. Puedes realizar el abono en cualquier Rapipago, P
   const [status, setStatus] = useState<string | null>(null)
 
   const handleSend = async () => {
+    if (syncing) {
+      setStatus('Esperá a que termine la sincronización de WhatsApp antes de enviar.');
+      return;
+    }
     if (!fileNameFiltered) {
       setStatus("No hay archivo filtrado para enviar.")
       return
@@ -107,19 +115,22 @@ Por favor, no dejes que venza. Puedes realizar el abono en cualquier Rapipago, P
         <Button
           variant="outline"
           onClick={handleCancel}
-          disabled={loading}
+          disabled={loading || syncing}
           className='bg-red-100'
         >
           Cancelar
         </Button>
         <Button
           onClick={handleSend}
-          disabled={loading}
+          disabled={loading || syncing}
           className=""
         >
           {loading ? 'Enviando...' : 'Enviar deudas'}
         </Button>
       </div>
+      {syncing && (
+        <p className="text-xs mt-2 text-amber-600">Sincronizando WhatsApp. El envío se habilitará automáticamente al finalizar.</p>
+      )}
     </motion.div>
   )
 }

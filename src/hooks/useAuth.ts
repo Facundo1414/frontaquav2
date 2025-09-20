@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from "react"
-import { initializeWhatsAppSession, userLogin, checkValidateToken } from "../lib/api"
+import {  userLogin, checkValidateToken } from "../lib/api"
 import { useGlobalContext } from "@/app/providers/context/GlobalContext"
 import { useRouter } from "next/navigation"
 
@@ -22,8 +22,6 @@ export const useAuth = () => {
         localStorage.setItem("accessToken", result.accessToken)
         localStorage.setItem("refreshToken", result.refreshToken)
         localStorage.setItem("username", result.user.email || email)
-
-        initializeWhatsAppSession().catch(console.warn)
 
         return { success: true, username: result.user.email || email }
       } catch (error: any) {

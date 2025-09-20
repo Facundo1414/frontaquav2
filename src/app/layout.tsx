@@ -5,6 +5,7 @@ import { Toaster } from '@/components/ui/sonner'
 import { GlobalProvider } from '@/app/providers/context/GlobalContext'
 import PrivateLayout from './PrivateLayout'
 import LayoutWrapper from './LayoutWrapper' // <- Importa el nuevo wrapper
+import { WhatsappSessionProvider } from '@/app/providers/context/whatsapp/WhatsappSessionContext'
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -34,10 +35,12 @@ export default function RootLayout({
       >
         <GlobalProvider>
           <PrivateLayout>
-            <LayoutWrapper>
-              {children}
-            </LayoutWrapper>
-            <Toaster position="top-right" />
+            <WhatsappSessionProvider>
+              <LayoutWrapper>
+                {children}
+              </LayoutWrapper>
+              <Toaster position="top-right" />
+            </WhatsappSessionProvider>
           </PrivateLayout>
         </GlobalProvider>
       </body>
