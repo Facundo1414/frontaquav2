@@ -20,9 +20,10 @@ export const WhatsappSessionModal: React.FC<WhatsappSessionModalProps> = ({ open
   const state = simple.status
   const qr = simple.qr
   const isAuthenticated = simple.ready
-  const manualRefresh = () => simple.start()
+  const manualRefresh = () => simple.start(true)
   const error = simple.error
   const start = simple.start
+  const lastUpdated = simple.lastUpdated
   const [qrImage, setQrImage] = useState<string | null>(null)
 
   // Start flow when modal opens
@@ -107,8 +108,11 @@ export const WhatsappSessionModal: React.FC<WhatsappSessionModalProps> = ({ open
                       className="mt-1 inline-flex items-center gap-1 rounded border px-2 py-1 text-[11px] hover:bg-muted transition"
                       disabled={showSpinner}
                     >
-                      Refrescar
+                      <RefreshCw className="h-3 w-3" /> Refrescar
                     </button>
+                    {lastUpdated && (
+                      <span className="text-[10px] text-muted-foreground">Actualizado: {new Date(lastUpdated).toLocaleTimeString()}</span>
+                    )}
                   </div>
                 </>
               )}

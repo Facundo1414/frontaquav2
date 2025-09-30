@@ -1,9 +1,9 @@
 'use client'
 import { useSendDebtsContext } from '@/app/providers/context/SendDebtsContext'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { Button } from '@/components/ui/button'
-import { getFileByName } from '@/lib/api'
+import { getFileByName, listResultBackups } from '@/lib/api'
 import { Loader2 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { Home } from 'lucide-react'
@@ -24,6 +24,24 @@ export function StepDownload() {
 
   const [loadingResults, setLoadingResults] = useState(false)
   const [loadingNotWhats, setLoadingNotWhats] = useState(false)
+  const [backupFiles, setBackupFiles] = useState<string[]>([])
+  const [loadingBackups, setLoadingBackups] = useState(false)
+
+  useEffect(() => {
+    const fetchBackups = async () => {
+      if (processedFile) return
+      setLoadingBackups(true)
+      try {
+        const files = await listResultBackups()
+        setBackupFiles(files)
+      } catch (e) {
+        // no-op
+      } finally {
+        setLoadingBackups(false)
+      }
+    }
+    fetchBackups()
+  }, [processedFile])
 
   const handleDownloadResults = () => {
     if (!processedFile) {
@@ -93,20 +111,56 @@ export function StepDownload() {
             En la columna <strong>motivo</strong> se listan aquellos que no pudieron recibirlo y la razón correspondiente.
             </p>
         </div>
-        <Button
-            onClick={handleDownloadResults}
-            disabled={!processedFile || loadingResults}
-            className="w-auto h-10 mt-4"
-        >
-            {loadingResults ? (
-            <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Descargando...
-            </>
+        {processedFile ? (
+          <Button
+              onClick={handleDownloadResults}
+              disabled={!processedFile || loadingResults}
+              className="w-auto h-10 mt-4"
+          >
+              {loadingResults ? (
+              <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Descargando...
+              </>
+              ) : (
+              'Descargar Excel con resultados'
+              )}
+          </Button>
+        ) : (
+          <div className="mt-2">
+            <p className="text-sm text-amber-700">No se recibió el archivo de resultados. Podés descargar un respaldo:</p>
+            {loadingBackups ? (
+              <p className="text-xs text-muted-foreground">Buscando respaldos...</p>
+            ) : backupFiles.length > 0 ? (
+              <ul className="list-disc list-inside text-sm">
+                {backupFiles.map((name) => (
+                  <li key={name}>
+                    <button
+                      className="underline"
+                      onClick={async () => {
+                        try {
+                          const blob = await getFileByName(name)
+                          const url = window.URL.createObjectURL(blob)
+                          const a = document.createElement('a')
+                          a.href = url
+                          a.download = name
+                          document.body.appendChild(a)
+                          a.click()
+                          a.remove()
+                          window.URL.revokeObjectURL(url)
+                        } catch (e) {}
+                      }}
+                    >
+                      {name}
+                    </button>
+                  </li>
+                ))}
+              </ul>
             ) : (
-            'Descargar Excel con resultados'
+              <p className="text-xs text-muted-foreground">No hay respaldos disponibles para este usuario.</p>
             )}
-        </Button>
+          </div>
+        )}
         </div>
 
 

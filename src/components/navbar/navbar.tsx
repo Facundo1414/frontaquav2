@@ -81,6 +81,7 @@ export default function Navbar() {
 
 
     router.push('/login')
+    toast.success('Sesión cerrada')
   }
 
   const handleLogoutWhatsApp = async () => {
@@ -104,6 +105,7 @@ export default function Navbar() {
     }
     setEphemeralModalToken(at)
     setOpenWhatsappModal(true)
+    toast.info('Abriendo panel de WhatsApp...')
   }
 
   // Acciones administrativas (reinit/purge) eliminadas

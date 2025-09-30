@@ -1,6 +1,6 @@
 'use client'
 import { useSendDebtsContext } from '@/app/providers/context/SendDebtsContext'
-import { sendAndScrape } from '@/lib/api'
+import { sendAndScrape, listResultBackups, getFileByName } from '@/lib/api'
 import { useState } from 'react'
 import { useWhatsappSessionContext } from '@/app/providers/context/whatsapp/WhatsappSessionContext'
 import { motion } from 'framer-motion'
@@ -32,6 +32,7 @@ Por favor, no dejes que venza. Puedes realizar el abono en cualquier Rapipago, P
 
   const [loading, setLoading] = useState(false)
   const [status, setStatus] = useState<string | null>(null)
+  const [backupFiles, setBackupFiles] = useState<string[]>([])
 
   const handleSend = async () => {
     if (syncing) {
@@ -51,9 +52,15 @@ Por favor, no dejes que venza. Puedes realizar el abono en cualquier Rapipago, P
       setStatus(result.message)
       if (result.file) {
         setProcessedFile(result.file) 
+        setBackupFiles([])
       }
     } catch (error) {
       setStatus("Error al enviar las deudas. Intenta de nuevo.")
+      try {
+        // Intentar listar respaldos disponibles
+        const files = await listResultBackups()
+        setBackupFiles(files)
+      } catch {}
     } finally {
       setLoading(false)
       setActiveStep(2)
@@ -94,6 +101,40 @@ Por favor, no dejes que venza. Puedes realizar el abono en cualquier Rapipago, P
             Además, podrás seguir el proceso de envío directamente desde la app de WhatsApp en tu teléfono celular.
           </p>
         </div>
+        {status && (
+          <div className={`text-sm p-3 rounded ${status.startsWith('✅') ? 'bg-green-50 text-green-700' : 'bg-amber-50 text-amber-700'}`}>
+            {status}
+            {backupFiles.length > 0 && (
+              <div className="mt-2">
+                <p className="font-medium">Se encontraron archivos de respaldo:</p>
+                <ul className="list-disc list-inside text-xs">
+                  {backupFiles.map((name) => (
+                    <li key={name}>
+                      <button
+                        className="underline"
+                        onClick={async () => {
+                          try {
+                            const blob = await getFileByName(name)
+                            const url = window.URL.createObjectURL(blob)
+                            const a = document.createElement('a')
+                            a.href = url
+                            a.download = name
+                            document.body.appendChild(a)
+                            a.click()
+                            a.remove()
+                            window.URL.revokeObjectURL(url)
+                          } catch (e) {}
+                        }}
+                      >
+                        {name}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        )}
 
         <div className="space-y-2">
           <label htmlFor="message" className="block text-sm font-medium">

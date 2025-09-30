@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { toast } from 'sonner'
 import { motion } from 'framer-motion'
+import { Loader2 } from 'lucide-react'
 import {
   uploadExcelFile,
   getFileByName,
@@ -93,8 +94,17 @@ export default function StepUploadFile() {
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="w-full h-full flex flex-col"
+      className="w-full h-full flex flex-col relative"
     >
+      {/* Overlay de filtrado (igual estilo que el de envío) */}
+      {uploading && (
+        <div className="absolute inset-0 z-50 flex flex-col justify-center items-center bg-black/30 backdrop-blur-sm">
+          <Loader2 className="animate-spin h-12 w-12 text-white mb-4" />
+          <p className="text-white font-semibold text-lg">
+            Filtrando archivo, por favor espere...
+          </p>
+        </div>
+      )}
       <div className="flex flex-col space-y-6 flex-1">
         <div className="space-y-2">
           <Label htmlFor="file">Archivo Excel</Label>

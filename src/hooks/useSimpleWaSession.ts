@@ -12,7 +12,8 @@ interface SimpleWaSessionState {
   initializing: boolean;
   ready: boolean;
   error: string | null;
-  start: () => Promise<void>;
+  lastUpdated: number | null;
+  start: (force?: boolean) => Promise<void>;
   logoutPlaceholder?: () => Promise<void>; // future extension
 }
 
@@ -25,6 +26,7 @@ export function useSimpleWaSession({
   >("idle");
   const [qr, setQr] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [lastUpdated, setLastUpdated] = useState<number | null>(null);
   const pollingRef = useRef<NodeJS.Timeout | null>(null);
   const startedRef = useRef(false);
 
@@ -40,6 +42,7 @@ export function useSimpleWaSession({
     pollingRef.current = setInterval(async () => {
       try {
         const st = await simpleWaState();
+        setLastUpdated(Date.now());
         if (st.ready) {
           setStatus("ready");
           setQr(null);
@@ -47,6 +50,7 @@ export function useSimpleWaSession({
           return;
         }
         const { qr: current } = await simpleWaQR();
+        setLastUpdated(Date.now());
         if (current) {
           setQr(current);
           setStatus("qr");
@@ -57,32 +61,45 @@ export function useSimpleWaSession({
     }, pollIntervalMs);
   }, [pollIntervalMs]);
 
-  const start = useCallback(async () => {
-    if (startedRef.current) return;
-    startedRef.current = true;
-    setError(null);
-    setStatus("initializing");
-    try {
-      const init = await simpleWaInit();
-      if (init.ready) {
-        setStatus("ready");
-        return;
+  const start = useCallback(
+    async (force: boolean = false) => {
+      if (startedRef.current && !force) return;
+      // Reiniciar estado si es un reinicio forzado
+      if (force) {
+        clearPolling();
+        startedRef.current = false;
+        setQr(null);
+        setError(null);
+        setStatus("idle");
       }
-      if (init.hasQR) {
-        const q = await simpleWaQR();
-        setQr(q.qr || null);
-        setStatus(q.qr ? "qr" : "initializing");
-      } else {
-        // wait for first QR via polling
-        setStatus("initializing");
+      startedRef.current = true;
+      setError(null);
+      setStatus("initializing");
+      try {
+        const init = await simpleWaInit();
+        setLastUpdated(Date.now());
+        if (init.ready) {
+          setStatus("ready");
+          return;
+        }
+        if (init.hasQR) {
+          const q = await simpleWaQR();
+          setLastUpdated(Date.now());
+          setQr(q.qr || null);
+          setStatus(q.qr ? "qr" : "initializing");
+        } else {
+          // wait for first QR via polling
+          setStatus("initializing");
+        }
+        poll();
+      } catch (e: any) {
+        setError(e.message || "Error iniciando");
+        setStatus("idle");
+        startedRef.current = false; // allow retry
       }
-      poll();
-    } catch (e: any) {
-      setError(e.message || "Error iniciando");
-      setStatus("idle");
-      startedRef.current = false; // allow retry
-    }
-  }, [poll]);
+    },
+    [poll]
+  );
 
   useEffect(() => {
     if (auto) start();
@@ -95,6 +112,7 @@ export function useSimpleWaSession({
     initializing: status === "initializing",
     ready: status === "ready",
     error,
+    lastUpdated,
     start,
   };
 }

@@ -4,8 +4,6 @@ import './globals.css'
 import { Toaster } from '@/components/ui/sonner'
 import { GlobalProvider } from '@/app/providers/context/GlobalContext'
 import PrivateLayout from './PrivateLayout'
-import LayoutWrapper from './LayoutWrapper' // <- Importa el nuevo wrapper
-import { WhatsappSessionProvider } from '@/app/providers/context/whatsapp/WhatsappSessionContext'
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -34,14 +32,12 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased flex flex-col min-h-screen`}
       >
         <GlobalProvider>
+          {/* PrivateLayout decidirá si aplica wrappers (providers) según la ruta */}
           <PrivateLayout>
-            <WhatsappSessionProvider>
-              <LayoutWrapper>
-                {children}
-              </LayoutWrapper>
-              <Toaster position="top-right" />
-            </WhatsappSessionProvider>
+            {children}
           </PrivateLayout>
+          {/* El Toaster queda global para que también funcione en /login */}
+          <Toaster position="top-right" />
         </GlobalProvider>
       </body>
     </html>

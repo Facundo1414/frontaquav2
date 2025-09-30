@@ -29,3 +29,11 @@ export const checkFileStatus = async (fileName: string) => {
   });
   return data;
 };
+
+export const listResultBackups = async (): Promise<string[]> => {
+  const token = getAccessToken();
+  const { data } = await api.get("/upload/result-backups", {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return data?.files || [];
+};

@@ -83,6 +83,30 @@ const handleClick = async () => {
         <img src="/logoWater.png" alt="Logo" className="h-32 object-contain relative z-10" />
       </div>
 
+      {/* Banner de sesión WhatsApp no lista */}
+      {!isReady && (
+        <div
+          role="alert"
+          className="mb-8 rounded-lg border border-blue-200 bg-blue-50 text-blue-900 p-4 shadow-sm"
+        >
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div className="flex items-start gap-3">
+              <MessageCircle className="w-5 h-5 mt-0.5" />
+              <div>
+                <p className="font-semibold">Tu sesión de WhatsApp no está lista</p>
+                <p className="text-sm opacity-90">Iniciá sesión para poder enviar las deudas a tus clientes.</p>
+              </div>
+            </div>
+            <button
+              onClick={() => setModalVisible(true)}
+              className="inline-flex items-center justify-center rounded-md bg-blue-600 px-4 py-2 text-white text-sm font-medium hover:bg-blue-700 transition-colors"
+            >
+              Iniciar sesión en WhatsApp
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Servicios Header */}
       <div className="text-center mb-10">
         <h2 className="text-3xl font-bold">Nuestros Servicios</h2>
@@ -100,14 +124,6 @@ const handleClick = async () => {
           onClick={handleClick}
           color="bg-teal-500"
         />
-  {!isReady && (
-          <ServiceCard
-            icon={<MessageCircle className="w-6 h-6 text-white" />}
-            title="Iniciar sesión en WhatsApp"
-            onClick={() => setModalVisible(true)}
-            color="bg-blue-500"
-          />
-        )}
         <ServiceCard
           icon={<Plus className="w-6 h-6 text-white" />}
           title="Guardar Clientes"
@@ -122,19 +138,7 @@ const handleClick = async () => {
         />
       </div>
 
-      {/* Sección de feedback de sesión WhatsApp */}
-      <div className="mt-10 p-6 bg-white rounded-lg shadow-md flex flex-col items-center space-y-4">
-        <h3 className="text-xl font-semibold">Estado de WhatsApp</h3>
-        <div className="flex items-center space-x-2">
-          {effectiveState === 'ready' && <Check className="text-green-500 w-6 h-6" />}
-          {effectiveState === 'syncing' && <div className="animate-spin h-6 w-6 border-2 border-green-500 border-t-transparent rounded-full" />}
-          {effectiveState === 'waiting_qr' && <span role="img" aria-label="qr">📱</span>}
-          {!['ready','syncing','waiting_qr'].includes(effectiveState) && (
-            <div className="animate-pulse h-6 w-6 bg-yellow-400 rounded-full" />
-          )}
-          <span>{statusMessages[effectiveState] || 'Estado desconocido'}</span>
-        </div>
-      </div>
+      {/* Panel de estado duplicado removido: el banner inicial cubre esta función */}
 
 
 
