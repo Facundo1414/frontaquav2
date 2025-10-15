@@ -1,6 +1,7 @@
 //import { ExcelRow } from '@/components/extra/typesSendFilterProcessPage';
 'use client'
 import { createContext, useContext, useState, ReactNode, useEffect } from 'react';
+import { tokenManager } from '@/lib/tokenManager';
 
 interface GlobalContextType {
   //excelFileByUser: { data: ExcelRow[]; fileName: string; isSentOrUsed: boolean } | null;
@@ -31,6 +32,9 @@ export const GlobalProvider = ({ children }: { children: ReactNode }) => {
 
     const storedUsername = localStorage.getItem('username') ?? '';
     setUsernameGlobal(storedUsername);
+
+    // Inicializar el token manager
+    tokenManager.init();
   }, []);
 
   // Guardar accessToken en localStorage cuando cambia
@@ -51,11 +55,30 @@ export const GlobalProvider = ({ children }: { children: ReactNode }) => {
     else localStorage.removeItem('username');
   }, [usernameGlobal]);
 
+  // Función mejorada para setear tokens
+  const setAccessToken = (token: string) => {
+    setAccessTokenState(token);
+    const refreshTokenValue = localStorage.getItem('refreshToken');
+    if (token && refreshTokenValue) {
+      // Usar el token manager para manejar la expiración automáticamente
+      tokenManager.setTokens(token, refreshTokenValue);
+    }
+  };
+
+  const setRefreshToken = (token: string) => {
+    setRefreshTokenState(token);
+    const accessTokenValue = localStorage.getItem('accessToken');
+    if (token && accessTokenValue) {
+      // Usar el token manager para manejar la expiración automáticamente
+      tokenManager.setTokens(accessTokenValue, token);
+    }
+  };
+
 //   const setExcelFileByUser = (file: { data: ExcelRow[]; fileName: string; isSentOrUsed: boolean } | null) => {
 //     setExcelFileByUserState(file);
 //   };
 
-  const getToken = () => accessToken;
+  const getToken = () => tokenManager.getAccessToken() || '';
 
   return (
     <GlobalContext.Provider
@@ -63,9 +86,9 @@ export const GlobalProvider = ({ children }: { children: ReactNode }) => {
         // excelFileByUser,
         // setExcelFileByUser,
         accessToken,
-        setAccessToken: setAccessTokenState,
+        setAccessToken,
         refreshToken,
-        setRefreshToken: setRefreshTokenState,
+        setRefreshToken,
         getToken,
         usernameGlobal,
         setUsernameGlobal,

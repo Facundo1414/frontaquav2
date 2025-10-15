@@ -2,7 +2,7 @@
 
 import {  useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Check, Mail, MessageCircle, Plus, HelpCircle } from 'lucide-react'
+import { Check, Mail, MessageCircle, Plus, HelpCircle, Clock } from 'lucide-react'
 import { ServiceCard } from './components/ServiceCard'
 import { ModalEnDesarrollo } from './components/modal-en-desarrollo'
 import { WhatsappSessionModal } from './components/WhatsappSessionModal'
@@ -41,6 +41,28 @@ const handleClick = async () => {
     setModalVisible(true);
   } else {
     router.push('/senddebts');
+  }
+}
+
+const handleClickProximosVencer = async () => {
+  // Misma lógica de validación de sesión WhatsApp que el método original
+  try {
+    const st = await simpleWaState();
+    const mappedState = st.ready
+      ? 'ready'
+      : (st.authenticated
+          ? 'syncing'
+          : (st.hasQR ? 'waiting_qr' : 'launching'));
+    updateFromStatus({ state: mappedState, qr: st.qr || null });
+    if (st.ready || st.authenticated) {
+      router.push('/proximos-vencer');
+      return;
+    }
+  } catch {/* ignorar y continuar */}
+  if (!isReady) {
+    setModalVisible(true);
+  } else {
+    router.push('/proximos-vencer');
   }
 }
 
@@ -123,6 +145,12 @@ const handleClick = async () => {
           title="Enviar Deudas a Clientes"
           onClick={handleClick}
           color="bg-teal-500"
+        />
+        <ServiceCard
+          icon={<Clock className="w-6 h-6 text-white" />}
+          title="Enviar Recordatorios Preventivos"
+          onClick={handleClickProximosVencer}
+          color="bg-orange-500"
         />
         <ServiceCard
           icon={<Plus className="w-6 h-6 text-white" />}

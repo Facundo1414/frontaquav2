@@ -18,6 +18,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Home } from 'lucide-react'
 import { toast } from 'sonner'
+import { tokenManager } from '@/lib/tokenManager'
 import { useGlobalContext } from '@/app/providers/context/GlobalContext'
 import { userLogout } from '@/lib/api'
 import { simpleWaLogout } from '@/lib/api/simpleWaApi'
@@ -70,9 +71,8 @@ export default function Navbar() {
       toast.error('Error al cerrar sesión')
     }
 
-    localStorage.removeItem('accessToken')
-    localStorage.removeItem('refreshToken')
-    localStorage.removeItem('username')
+    // Usar el token manager para limpiar correctamente
+    tokenManager.clearTokens()
 
     setAccessToken('')
     setRefreshToken('')
