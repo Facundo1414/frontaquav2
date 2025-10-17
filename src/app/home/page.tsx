@@ -2,7 +2,7 @@
 
 import {  useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Check, Mail, MessageCircle, Plus, HelpCircle, Clock } from 'lucide-react'
+import { Check, Mail, MessageCircle, Plus, HelpCircle, Clock, Filter } from 'lucide-react'
 import { ServiceCard } from './components/ServiceCard'
 import { ModalEnDesarrollo } from './components/modal-en-desarrollo'
 import { WhatsappSessionModal } from './components/WhatsappSessionModal'
@@ -64,6 +64,11 @@ const handleClickProximosVencer = async () => {
   } else {
     router.push('/proximos-vencer');
   }
+}
+
+const handleClickFiltrarClientes = () => {
+  // No necesita sesión WhatsApp, va directo al filtro
+  router.push('/filtrar-clientes')
 }
 
   // Eliminada lógica de init duplicada: el modal ya llama a /init y abre SSE.
@@ -151,6 +156,12 @@ const handleClickProximosVencer = async () => {
           title="Enviar Recordatorios Preventivos"
           onClick={handleClickProximosVencer}
           color="bg-orange-500"
+        />
+        <ServiceCard
+          icon={<Filter className="w-6 h-6 text-white" />}
+          title="Filtrar Clientes para PYSE"
+          onClick={handleClickFiltrarClientes}
+          color="bg-purple-500"
         />
         <ServiceCard
           icon={<Plus className="w-6 h-6 text-white" />}
