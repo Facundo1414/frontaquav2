@@ -10,14 +10,31 @@ import { useGlobalContext } from '@/app/providers/context/GlobalContext'
 import { useProgressWebSocket } from '@/hooks/useProgressWebSocket'
 import { ProcessResults } from '../page'
 import { FiltrosBarrios } from './StepSeleccionarBarrios'
-import { checkDebtByNeighborhoods } from '@/lib/api'
+import { checkDebtByNeighborhoods, checkDebtByUnits } from '@/lib/api'
+
+interface Client {
+  id: string
+  unidad: string
+  distrito?: string
+  zona?: string
+  manzana?: string
+  parcela?: string
+  titular?: string
+  phone?: string
+  debt?: number
+  barrio_inm?: string
+  requiresNotification?: boolean
+  status?: 'pending' | 'notified' | 'visited'
+  processedDate?: string
+}
 
 interface StepVerificarDeudaProps {
-  filtros: FiltrosBarrios
+  selectedClients?: Client[] // 🔥 Nuevo: clientes desde BD
+  filtros?: FiltrosBarrios // Mantener compatibilidad con flujo viejo
   onComplete: (results: ProcessResults) => void
 }
 
-export function StepVerificarDeuda({ filtros, onComplete }: StepVerificarDeudaProps) {
+export function StepVerificarDeuda({ selectedClients, filtros, onComplete }: StepVerificarDeudaProps) {
   const [processing, setProcessing] = useState(false)
   const [progress, setProgress] = useState(0)
   const { getToken } = useGlobalContext()
@@ -49,8 +66,28 @@ export function StepVerificarDeuda({ filtros, onComplete }: StepVerificarDeudaPr
     resetProgress() // Resetear progreso del WebSocket
 
     try {
-      // Llamar al API con los filtros (el backend los aplicará)
-      const data: ProcessResults = await checkDebtByNeighborhoods(filtros.barrios, filtros)
+      let data: ProcessResults
+
+      // 🔥 Nuevo flujo: procesar clientes seleccionados desde BD
+      if (selectedClients && selectedClients.length > 0) {
+        // Extraer números de unidad
+        const unidades = selectedClients.map(c => parseInt(c.unidad))
+        
+        console.log(`🎯 Verificando deuda para ${unidades.length} unidades específicas...`)
+        
+        // Usar el nuevo endpoint optimizado
+        data = await checkDebtByUnits(unidades, {
+          minComprobantesVencidos: 3 // PYSE requiere mín. 3
+        })
+      }
+      // Flujo original: por barrios y filtros
+      else if (filtros) {
+        console.log(`📍 Verificando deuda por barrios (flujo legacy)...`)
+        data = await checkDebtByNeighborhoods(filtros.barrios, filtros)
+      }
+      else {
+        throw new Error('No hay clientes ni filtros seleccionados')
+      }
       
       setProgress(100)
       toast.success(`✅ Verificación completa: ${data.totalProcessed} cuentas procesadas`)
@@ -81,12 +118,12 @@ export function StepVerificarDeuda({ filtros, onComplete }: StepVerificarDeudaPr
             </div>
             <div className="flex-1">
               <h3 className="text-xl font-bold text-blue-900 mb-3">
-                🔍 Paso 3: Verificar Deuda en Aguas Cordobesas
+                🔍 Paso 2: Verificar Deuda en Aguas Cordobesas
               </h3>
               <div className="space-y-2 text-sm">
                 <p className="text-blue-800">
                   <strong>⚡ ¿Qué hace este paso?</strong> El sistema consultará automáticamente 
-                  el estado de deuda de cada cuenta en los barrios que seleccionaste.
+                  el estado de deuda de cada cuenta seleccionada.
                 </p>
                 
                 <div className="mt-3 p-3 bg-white border-2 border-blue-200 rounded-lg">
@@ -123,44 +160,71 @@ export function StepVerificarDeuda({ filtros, onComplete }: StepVerificarDeudaPr
         </CardContent>
       </Card>
 
-      {/* Neighborhoods Summary */}
+      {/* Summary: Clientes o Barrios */}
       <Card>
         <CardContent className="p-4">
-          <h3 className="font-medium mb-3">Barrios seleccionados ({filtros.barrios.length}):</h3>
-          <div className="flex flex-wrap gap-2">
-            {filtros.barrios.map((barrio) => (
-              <span
-                key={barrio}
-                className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium"
-              >
-                {barrio}
-                {filtros.limitesPorBarrio?.[barrio] && (
-                  <span className="ml-1 text-xs">
-                    (máx. {filtros.limitesPorBarrio[barrio]})
-                  </span>
+          {selectedClients ? (
+            // 🔥 Nuevo: Resumen de clientes seleccionados desde BD
+            <div>
+              <h3 className="font-medium mb-3">Clientes seleccionados: {selectedClients.length.toLocaleString()}</h3>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-gray-600">Total a procesar:</span>
+                  <span className="font-semibold">{selectedClients.length} cuentas</span>
+                </div>
+                {selectedClients.some(c => c.barrio_inm) && (
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-gray-600">Barrios únicos:</span>
+                    <span className="font-semibold">
+                      {Array.from(new Set(selectedClients.map(c => c.barrio_inm).filter(Boolean))).length}
+                    </span>
+                  </div>
                 )}
-              </span>
-            ))}
-          </div>
-
-          {/* Filtros Activos */}
-          {(filtros.minComprobantesVencidos || filtros.maxComprobantesVencidos || filtros.minDeuda || filtros.maxDeuda) && (
-            <div className="mt-4 p-3 bg-purple-50 rounded-lg border border-purple-200">
-              <h4 className="text-sm font-medium text-purple-900 mb-2">🔍 Filtros Activos:</h4>
-              <ul className="space-y-1 text-sm text-purple-800">
-                {filtros.minComprobantesVencidos && (
-                  <li>• Comprobantes vencidos: mín. {filtros.minComprobantesVencidos}{filtros.maxComprobantesVencidos ? `, máx. ${filtros.maxComprobantesVencidos}` : ''}</li>
-                )}
-                {(filtros.minDeuda || filtros.maxDeuda) && (
-                  <li>
-                    • Rango de deuda: 
-                    {filtros.minDeuda && ` mín. $${filtros.minDeuda.toLocaleString()}`}
-                    {filtros.maxDeuda && `, máx. $${filtros.maxDeuda.toLocaleString()}`}
-                  </li>
-                )}
-              </ul>
+                <div className="mt-3 p-2 bg-blue-50 rounded text-xs text-blue-700">
+                  💡 Tip: Después de verificar, los clientes serán marcados automáticamente en tu base de datos
+                </div>
+              </div>
             </div>
-          )}
+          ) : filtros ? (
+            // Flujo original: resumen de barrios
+            <div>
+              <h3 className="font-medium mb-3">Barrios seleccionados ({filtros.barrios.length}):</h3>
+              <div className="flex flex-wrap gap-2">
+                {filtros.barrios.map((barrio) => (
+                  <span
+                    key={barrio}
+                    className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium"
+                  >
+                    {barrio}
+                    {filtros.limitesPorBarrio?.[barrio] && (
+                      <span className="ml-1 text-xs">
+                        (máx. {filtros.limitesPorBarrio[barrio]})
+                      </span>
+                    )}
+                  </span>
+                ))}
+              </div>
+
+              {/* Filtros Activos */}
+              {(filtros.minComprobantesVencidos || filtros.maxComprobantesVencidos || filtros.minDeuda || filtros.maxDeuda) && (
+                <div className="mt-4 p-3 bg-purple-50 rounded-lg border border-purple-200">
+                  <h4 className="text-sm font-medium text-purple-900 mb-2">🔍 Filtros Activos:</h4>
+                  <ul className="space-y-1 text-sm text-purple-800">
+                    {filtros.minComprobantesVencidos && (
+                      <li>• Comprobantes vencidos: mín. {filtros.minComprobantesVencidos}{filtros.maxComprobantesVencidos ? `, máx. ${filtros.maxComprobantesVencidos}` : ''}</li>
+                    )}
+                    {(filtros.minDeuda || filtros.maxDeuda) && (
+                      <li>
+                        • Rango de deuda: 
+                        {filtros.minDeuda && ` mín. $${filtros.minDeuda.toLocaleString()}`}
+                        {filtros.maxDeuda && `, máx. $${filtros.maxDeuda.toLocaleString()}`}
+                      </li>
+                    )}
+                  </ul>
+                </div>
+              )}
+            </div>
+          ) : null}
         </CardContent>
       </Card>
 

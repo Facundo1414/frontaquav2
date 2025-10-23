@@ -2,7 +2,7 @@
 
 import {  useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Check, Mail, MessageCircle, Plus, HelpCircle, Clock, Filter, FileArchive } from 'lucide-react'
+import { Check, Send, MessageCircle, Database, HelpCircle, Clock, Filter, FileArchive } from 'lucide-react'
 import { ServiceCard } from './components/ServiceCard'
 import { ModalEnDesarrollo } from './components/modal-en-desarrollo'
 import { WhatsappSessionModal } from './components/WhatsappSessionModal'
@@ -74,6 +74,11 @@ const handleClickFiltrarClientes = () => {
 const handleClickRecuperarArchivos = () => {
   // Página independiente para recuperar archivos de respaldo
   router.push('/recuperar-archivos')
+}
+
+const handleClickClientesDatabase = () => {
+  // Página para importar y gestionar clientes desde Excel
+  router.push('/clientes-database')
 }
 
   // Eliminada lógica de init duplicada: el modal ya llama a /init y abre SSE.
@@ -203,7 +208,7 @@ const handleClickRecuperarArchivos = () => {
       {/* Tarjetas de Servicios */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         <ServiceCard
-          icon={<Mail className="w-6 h-6 text-white" />}
+          icon={<Send className="w-6 h-6 text-white" />}
           title="Enviar Deudas de PP a Clientes"
           onClick={handleClick}
           color="bg-teal-500"
@@ -227,10 +232,10 @@ const handleClickRecuperarArchivos = () => {
           color="bg-amber-500"
         />
         <ServiceCard
-          icon={<Plus className="w-6 h-6 text-white" />}
+          icon={<Database className="w-6 h-6 text-white" />}
           title="Base de datos de Clientes"
-          onClick={() => setModalDevVisible(true)} // mostrar modal nuevo
-          color="bg-teal-500"
+          onClick={handleClickClientesDatabase}
+          color="bg-purple-500"
         />
         <ServiceCard
           icon={<HelpCircle className="w-6 h-6 text-white" />}

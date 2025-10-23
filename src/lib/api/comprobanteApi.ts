@@ -116,6 +116,48 @@ export const checkDebtByNeighborhoods = async (
   return data;
 };
 
+// 🔥 NUEVO: Verificar deuda por unidades específicas (más eficiente que por barrios)
+export const checkDebtByUnits = async (
+  unidades: number[],
+  filtros?: {
+    minComprobantesVencidos?: number;
+    maxComprobantesVencidos?: number;
+    minDeuda?: number;
+    maxDeuda?: number;
+  }
+) => {
+  const token = getAccessToken();
+  const payload: any = { unidades };
+
+  // Agregar filtros opcionales si están presentes
+  if (filtros) {
+    if (filtros.minComprobantesVencidos) {
+      payload.minComprobantesVencidos = filtros.minComprobantesVencidos;
+    }
+    if (filtros.maxComprobantesVencidos) {
+      payload.maxComprobantesVencidos = filtros.maxComprobantesVencidos;
+    }
+    if (filtros.minDeuda) {
+      payload.minDeuda = filtros.minDeuda;
+    }
+    if (filtros.maxDeuda) {
+      payload.maxDeuda = filtros.maxDeuda;
+    }
+  }
+
+  const { data } = await api.post(
+    "/comprobante-filtro/check-by-units",
+    payload,
+    {
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+  return data;
+};
+
 // Paso 4: Generar archivos Excel APTOS y NO_APTOS
 export const generateExcelFiles = async (results: any[]) => {
   const token = getAccessToken();
