@@ -1,39 +1,139 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, useRef } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import Image from 'next/image'
 import { Loader2, RefreshCw } from 'lucide-react'
 import { toast } from 'sonner'
 import QRCode from 'qrcode'
-import { useSimpleWaSession } from '@/hooks/useSimpleWaSession'
+import { useWhatsappSessionContext } from '@/app/providers/context/whatsapp/WhatsappSessionContext'
+import { simpleWaInit } from '@/lib/api/simpleWaApi'
+import { useWhatsappStatus } from '@/hooks/useWhatsappStatus'
+import { getAccessToken } from '@/utils/authToken'
 
 interface WhatsappSessionModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  token: string // Supabase / JWT token used to request ephemeral SSE token
+  token: string
   autoCloseOnAuth?: boolean
 }
 
-export const WhatsappSessionModal: React.FC<WhatsappSessionModalProps> = ({ open, onOpenChange, token, autoCloseOnAuth = false }) => {
-  const simple = useSimpleWaSession({ auto: false })
-  const state = simple.status
-  const qr = simple.qr
-  const isAuthenticated = simple.ready
-  const manualRefresh = () => simple.start(true)
-  const error = simple.error
-  const start = simple.start
-  const lastUpdated = simple.lastUpdated
-  const [qrImage, setQrImage] = useState<string | null>(null)
+// 🔥 Helper para obtener userId del token
+const getUserIdFromToken = (): string | null => {
+  try {
+    const t = getAccessToken()
+    if (!t) return null
+    const payload = JSON.parse(atob(t.split('.')[1]))
+    return payload.userId || payload.sub || null
+  } catch {
+    return null
+  }
+}
 
-  // Start flow when modal opens
+export const WhatsappSessionModal: React.FC<WhatsappSessionModalProps> = ({ open, onOpenChange, token, autoCloseOnAuth = false }) => {
+  // 🔥 Obtener userId para suscripción directa
+  const userId = getUserIdFromToken()
+  
+  // 🔥 Suscribirse directamente en el modal
+  const { status: wsStatus, isSubscribed, connected } = useWhatsappStatus(userId)
+  
+  // Context solo para actualizar estado global
+  const { snapshot, updateFromStatus } = useWhatsappSessionContext()
+  const [qrImage, setQrImage] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const [isInitializing, setIsInitializing] = useState(false)
+  const initAttempted = useRef(false)
+
+  // Derivar estado del snapshot
+  const state = snapshot?.state || 'none'
+  const qr = snapshot?.qr || null
+  const isAuthenticated = snapshot?.ready || false
+  
+  // WebSocket está listo cuando está conectado y suscrito
+  const wsReady = connected && isSubscribed
+  
+  console.log('📱 WhatsappSessionModal state:', { 
+    open, 
+    state, 
+    wsReady,
+    isSubscribed,
+    connected,
+    hasUserId: !!userId,
+    initAttempted: initAttempted.current 
+  })
+
+  // Función para iniciar sesión
+  const handleStart = async () => {
+    console.log('🚀 WhatsappSessionModal: Iniciando sesión...')
+    setIsInitializing(true)
+    setError(null)
+    
+    try {
+      const result = await simpleWaInit()
+      console.log('✅ WhatsappSessionModal: Init exitoso:', result)
+      
+      // El WebSocket se encargará de actualizar el estado
+      // No necesitamos actualizar manualmente si está suscrito
+      if (!isSubscribed) {
+        // Fallback: actualizar manualmente si no hay WebSocket
+        updateFromStatus({
+          state: result.ready ? 'ready' 
+                : result.authenticated ? 'syncing'
+                : result.hasQR ? 'waiting_qr'
+                : 'launching',
+          qr: null,
+        })
+      }
+    } catch (e: any) {
+      console.error('❌ WhatsappSessionModal: Error en init:', e)
+      setError(e.message || 'Error al iniciar sesión')
+      toast.error('Error al iniciar sesión de WhatsApp')
+    } finally {
+      setIsInitializing(false)
+    }
+  }
+
+  // Función para refrescar manualmente
+  const manualRefresh = () => {
+    handleStart()
+  }
+
+  // Limpiar sessionStorage cuando se abre el modal
   useEffect(() => {
     if (open) {
-      start()
+      try {
+        sessionStorage.removeItem('whatsapp_v2_snapshot')
+        console.log('🧹 WhatsappSessionModal: sessionStorage limpiado al abrir modal')
+      } catch (e) {
+        console.warn('⚠️ No se pudo limpiar sessionStorage:', e)
+      }
     }
-  }, [open, start])
+  }, [open])
 
-  // Convert QR text to data URL image whenever it changes
+  // Iniciar sesión cuando se abre el modal Y el WebSocket está listo
+  useEffect(() => {
+    console.log('📱 WhatsappSessionModal: useEffect', { 
+      open, 
+      wsReady,
+      isSubscribed,
+      connected,
+      initAttempted: initAttempted.current 
+    })
+    
+    if (open && wsReady && !initAttempted.current) {
+      console.log('🚀 WhatsappSessionModal: Modal abierto y WebSocket listo, iniciando sesión...')
+      initAttempted.current = true
+      handleStart()
+    }
+    
+    // Reset flag cuando se cierra el modal
+    if (!open) {
+      initAttempted.current = false
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, wsReady, isSubscribed, connected])
+
+  // Convertir QR a imagen
   useEffect(() => {
     let active = true
     if (qr) {
@@ -46,7 +146,7 @@ export const WhatsappSessionModal: React.FC<WhatsappSessionModalProps> = ({ open
     return () => { active = false }
   }, [qr])
 
-  // Toast & auto close if authenticated
+  // Toast y auto-cerrar si está autenticado
   useEffect(() => {
     if (isAuthenticated) {
       toast.success('Sesión autenticada en WhatsApp')
@@ -59,15 +159,16 @@ export const WhatsappSessionModal: React.FC<WhatsappSessionModalProps> = ({ open
 
   const statusMessage = useMemo(() => {
     if (error) return error
-    if (state === 'idle') return 'Listo para iniciar'
-    if (state === 'initializing') return 'Inicializando sesión...'
-    if (state === 'qr') return 'Escaneá el código con WhatsApp'
+    if (state === 'none') return 'Listo para iniciar'
+    if (state === 'launching' || isInitializing) return 'Inicializando sesión...'
+    if (state === 'waiting_qr') return 'Escaneá el código con WhatsApp'
+    if (state === 'syncing') return 'Sincronizando mensajes...'
     if (state === 'ready') return 'Sesión lista'
     return ''
-  }, [state, error])
+  }, [state, error, isInitializing])
 
-  const showSpinner = state === 'initializing'
-  const showQr = state === 'qr' && qrImage
+  const showSpinner = state === 'launching' || isInitializing
+  const showQr = state === 'waiting_qr' && qrImage
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -110,8 +211,10 @@ export const WhatsappSessionModal: React.FC<WhatsappSessionModalProps> = ({ open
                     >
                       <RefreshCw className="h-3 w-3" /> Refrescar
                     </button>
-                    {lastUpdated && (
-                      <span className="text-[10px] text-muted-foreground">Actualizado: {new Date(lastUpdated).toLocaleTimeString()}</span>
+                    {snapshot?.updatedAt && (
+                      <span className="text-[10px] text-muted-foreground">
+                        Actualizado: {new Date(snapshot.updatedAt).toLocaleTimeString()}
+                      </span>
                     )}
                   </div>
                 </>

@@ -1,3 +1,9 @@
+# Frontend AQUA v2 - Sistema de Gestión
+
+> **🎉 ACTUALIZACIÓN IMPORTANTE (18/Oct/2025):** El nuevo sistema de filtrado inteligente ha sido activado. Ver [SISTEMA_NUEVO_ACTIVADO.md](./SISTEMA_NUEVO_ACTIVADO.md) para detalles.
+
+---
+
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
 ## Getting Started

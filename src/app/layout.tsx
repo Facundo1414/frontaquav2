@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from 'next/font/google'
 import './globals.css'
 import { Toaster } from '@/components/ui/sonner'
 import { GlobalProvider } from '@/app/providers/context/GlobalContext'
+import { WebSocketProvider } from '@/components/WebSocketProvider'
 import PrivateLayout from './PrivateLayout'
 
 const geistSans = Geist({
@@ -32,10 +33,12 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased flex flex-col min-h-screen`}
       >
         <GlobalProvider>
-          {/* PrivateLayout decidirá si aplica wrappers (providers) según la ruta */}
-          <PrivateLayout>
-            {children}
-          </PrivateLayout>
+          <WebSocketProvider>
+            {/* PrivateLayout decidirá si aplica wrappers (providers) según la ruta */}
+            <PrivateLayout>
+              {children}
+            </PrivateLayout>
+          </WebSocketProvider>
           {/* El Toaster queda global para que también funcione en /login */}
           <Toaster position="top-right" />
         </GlobalProvider>

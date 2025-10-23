@@ -1,6 +1,16 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { simpleWaInit, simpleWaQR, simpleWaState } from "@/lib/api/simpleWaApi";
 
+/**
+ * @deprecated Este hook usa polling y ya no se recomienda su uso.
+ * En su lugar, usa `useWhatsappSessionContext` que utiliza WebSocket.
+ *
+ * Migrado el: 2025-10-21
+ * Reemplazado por: useWhatsappSessionContext + WhatsappSessionContext
+ *
+ * Este archivo se mantiene por compatibilidad pero será removido en futuras versiones.
+ */
+
 interface UseSimpleWaSessionOptions {
   auto?: boolean;
   pollIntervalMs?: number; // for QR & ready detection

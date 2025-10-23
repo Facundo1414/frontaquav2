@@ -2,6 +2,8 @@
 import React, { createContext, useContext, useState, useCallback, useRef, useEffect } from 'react';
 import { simpleWaState } from '@/lib/api/simpleWaApi';
 import { toast } from 'sonner';
+import { useWhatsappStatus } from '@/hooks/useWhatsappStatus';
+import { getAccessToken } from '@/utils/authToken';
 
 // V2 snapshot: minimal shape reflecting server summary (state machine based)
 export interface WhatsappSessionSnapshot {
@@ -21,11 +23,34 @@ interface WhatsappSessionContextType {
 
 const WhatsappSessionContext = createContext<WhatsappSessionContextType | undefined>(undefined);
 
+// Helper para extraer userId del JWT token
+function getUserIdFromToken(): string | null {
+  try {
+    const token = getAccessToken();
+    if (!token) return null;
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    return payload.userId || payload.sub || null;
+  } catch (error) {
+    console.error('Error decoding token:', error);
+    return null;
+  }
+}
+
 export const WhatsappSessionProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [snapshot, setSnapshot] = useState<WhatsappSessionSnapshot | null>(null);
   const readyToastShown = useRef(false);
   const hydrated = useRef(false);
-  const pollRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // 🔥 NUEVO: WebSocket
+  const userId = getUserIdFromToken();
+  const { status: wsStatus, isSubscribed, connected } = useWhatsappStatus(userId);
+  
+  console.log('📱 WhatsappSessionContext state:', {
+    userId: !!userId,
+    connected,
+    isSubscribed,
+    hasStatus: !!wsStatus
+  });
 
   // Hydrate from sessionStorage immediately on mount to avoid flicker showing "Inicia sesión"
   useEffect(() => {
@@ -64,30 +89,16 @@ export const WhatsappSessionProvider: React.FC<{ children: React.ReactNode }> = 
     }
   }, []);
 
-  // Lightweight polling so all consumers (Navbar/Home) see the same up-to-date state
+  // 🔥 Actualizar desde WebSocket
   useEffect(() => {
-    const intervalMs = 3500;
-    const run = async () => {
-      try {
-        const st = await simpleWaState();
-        const mappedState: WhatsappSessionSnapshot['state'] = st.ready
-          ? 'ready'
-          : (st.authenticated
-              ? 'syncing'
-              : (st.hasQR ? 'waiting_qr' : 'launching'));
-        updateFromStatus({ state: mappedState, qr: st.qr || null });
-      } catch {
-        // ignore transient errors
-      }
-    };
-    // Kick once immediately to hydrate
-    run();
-    pollRef.current = setInterval(run, intervalMs);
-    return () => {
-      if (pollRef.current) clearInterval(pollRef.current);
-      pollRef.current = null;
-    };
-  }, [updateFromStatus]);
+    if (wsStatus && isSubscribed && connected) {
+      console.log('📱 Usando WebSocket para WhatsApp status:', wsStatus);
+      updateFromStatus({
+        state: wsStatus.state,
+        qr: wsStatus.qr || null,
+      });
+    }
+  }, [wsStatus, isSubscribed, connected, updateFromStatus]);
 
   const markQr = useCallback((qr: string | null) => {
     setSnapshot(prev => prev ? { ...prev, qr, updatedAt: Date.now() } : prev);

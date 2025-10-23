@@ -7,6 +7,7 @@ import { Progress } from "@/components/ui/progress"
 import { Loader2, CheckCircle, AlertTriangle, Users } from "lucide-react"
 import { toast } from "sonner"
 import { useGlobalContext } from '@/app/providers/context/GlobalContext'
+import { useJobProgress } from '@/hooks/useJobProgress'
 
 interface FiltroStatus {
   jobId: string
@@ -29,58 +30,39 @@ export function StepProcessFiltro({ jobId, onComplete }: StepProcessFiltroProps)
   const [progress, setProgress] = useState(0)
   const [currentAction, setCurrentAction] = useState('Iniciando procesamiento...')
   const { getToken } = useGlobalContext()
+  
+  // 🔥 WebSocket para actualizaciones en tiempo real
+  const { progress: wsProgress, isSubscribed, connected } = useJobProgress(jobId)
 
+  // Actualizar estado desde WebSocket
   useEffect(() => {
-    checkStatus()
-    const interval = setInterval(checkStatus, 2000) // Check every 2 seconds
-
-    return () => clearInterval(interval)
-  }, [jobId])
-
-  const checkStatus = async () => {
-    try {
-      const token = getToken()
-      if (!token) {
-        toast.error('Debe iniciar sesión para usar esta funcionalidad')
-        return
+    if (wsProgress && isSubscribed && connected) {
+      console.log('📊 Job progress recibido por WebSocket:', wsProgress)
+      
+      // Mapear datos del WebSocket a formato FiltroStatus
+      const mappedStatus: FiltroStatus = {
+        jobId: wsProgress.jobId,
+        status: wsProgress.status === 'completed' ? 'completed' : 'processing',
+        clientesAptos: wsProgress.resultado?.clientesAptos || 0,
+        clientesDescartados: wsProgress.resultado?.clientesDescartados || 0,
+        totalProcesados: wsProgress.resultado?.totalProcesados || 0,
+        errores: wsProgress.errores || [],
+        aptosFilePath: wsProgress.resultado?.aptosFilePath,
+        descartadosFilePath: wsProgress.resultado?.descartadosFilePath,
       }
 
-      const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3000'
-      const response = await fetch(`${baseUrl}/api/comprobante-filtro/status/${jobId}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      })
+      setStatus(mappedStatus)
+      setProgress(wsProgress.progress || 0)
+      setCurrentAction(wsProgress.message || wsProgress.currentAction || 'Procesando...')
 
-      if (!response.ok) {
-        throw new Error('Error al consultar estado')
-      }
-
-      const data: FiltroStatus = await response.json()
-      setStatus(data)
-
-      // Update progress and current action based on status
-      if (data.status === 'processing') {
-        // Simulate progress while processing
-        setProgress(prev => Math.min(prev + 5, 85))
-        
-        if (data.totalProcesados > 0) {
-          setCurrentAction(`Procesando clientes... (${data.totalProcesados} procesados)`)
-        } else {
-          setCurrentAction('Verificando deudas en Aguas Córdoba...')
-        }
-      } else if (data.status === 'completed') {
-        setProgress(100)
-        setCurrentAction('Procesamiento completado')
+      if (wsProgress.status === 'completed') {
         toast.success('Filtrado completado exitosamente')
-        onComplete(data)
+        onComplete(mappedStatus)
+      } else if (wsProgress.status === 'error') {
+        toast.error(wsProgress.message || 'Error en el procesamiento')
       }
-
-    } catch (error: any) {
-      console.error('Error checking status:', error)
-      toast.error(error.message || 'Error al consultar estado')
     }
-  }
+  }, [wsProgress, isSubscribed, connected, jobId, onComplete])
 
   if (!status) {
     return (
