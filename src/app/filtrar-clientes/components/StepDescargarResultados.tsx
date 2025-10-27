@@ -112,7 +112,7 @@ export function StepDescargarResultados({ results, onReset, onProcessMore }: Ste
               <div className="mt-3 p-3 bg-blue-50 border-2 border-blue-200 rounded-lg">
                 <p className="text-sm text-blue-900">
                   💡 <strong>Próximo paso:</strong> ¿Quieres procesar más barrios? 
-                  Tu archivo YA está guardado. Haz clic en "Procesar Más Barrios" abajo y selecciona otros barrios.
+                  Tu archivo YA está guardado. Haz clic en &quot;Procesar Más Barrios&quot; abajo y selecciona otros barrios.
                 </p>
               </div>
             </div>

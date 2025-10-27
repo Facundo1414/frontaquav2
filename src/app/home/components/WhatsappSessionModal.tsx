@@ -130,7 +130,6 @@ export const WhatsappSessionModal: React.FC<WhatsappSessionModalProps> = ({ open
     if (!open) {
       initAttempted.current = false
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, wsReady, isSubscribed, connected])
 
   // Convertir QR a imagen

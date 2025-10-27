@@ -244,10 +244,10 @@ export function StepDownloadFiltro({ jobId, resultados, onReset }: StepDownloadF
             Próximos pasos:
           </h4>
           <ol className="text-xs text-blue-700 space-y-1">
-            <li>1. Descarga el archivo "Clientes Aptos" para usar en PYSE</li>
-            <li>2. Usa el archivo "Descartados" para hacer seguimiento</li>
+            <li>1. Descarga el archivo &quot;Clientes Aptos&quot; para usar en PYSE</li>
+            <li>2. Usa el archivo &quot;Descartados&quot; para hacer seguimiento</li>
             <li>3. Los clientes aptos tienen 3 o más comprobantes vencidos</li>
-            <li>4. La columna "comprobantes_vencidos_aguas" muestra el conteo exacto</li>
+            <li>4. La columna &quot;comprobantes_vencidos_aguas&quot; muestra el conteo exacto</li>
           </ol>
         </CardContent>
       </Card>
