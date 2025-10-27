@@ -73,12 +73,25 @@ export function StepVerificarDeuda({ selectedClients, filtros, onComplete }: Ste
         // Extraer números de unidad
         const unidades = selectedClients.map(c => parseInt(c.unidad))
         
-        console.log(`🎯 Verificando deuda para ${unidades.length} unidades específicas...`)
+        // 🔥 Extraer datos de cliente para enriquecimiento
+        const clientData = selectedClients.map(c => ({
+          uf: parseInt(c.unidad),
+          barrio: c.barrio_inm, // 🔥 Enviar barrio desde la BD
+          domicilio: undefined, // No tenemos domicilio en la BD
+          titular: c.titular,
+        }))
         
-        // Usar el nuevo endpoint optimizado
-        data = await checkDebtByUnits(unidades, {
-          minComprobantesVencidos: 3 // PYSE requiere mín. 3
-        })
+        console.log(`🎯 Verificando deuda para ${unidades.length} unidades específicas...`)
+        console.log(`📋 Datos de cliente incluidos: barrio, titular`)
+        
+        // Usar el nuevo endpoint optimizado con datos de cliente
+        data = await checkDebtByUnits(
+          unidades, 
+          {
+            minComprobantesVencidos: 3 // PYSE requiere mín. 3
+          },
+          clientData // 🔥 Pasar datos de cliente
+        )
       }
       // Flujo original: por barrios y filtros
       else if (filtros) {

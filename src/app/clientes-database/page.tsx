@@ -394,7 +394,7 @@ function ClientsView() {
                                     : 'text-gray-500 dark:text-gray-400'
                                 }`}>
                                   {client.phone_source === 'manual' ? '✓ Manual' : 
-                                   client.phone_source === 'sylanus' ? 'Sylanus' : 'Excel'}
+                                   client.phone_source === 'sylanus' ? 'Sisa' : 'Excel'}
                                 </span>
                               )}
                             </div>
@@ -890,7 +890,7 @@ export default function ClientesDatabasePage() {
                       <h3 className={`font-semibold mb-2 ${
                         importType === 'deudas' ? 'text-teal-900 dark:text-teal-100' : 'text-gray-900 dark:text-white'
                       }`}>
-                        Enviar Deudas a Clientes
+                        Planes de pagos Incumplidos
                       </h3>
                       <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
                         Actualiza deuda y marca clientes con planes de pago vigentes
@@ -1076,7 +1076,7 @@ export default function ClientesDatabasePage() {
                       </div>
                       <div className="flex items-start gap-3">
                         <span className="font-bold text-teal-600 dark:text-teal-400 min-w-[120px]">DÍA 10+:</span>
-                        <span>Importar <strong>Deudas</strong> → Actualiza montos y marca planes de pago</span>
+                        <span>Importar <strong>Incumplidos</strong> → Actualiza montos y marca planes de pago</span>
                       </div>
                     </div>
                   </div>
@@ -1094,7 +1094,7 @@ export default function ClientesDatabasePage() {
                       </li>
                       <li className="flex items-start gap-2">
                         <span className="text-blue-500 mt-0.5">•</span>
-                        <span><strong>PYSE</strong> trae datos completos (UF, dirección, titular, teléfonos)</span>
+                        <span><strong>Universo De Cuentas</strong> trae datos completos (UF, dirección, titular, teléfonos)</span>
                       </li>
                       <li className="flex items-start gap-2">
                         <span className="text-blue-500 mt-0.5">•</span>
@@ -1106,7 +1106,7 @@ export default function ClientesDatabasePage() {
                       </li>
                       <li className="flex items-start gap-2">
                         <span className="text-blue-500 mt-0.5">•</span>
-                        <span>Clientes se identifican por <strong>UF</strong> (Unidad Funcional única)</span>
+                        <span>Clientes se identifican por <strong>UF</strong> (Unidad de Facturación)</span>
                       </li>
                     </ul>
                   </div>
@@ -1201,7 +1201,7 @@ export default function ClientesDatabasePage() {
                             )}
                             {preview.byPhoneSource.sylanus > 0 && (
                               <div className="flex items-center justify-between p-3 bg-blue-50 dark:bg-blue-900/10 rounded-lg">
-                                <span className="text-sm text-blue-700 dark:text-blue-300">Sylanus</span>
+                                <span className="text-sm text-blue-700 dark:text-blue-300">Sisa</span>
                                 <span className="font-bold text-blue-900 dark:text-blue-100">{preview.byPhoneSource.sylanus}</span>
                               </div>
                             )}

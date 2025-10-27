@@ -124,10 +124,21 @@ export const checkDebtByUnits = async (
     maxComprobantesVencidos?: number;
     minDeuda?: number;
     maxDeuda?: number;
-  }
+  },
+  clientData?: {
+    uf: number;
+    barrio?: string;
+    domicilio?: string;
+    titular?: string;
+  }[] // 🔥 Nuevo parámetro
 ) => {
   const token = getAccessToken();
   const payload: any = { unidades };
+
+  // 🔥 Agregar clientData si está presente
+  if (clientData && clientData.length > 0) {
+    payload.clientData = clientData;
+  }
 
   // Agregar filtros opcionales si están presentes
   if (filtros) {
