@@ -115,17 +115,17 @@ export function StepDescargarResultados({ results, selectedClients = [], onReset
       const url = window.URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      a.download = `machete-visitas-${new Date().toISOString().split('T')[0]}.xlsx`
+      a.download = `relevamiento-visitas-${new Date().toISOString().split('T')[0]}.xlsx`
       document.body.appendChild(a)
       a.click()
       window.URL.revokeObjectURL(url)
       document.body.removeChild(a)
 
-      toast.success('✅ Machete para Visitas descargado correctamente')
+      toast.success('✅ Relevamiento para Visitas descargado correctamente')
 
     } catch (error: any) {
-      console.error('Error descargando Machete:', error)
-      toast.error(error.response?.data?.message || error.message || 'Error al descargar Machete')
+      console.error('Error descargando Relevamiento:', error)
+      toast.error(error.response?.data?.message || error.message || 'Error al descargar Relevamiento')
     } finally {
       setDownloadingMachete(false)
     }
@@ -166,7 +166,7 @@ export function StepDescargarResultados({ results, selectedClients = [], onReset
                   <li><strong>3 archivos Excel</strong> separados</li>
                   <li><strong>APTOS:</strong> Clientes con 3+ consumos vencidos y sin plan de pago (listos para PYSE)</li>
                   <li><strong>NO APTOS:</strong> Resto de clientes (menos de 3 consumos o con plan de pago)</li>
-                  <li><strong>MACHETE:</strong> Lista simplificada para visitar clientes en campo (solo APTOS)</li>
+                  <li><strong>RELEVAMIENTO:</strong> Lista simplificada para visitar clientes en campo (solo APTOS)</li>
                 </ul>
               </div>
 
@@ -298,7 +298,7 @@ export function StepDescargarResultados({ results, selectedClients = [], onReset
                 <div className="flex items-start space-x-2 bg-white p-3 rounded border-2 border-blue-300">
                   <Clipboard className="h-5 w-5 text-blue-600 mt-0.5" />
                   <div>
-                    <p className="font-medium text-blue-900">machete-visitas-[fecha].xlsx</p>
+                    <p className="font-medium text-blue-900">relevamiento-visitas-[fecha].xlsx</p>
                     <p className="text-xs text-gray-600">{aptosCount} clientes APTOS con 6 columnas para completar en campo</p>
                   </div>
                 </div>
@@ -357,12 +357,12 @@ export function StepDescargarResultados({ results, selectedClients = [], onReset
                 {downloadingMachete ? (
                   <>
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-700 mr-2"></div>
-                    Generando Machete...
+                    Generando Relevamiento...
                   </>
                 ) : (
                   <>
                     <Clipboard className="mr-2 h-5 w-5" />
-                    📋 Descargar MACHETE para Visitas ({aptosCount} clientes)
+                    📋 Descargar RELEVAMIENTO para Visitas ({aptosCount} clientes)
                   </>
                 )}
               </Button>
