@@ -5,7 +5,8 @@ import { getFileByName } from "./uploadApi";
 
 export const sendAndScrape = async (
   fileName: string,
-  caption: string
+  caption: string,
+  tipoComprobante: "TODOS" | "PCB1" | "ATC2" = "TODOS"
 ): Promise<{ message: string; file?: Blob }> => {
   const token = getAccessToken();
 
@@ -16,6 +17,7 @@ export const sendAndScrape = async (
         filename: fileName,
         message: caption,
         expiration: 1,
+        tipoComprobante,
       },
       {
         headers: { Authorization: `Bearer ${token}` },

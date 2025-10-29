@@ -71,7 +71,13 @@ export const WhatsappSessionProvider: React.FC<{ children: React.ReactNode }> = 
   const updateFromStatus = useCallback((payload: any) => {
     if (!payload) return;
     const state = payload.state || 'none';
+    
     setSnapshot(prev => {
+      // Evitar actualización si el estado no cambió
+      if (prev && prev.state === state && state === 'ready') {
+        return prev; // No cambiar para evitar re-renders innecesarios
+      }
+      
       const next: WhatsappSessionSnapshot = {
         state,
         qr: payload.qr ?? prev?.qr ?? null,
@@ -81,12 +87,15 @@ export const WhatsappSessionProvider: React.FC<{ children: React.ReactNode }> = 
         updatedAt: Date.now(),
       };
       try { sessionStorage.setItem('whatsapp_v2_snapshot', JSON.stringify(next)); } catch { /* ignore */ }
+      
+      // Solo mostrar toast si es la primera vez que llega a 'ready'
+      if (state === 'ready' && prev?.state !== 'ready' && !readyToastShown.current) {
+        readyToastShown.current = true;
+        toast.success('WhatsApp listo.');
+      }
+      
       return next;
     });
-    if (state === 'ready' && !readyToastShown.current) {
-      readyToastShown.current = true;
-      toast.success('WhatsApp listo.');
-    }
   }, []);
 
   // 🔥 Actualizar desde WebSocket

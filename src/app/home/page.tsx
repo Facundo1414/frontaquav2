@@ -2,7 +2,7 @@
 
 import {  useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Check, Send, MessageCircle, Database, HelpCircle, Clock, Filter, FileArchive } from 'lucide-react'
+import { Filter, Upload, UploadCloud, Download, MessageCircle, Bell, FileText, Users, Check, Send, Clock, FileArchive, Database, HelpCircle } from 'lucide-react'
 import { ServiceCard } from './components/ServiceCard'
 import { ModalEnDesarrollo } from './components/modal-en-desarrollo'
 import { WhatsappSessionModal } from './components/WhatsappSessionModal'
@@ -76,9 +76,19 @@ const handleClickRecuperarArchivos = () => {
   router.push('/recuperar-archivos')
 }
 
+const handleClickGenerarDocumentosWhatsApp = () => {
+  // Página unificada para generar PDFs de deuda y notificaciones
+  router.push('/generar-documentos-whatsapp')
+}
+
 const handleClickClientesDatabase = () => {
   // Página para importar y gestionar clientes desde Excel
   router.push('/clientes-database')
+}
+
+const handleClickFAQ = () => {
+  // Página de preguntas frecuentes
+  router.push('/preguntas-frecuentes')
 }
 
   // Eliminada lógica de init duplicada: el modal ya llama a /init y abre SSE.
@@ -226,6 +236,12 @@ const handleClickClientesDatabase = () => {
           color="bg-green-500"
         />
         <ServiceCard
+          icon={<FileText className="w-6 h-6 text-white" />}
+          title="Generar Documentos para WhatsApp"
+          onClick={handleClickGenerarDocumentosWhatsApp}
+          color="bg-purple-500"
+        />
+        <ServiceCard
           icon={<FileArchive className="w-6 h-6 text-white" />}
           title="Recuperar Archivos de Respaldo"
           onClick={handleClickRecuperarArchivos}
@@ -240,7 +256,7 @@ const handleClickClientesDatabase = () => {
         <ServiceCard
           icon={<HelpCircle className="w-6 h-6 text-white" />}
           title="Preguntas Frecuentes"
-          onClick={() => setModalDevVisible(true)} // mostrar modal nuevo
+          onClick={handleClickFAQ}
           color="bg-blue-500"
         />
       </div>

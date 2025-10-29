@@ -37,12 +37,11 @@ export function StepSeleccionarClientesBD({ onNext }: StepSeleccionarClientesBDP
   
   // Filtros
   const [searchTerm, setSearchTerm] = useState('')
-  const [minDebt, setMinDebt] = useState<string>('')
-  const [maxDebt, setMaxDebt] = useState<string>('')
   const [selectedBarrios, setSelectedBarrios] = useState<string[]>([])
   const [phoneFilter, setPhoneFilter] = useState<'all' | 'with' | 'without'>('all')
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'notified' | 'visited'>('all')
   const [requiresNotificationFilter, setRequiresNotificationFilter] = useState<boolean | null>(null)
+  const [maxClientsPerBarrio, setMaxClientsPerBarrio] = useState<string>('') // Nuevo filtro
   
   // UI
   const [showFilters, setShowFilters] = useState(true)
@@ -56,7 +55,7 @@ export function StepSeleccionarClientesBD({ onNext }: StepSeleccionarClientesBDP
   // Aplicar filtros cuando cambien
   useEffect(() => {
     applyFilters()
-  }, [clients, searchTerm, minDebt, maxDebt, selectedBarrios, phoneFilter, statusFilter, requiresNotificationFilter])
+  }, [clients, searchTerm, selectedBarrios, phoneFilter, statusFilter, requiresNotificationFilter, maxClientsPerBarrio])
 
   const loadClients = async () => {
     try {
@@ -96,16 +95,6 @@ export function StepSeleccionarClientesBD({ onNext }: StepSeleccionarClientesBDP
       })
     }
 
-    // Filtro de deuda
-    if (minDebt) {
-      const min = parseFloat(minDebt)
-      filtered = filtered.filter(c => (c.debt || 0) >= min)
-    }
-    if (maxDebt) {
-      const max = parseFloat(maxDebt)
-      filtered = filtered.filter(c => (c.debt || 0) <= max)
-    }
-
     // Filtro de barrios
     if (selectedBarrios.length > 0) {
       filtered = filtered.filter(c => c.barrio_inm && selectedBarrios.includes(c.barrio_inm))
@@ -126,6 +115,27 @@ export function StepSeleccionarClientesBD({ onNext }: StepSeleccionarClientesBDP
     // Filtro de requiresNotification
     if (requiresNotificationFilter !== null) {
       filtered = filtered.filter(c => c.requiresNotification === requiresNotificationFilter)
+    }
+
+    // Limitar cantidad por barrio (tomar primeros N por cada barrio)
+    if (maxClientsPerBarrio && parseInt(maxClientsPerBarrio) > 0) {
+      const limit = parseInt(maxClientsPerBarrio)
+      const barrioMap = new Map<string, Client[]>()
+      
+      // Agrupar por barrio
+      filtered.forEach(client => {
+        const barrio = client.barrio_inm || 'Sin barrio'
+        if (!barrioMap.has(barrio)) {
+          barrioMap.set(barrio, [])
+        }
+        barrioMap.get(barrio)!.push(client)
+      })
+      
+      // Tomar los primeros N de cada barrio
+      filtered = []
+      barrioMap.forEach((clients) => {
+        filtered.push(...clients.slice(0, limit))
+      })
     }
 
     setFilteredClients(filtered)
@@ -236,35 +246,6 @@ export function StepSeleccionarClientesBD({ onNext }: StepSeleccionarClientesBDP
               />
             </div>
 
-            {/* Filtros de deuda */}
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="minDebt" className="flex items-center gap-2 mb-2">
-                  <DollarSign className="h-4 w-4" />
-                  Deuda mínima
-                </Label>
-                <Input
-                  id="minDebt"
-                  type="number"
-                  placeholder="Ej: 5000"
-                  value={minDebt}
-                  onChange={(e) => setMinDebt(e.target.value)}
-                />
-              </div>
-              <div>
-                <Label htmlFor="maxDebt" className="mb-2 block">
-                  Deuda máxima
-                </Label>
-                <Input
-                  id="maxDebt"
-                  type="number"
-                  placeholder="Ej: 20000"
-                  value={maxDebt}
-                  onChange={(e) => setMaxDebt(e.target.value)}
-                />
-              </div>
-            </div>
-
             {/* Filtro de teléfono */}
             <div>
               <Label className="mb-2 block">Filtro de Teléfono</Label>
@@ -333,7 +314,8 @@ export function StepSeleccionarClientesBD({ onNext }: StepSeleccionarClientesBDP
 
             {/* Filtro de requiresNotification */}
             <div>
-              <Label className="mb-2 block">Requiere Notificación (PYSE)</Label>
+              <Label className="mb-2 block">Clientes Marcados en PYSE</Label>
+              <p className="text-xs text-gray-500 mb-2">Filtra clientes que fueron marcados en tu sistema PYSE para recibir notificación</p>
               <div className="flex gap-2">
                 <Button
                   variant={requiresNotificationFilter === null ? 'default' : 'outline'}
@@ -347,7 +329,7 @@ export function StepSeleccionarClientesBD({ onNext }: StepSeleccionarClientesBDP
                   size="sm"
                   onClick={() => setRequiresNotificationFilter(true)}
                 >
-                  Solo marcados desde PYSE
+                  Solo marcados en PYSE
                 </Button>
                 <Button
                   variant={requiresNotificationFilter === false ? 'default' : 'outline'}
@@ -381,6 +363,32 @@ export function StepSeleccionarClientesBD({ onNext }: StepSeleccionarClientesBDP
               </div>
             )}
 
+            {/* Límite por barrio */}
+            {selectedBarrios.length > 0 && (
+              <div>
+                <Label htmlFor="maxPerBarrio" className="mb-2 block">
+                  Límite de clientes por barrio
+                </Label>
+                <p className="text-xs text-gray-500 mb-2">
+                  Si un barrio tiene muchas cuentas, puedes limitar cuántas procesar (ej: primeras 100)
+                </p>
+                <Input
+                  id="maxPerBarrio"
+                  type="number"
+                  placeholder="Ej: 100 (dejar vacío para todos)"
+                  value={maxClientsPerBarrio}
+                  onChange={(e) => setMaxClientsPerBarrio(e.target.value)}
+                  min="1"
+                />
+                {maxClientsPerBarrio && parseInt(maxClientsPerBarrio) > 0 && (
+                  <p className="text-xs text-blue-600 mt-2">
+                    💡 Consejo: Si estas primeras {maxClientsPerBarrio} ya fueron verificadas, 
+                    selecciona estado "Pendiente" arriba para obtener las siguientes.
+                  </p>
+                )}
+              </div>
+            )}
+
             {/* Botón limpiar filtros */}
             <div className="flex justify-end">
               <Button
@@ -388,12 +396,11 @@ export function StepSeleccionarClientesBD({ onNext }: StepSeleccionarClientesBDP
                 size="sm"
                 onClick={() => {
                   setSearchTerm('')
-                  setMinDebt('')
-                  setMaxDebt('')
                   setSelectedBarrios([])
                   setPhoneFilter('all')
                   setStatusFilter('all')
                   setRequiresNotificationFilter(null)
+                  setMaxClientsPerBarrio('')
                 }}
               >
                 Limpiar filtros
@@ -432,6 +439,7 @@ export function StepSeleccionarClientesBD({ onNext }: StepSeleccionarClientesBDP
                           <th className="px-4 py-2 text-left">UF</th>
                           <th className="px-4 py-2 text-left">Titular</th>
                           <th className="px-4 py-2 text-left">Barrio</th>
+                          <th className="px-4 py-2 text-left">Teléfono</th>
                           <th className="px-4 py-2 text-right">Deuda</th>
                           <th className="px-4 py-2 text-center">Estado</th>
                         </tr>
@@ -441,13 +449,16 @@ export function StepSeleccionarClientesBD({ onNext }: StepSeleccionarClientesBDP
                           <tr key={client.id} className="border-t hover:bg-gray-50">
                             <td className="px-4 py-2 font-mono text-xs">
                               {client.unidad}
-                              {client.distrito && `-${client.distrito}`}
-                              {client.zona && `-${client.zona}`}
-                              {client.manzana && `-${client.manzana}`}
-                              {client.parcela && `-${client.parcela}`}
                             </td>
                             <td className="px-4 py-2">{client.titular || '-'}</td>
                             <td className="px-4 py-2">{client.barrio_inm || '-'}</td>
+                            <td className="px-4 py-2">
+                              {client.phone ? (
+                                <span className="text-green-600 font-medium">📱 {client.phone}</span>
+                              ) : (
+                                <span className="text-gray-400 text-xs">Sin teléfono</span>
+                              )}
+                            </td>
                             <td className="px-4 py-2 text-right font-semibold">
                               {client.debt ? `$${client.debt.toLocaleString()}` : '-'}
                             </td>

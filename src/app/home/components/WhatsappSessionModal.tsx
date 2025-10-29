@@ -145,14 +145,12 @@ export const WhatsappSessionModal: React.FC<WhatsappSessionModalProps> = ({ open
     return () => { active = false }
   }, [qr])
 
-  // Toast y auto-cerrar si está autenticado
+  // Auto-cerrar modal si está autenticado (sin toast duplicado)
+  // El toast lo maneja WhatsappSessionContext
   useEffect(() => {
-    if (isAuthenticated) {
-      toast.success('Sesión autenticada en WhatsApp')
-      if (autoCloseOnAuth) {
-        const t = setTimeout(() => onOpenChange(false), 800)
-        return () => clearTimeout(t)
-      }
+    if (isAuthenticated && autoCloseOnAuth) {
+      const t = setTimeout(() => onOpenChange(false), 800)
+      return () => clearTimeout(t)
     }
   }, [isAuthenticated, autoCloseOnAuth, onOpenChange])
 

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { Upload, Database, FileSpreadsheet, Users, ArrowLeft, CheckCircle, XCircle, AlertCircle, Search, Filter, Phone, MapPin, DollarSign, Calendar, Edit2, Save, X, Eye, Check, MessageSquare } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { importPYSEClients, importDeudasClients, getClients, updateClient, previewPYSEImport, previewDeudasImport } from '@/lib/api';
+import { PaginatedClientsView } from './components/PaginatedClientsView';
 
 // Componente para ver la lista de clientes
 function ClientsView() {
@@ -1255,7 +1256,7 @@ export default function ClientesDatabasePage() {
             )}
 
             {activeTab === 'view' && (
-              <ClientsView />
+              <PaginatedClientsView />
             )}
           </div>
         </div>

@@ -156,7 +156,7 @@ export const getClients = async (params?: {
  */
 export const getClientStats = async () => {
   const token = getAccessToken();
-  const { data } = await api.get("/clients/stats", {
+  const { data } = await api.get("/clients/stats/summary", {
     headers: { Authorization: `Bearer ${token}` },
   });
   return data;
@@ -179,6 +179,17 @@ export const getClientById = async (id: string) => {
 export const updateClient = async (id: string, updates: any) => {
   const token = getAccessToken();
   const { data } = await api.patch(`/clients/${id}`, updates, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return data;
+};
+
+/**
+ * Obtener trabajos (client_works) de un cliente específico
+ */
+export const getClientWorks = async (clientId: string) => {
+  const token = getAccessToken();
+  const { data } = await api.get(`/clients/${clientId}/works`, {
     headers: { Authorization: `Bearer ${token}` },
   });
   return data;

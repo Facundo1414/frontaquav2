@@ -220,6 +220,31 @@ export const generateNoAptosExcel = async (results: any[]): Promise<Blob> => {
   return response.data;
 };
 
+// 🔥 NUEVO: Generar archivo Excel MACHETE para visitar clientes
+export const generateMacheteExcel = async (
+  results: any[],
+  clientsData?: Array<{
+    uf: number;
+    direccion?: string;
+    barrio?: string;
+    telefono?: string;
+  }>
+): Promise<Blob> => {
+  const token = getAccessToken();
+  const response = await api.post(
+    "/comprobante-filtro/generate-machete-excel",
+    { results, clientsData },
+    {
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      responseType: "blob",
+    }
+  );
+  return response.data;
+};
+
 /**
  * 📂 API para Filtrado de Clientes - Sistema Viejo (legacy)
  */

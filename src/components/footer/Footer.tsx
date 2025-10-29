@@ -28,7 +28,13 @@ export default function Footer() {
 
         <div>
           <p className="text-sm text-gray-300 text-center sm:text-right">
-            Términos y condiciones | Política de privacidad
+            <Link href="/terminos-condiciones" className="hover:text-white underline">
+              Términos y condiciones
+            </Link>
+            {' | '}
+            <Link href="/politica-privacidad" className="hover:text-white underline">
+              Política de privacidad
+            </Link>
           </p>
         </div>
       </div>

@@ -3,20 +3,22 @@
 import { useState } from 'react'
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { Download, CheckCircle2, XCircle, AlertCircle, RotateCcw, FileSpreadsheet } from "lucide-react"
+import { Download, CheckCircle2, XCircle, AlertCircle, RotateCcw, FileSpreadsheet, Clipboard } from "lucide-react"
 import { toast } from "sonner"
 import { ProcessResults } from '../page'
-import { generateAptosExcel, generateNoAptosExcel } from '@/lib/api/comprobanteApi'
+import { generateAptosExcel, generateNoAptosExcel, generateMacheteExcel } from '@/lib/api/comprobanteApi'
 
 interface StepDescargarResultadosProps {
   results: ProcessResults
+  selectedClients?: any[] // Clientes de la BD con dirección y teléfono
   onReset: () => void
   onProcessMore?: () => void
 }
 
-export function StepDescargarResultados({ results, onReset, onProcessMore }: StepDescargarResultadosProps) {
+export function StepDescargarResultados({ results, selectedClients = [], onReset, onProcessMore }: StepDescargarResultadosProps) {
   const [downloadingAptos, setDownloadingAptos] = useState(false)
   const [downloadingNoAptos, setDownloadingNoAptos] = useState(false)
+  const [downloadingMachete, setDownloadingMachete] = useState(false)
 
   const handleDescargarAptos = async () => {
     setDownloadingAptos(true)
@@ -71,6 +73,64 @@ export function StepDescargarResultados({ results, onReset, onProcessMore }: Ste
     }
   }
 
+  const handleDescargarMachete = async () => {
+    setDownloadingMachete(true)
+
+    try {
+      console.log('📋 Generando Machete para Visitas...')
+      
+      // Extraer UFs de los clientes APTOS
+      const aptosResults = results.results.filter(
+        r => r.comprobantesVencidos >= 3 && !r.hasPaymentPlan
+      )
+
+      // Mapear datos de clientes desde selectedClients
+      // Crear un Map para buscar rápido por UF
+      const clientsMap = new Map(
+        selectedClients.map(c => [c.unidad.toString(), c])
+      )
+
+      const clientsData = aptosResults.map(r => {
+        const client = clientsMap.get(r.uf.toString())
+        
+        // Construir dirección: calle_inm + numero_inm (dirección real del inmueble)
+        let direccion = ''
+        if (client) {
+          const parts = []
+          if (client.calle_inm) parts.push(client.calle_inm)
+          if (client.numero_inm) parts.push(client.numero_inm)
+          direccion = parts.join(' ')
+        }
+
+        return {
+          uf: r.uf,
+          direccion: direccion, // Dirección completa (calle + número)
+          barrio: r.barrio || client?.barrio_inm || '', // Barrio
+          telefono: client?.phone || '' // Teléfono
+        }
+      })
+
+      const blob = await generateMacheteExcel(aptosResults, clientsData)
+      
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `machete-visitas-${new Date().toISOString().split('T')[0]}.xlsx`
+      document.body.appendChild(a)
+      a.click()
+      window.URL.revokeObjectURL(url)
+      document.body.removeChild(a)
+
+      toast.success('✅ Machete para Visitas descargado correctamente')
+
+    } catch (error: any) {
+      console.error('Error descargando Machete:', error)
+      toast.error(error.response?.data?.message || error.message || 'Error al descargar Machete')
+    } finally {
+      setDownloadingMachete(false)
+    }
+  }
+
   const aptosCount = results.results.filter(
     r => r.comprobantesVencidos >= 3 && !r.hasPaymentPlan
   ).length
@@ -103,16 +163,19 @@ export function StepDescargarResultados({ results, onReset, onProcessMore }: Ste
                   <strong>📊 ¿Qué recibirás?</strong>
                 </p>
                 <ul className="list-disc list-inside space-y-1 text-sm text-green-800 ml-2">
-                  <li><strong>2 archivos Excel</strong> separados en un archivo ZIP</li>
+                  <li><strong>3 archivos Excel</strong> separados</li>
                   <li><strong>APTOS:</strong> Clientes con 3+ consumos vencidos y sin plan de pago (listos para PYSE)</li>
                   <li><strong>NO APTOS:</strong> Resto de clientes (menos de 3 consumos o con plan de pago)</li>
+                  <li><strong>MACHETE:</strong> Lista simplificada para visitar clientes en campo (solo APTOS)</li>
                 </ul>
               </div>
 
               <div className="mt-3 p-3 bg-blue-50 border-2 border-blue-200 rounded-lg">
                 <p className="text-sm text-blue-900">
-                  💡 <strong>Próximo paso:</strong> ¿Quieres procesar más barrios? 
-                  Tu archivo YA está guardado. Haz clic en &quot;Procesar Más Barrios&quot; abajo y selecciona otros barrios.
+                  ✅ <strong>Las cuentas YA fueron marcadas como verificadas</strong> durante el procesamiento.
+                </p>
+                <p className="text-sm text-blue-900 mt-1">
+                  💡 <strong>Próximo paso:</strong> Descarga los archivos y usa tu programa PYSE para imprimir los documentos.
                 </p>
               </div>
             </div>
@@ -232,6 +295,13 @@ export function StepDescargarResultados({ results, onReset, onProcessMore }: Ste
                     <p className="text-xs text-gray-600">{noAptosCount} cuentas con menos de 3 consumos o con plan de pago</p>
                   </div>
                 </div>
+                <div className="flex items-start space-x-2 bg-white p-3 rounded border-2 border-blue-300">
+                  <Clipboard className="h-5 w-5 text-blue-600 mt-0.5" />
+                  <div>
+                    <p className="font-medium text-blue-900">machete-visitas-[fecha].xlsx</p>
+                    <p className="text-xs text-gray-600">{aptosCount} clientes APTOS con 6 columnas para completar en campo</p>
+                  </div>
+                </div>
               </div>
             </div>
             
@@ -275,6 +345,31 @@ export function StepDescargarResultados({ results, onReset, onProcessMore }: Ste
                 )}
               </Button>
             </div>
+
+            <div className="pt-2">
+              <Button
+                onClick={handleDescargarMachete}
+                disabled={downloadingMachete || aptosCount === 0}
+                size="lg"
+                variant="outline"
+                className="w-full border-2 border-blue-400 text-blue-700 hover:bg-blue-50"
+              >
+                {downloadingMachete ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-700 mr-2"></div>
+                    Generando Machete...
+                  </>
+                ) : (
+                  <>
+                    <Clipboard className="mr-2 h-5 w-5" />
+                    📋 Descargar MACHETE para Visitas ({aptosCount} clientes)
+                  </>
+                )}
+              </Button>
+              <p className="text-xs text-gray-500 text-center mt-2">
+                ✨ Excel simplificado con 6 columnas para completar en campo (UF, Dirección, Teléfono, Total Deuda, Conexión, Observación)
+              </p>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -288,7 +383,7 @@ export function StepDescargarResultados({ results, onReset, onProcessMore }: Ste
           className="text-lg"
         >
           <RotateCcw className="mr-2 h-5 w-5" />
-          🏘️ Procesar Más Barrios (tu archivo ya está guardado)
+          📋 Siguiente paso: imprimir avisos/notificaciones en tu programa PYSE
         </Button>
       </div>
     </div>

@@ -260,6 +260,7 @@ export default function FiltrarClientesPage() {
           {currentStep === 3 && resultados && (
             <StepDescargarResultados 
               results={resultados}
+              selectedClients={selectedClients}
               onReset={resetProcess}
               onProcessMore={procesarNuevamente}
             />

@@ -1,6 +1,22 @@
 // context/ProximosVencerContext.tsx
 'use client'
-import { createContext, useContext, useState, ReactNode } from 'react'
+import { createContext, useContext, useState, ReactNode, useMemo } from 'react'
+
+// Función helper para calcular días hasta fin del mes actual
+const calcularDiasHastaFinMesActual = (): number => {
+  const hoy = new Date()
+  const mesActual = hoy.getMonth()
+  const añoActual = hoy.getFullYear()
+  
+  // Último día del mes actual (día 0 del mes siguiente)
+  const finMesActual = new Date(añoActual, mesActual + 1, 0)
+  
+  // Calcular diferencia en días
+  const diffTime = finMesActual.getTime() - hoy.getTime()
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+  
+  return diffDays
+}
 
 interface ProximosVencerContextType {
   rawData: any[]
@@ -19,6 +35,8 @@ interface ProximosVencerContextType {
   setProcessedFile: (file: Blob | null) => void
   diasAnticipacion: number
   setDiasAnticipacion: (dias: number) => void
+  fechaDesdeTexto: string // "Hoy"
+  fechaHastaTexto: string // "Último día de [Mes Actual]"
 }
 
 const ProximosVencerContext = createContext<ProximosVencerContextType | undefined>(undefined)
@@ -31,7 +49,18 @@ export const ProximosVencerProvider = ({ children }: { children: ReactNode }) =>
   const [processedData, setProcessedDataState] = useState<any[]>([])
   const [fileNameFiltered, setFileNameFiltered] = useState<string | null>(null)
   const [processedFile, setProcessedFileState] = useState<Blob | null>(null)
-  const [diasAnticipacion, setDiasAnticipacionState] = useState<number>(1)
+  
+  // Calcular automáticamente días hasta fin del mes actual
+  const diasAnticipacion = useMemo(() => calcularDiasHastaFinMesActual(), [])
+  
+  // Textos informativos para mostrar en UI
+  const fechaDesdeTexto = "Hoy"
+  const fechaHastaTexto = useMemo(() => {
+    const hoy = new Date()
+    const mesActual = hoy.getMonth()
+    const meses = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre']
+    return `Último día de ${meses[mesActual]}`
+  }, [])
 
   const setFilteredData = (data: any[]) => {
     setFilteredDataState(data)
@@ -45,8 +74,10 @@ export const ProximosVencerProvider = ({ children }: { children: ReactNode }) =>
     setActiveStepState(step)
   }
 
-  const setDiasAnticipacion = (dias: number) => {
-    setDiasAnticipacionState(dias)
+  // setDiasAnticipacion es solo para mantener compatibilidad, pero no se usa
+  const setDiasAnticipacion = (_dias: number) => {
+    // No hace nada - el valor se calcula automáticamente
+    console.warn('setDiasAnticipacion llamado pero diasAnticipacion se calcula automáticamente')
   }
 
   return (
@@ -67,6 +98,8 @@ export const ProximosVencerProvider = ({ children }: { children: ReactNode }) =>
       setProcessedFile: setProcessedFileState,
       diasAnticipacion,
       setDiasAnticipacion,
+      fechaDesdeTexto,
+      fechaHastaTexto,
     }}>
       {children}
     </ProximosVencerContext.Provider>

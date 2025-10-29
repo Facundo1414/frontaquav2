@@ -22,13 +22,10 @@ export function StepSend() {
   // Nuevo modelo: snapshot?.ready indica disponibilidad total. Consideramos "syncing" si no está ready aún.
   const syncing = !snapshot?.ready
 
-const [message, setMessage] = useState(`Hola \${clientName}, te envío el PDF actualizado de la CUOTA PLAN DE PAGOS. 
+  const [message, setMessage] = useState(`Hola \${clientName}, te envío el PDF actualizado de la CUOTA PLAN DE PAGOS. 
 Por favor, no dejes que venza. Puedes realizar el abono en cualquier Rapipago, Pago Fácil o a través de Mercado Pago.
 
 🌐 Cclip 🔹 Al servicio de Aguas Cordobesas.`);
-
-
-
 
   const [loading, setLoading] = useState(false)
   const [status, setStatus] = useState<string | null>(null)
@@ -48,7 +45,8 @@ Por favor, no dejes que venza. Puedes realizar el abono en cualquier Rapipago, P
     setStatus(null)
 
     try {
-      const result = await sendAndScrape(fileNameFiltered, message)
+      // Siempre enviar TODOS (plan + consumo) - el sistema maneja automáticamente cada tipo de plan
+      const result = await sendAndScrape(fileNameFiltered, message, 'TODOS')
       setStatus(result.message)
       if (result.file) {
         setProcessedFile(result.file) 

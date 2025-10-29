@@ -18,7 +18,8 @@ export default function StepSendProximosVencer() {
     setFileNameFiltered,
     setNotWhatsappData,
     diasAnticipacion,
-    setDiasAnticipacion
+    fechaDesdeTexto,
+    fechaHastaTexto,
   } = useProximosVencerContext()
   const { snapshot } = useWhatsappSessionContext()
   // Nuevo modelo: snapshot?.ready indica disponibilidad total. Consideramos "syncing" si no está ready aún.
@@ -35,7 +36,7 @@ Te envío el PDF actualizado para que puedas realizar el pago antes del vencimie
 Puedes realizar el abono en cualquier Rapipago, Pago Fácil o a través de Mercado Pago.
 
 🌐 Cclip 🔹 Al servicio de Aguas Cordobesas.`);
-  }, [diasAnticipacion]);
+  }, []); // Solo una vez al montar
 
   const [loading, setLoading] = useState(false)
   const [status, setStatus] = useState<string | null>(null)
@@ -104,39 +105,29 @@ Puedes realizar el abono en cualquier Rapipago, Pago Fácil o a través de Merca
         <div>
           <h3 className="text-lg font-semibold">Enviar notificaciones de próximos a vencer</h3>
           <p className="text-sm text-muted-foreground">
-            Se enviarán notificaciones a los usuarios con planes de pago que vencen desde hoy hasta {diasAnticipacion} día{diasAnticipacion > 1 ? 's' : ''} de anticipación.
+            Se enviarán notificaciones a los usuarios con planes de pago que vencen desde <strong>{fechaDesdeTexto}</strong> hasta el <strong>{fechaHastaTexto}</strong>.
             Solo se notificará a usuarios con WhatsApp válido.
           </p>
         </div>
 
-        {/* Configuración de días de anticipación */}
-        <div className="space-y-3 p-4 bg-orange-50 border border-orange-200 rounded-lg">
-          <div className="flex items-center gap-4">
-            <label htmlFor="diasAnticipacion" className="block text-sm font-medium text-orange-800">
-              Días de anticipación:
-            </label>
-            <div className="flex items-center gap-2">
-              <input
-                id="diasAnticipacion"
-                type="number"
-                min="1"
-                max="30"
-                value={diasAnticipacion}
-                onChange={(e) => {
-                  const value = parseInt(e.target.value) || 1
-                  if (value >= 1 && value <= 30) {
-                    setDiasAnticipacion(value)
-                  }
-                }}
-                className="w-16 px-2 py-1 text-sm border border-orange-300 rounded focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-                disabled={loading}
-              />
-              <span className="text-sm text-orange-700">día{diasAnticipacion > 1 ? 's' : ''}</span>
+        {/* Información del rango de fechas */}
+        <div className="space-y-3 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+          <div className="flex flex-col gap-2">
+            <h4 className="text-sm font-semibold text-blue-900">📅 Rango de búsqueda automático:</h4>
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div>
+                <span className="text-blue-700 font-medium">Desde:</span>{' '}
+                <span className="text-blue-900">{fechaDesdeTexto}</span>
+              </div>
+              <div>
+                <span className="text-blue-700 font-medium">Hasta:</span>{' '}
+                <span className="text-blue-900">{fechaHastaTexto}</span>
+              </div>
             </div>
+            <p className="text-xs text-blue-600 mt-2">
+              ✨ El sistema busca automáticamente todas las cuotas que vencen hasta el final del mes actual ({diasAnticipacion} días restantes).
+            </p>
           </div>
-          <p className="text-xs text-orange-600">
-            Se buscarán planes de pago que vencen desde hoy hasta {diasAnticipacion} día{diasAnticipacion > 1 ? 's' : ''} de anticipación (rango: 0 a {diasAnticipacion} días).
-          </p>
         </div>
         
         {status && (

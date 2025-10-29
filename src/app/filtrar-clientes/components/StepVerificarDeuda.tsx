@@ -164,7 +164,7 @@ export function StepVerificarDeuda({ selectedClients, filtros, onComplete }: Ste
                 <div className="mt-3 p-3 bg-amber-50 border-2 border-amber-300 rounded-lg">
                   <p className="text-sm text-amber-900">
                     ⏱️ <strong>Tiempo estimado:</strong> Algunos minutos según cantidad de cuentas. 
-                    El sistema respeta límites (2000 req/hora) para no saturar Aguas Cordobesas.
+                    El sistema respeta límites (500 req/hora por usuario) para no saturar Aguas Cordobesas.
                   </p>
                 </div>
               </div>
