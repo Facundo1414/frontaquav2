@@ -118,7 +118,7 @@ export default function TerminosCondicionesPage() {
               6. Limitaciones de Responsabilidad
             </h2>
             <p className="text-gray-700 leading-relaxed mb-3">
-              La plataforma se proporciona "tal cual" y "según disponibilidad". No garantizamos:
+              La plataforma se proporciona &quot;tal cual&quot; y &quot;según disponibilidad&quot;. No garantizamos:
             </p>
             <ul className="list-disc list-inside space-y-2 text-gray-700 ml-4">
               <li>Disponibilidad ininterrumpida del servicio</li>

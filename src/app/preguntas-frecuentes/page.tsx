@@ -79,7 +79,7 @@ export default function PreguntasFrecuentesPage() {
             
             <Accordion type="single" collapsible className="w-full">
               <AccordionItem value="item-1">
-                <AccordionTrigger>¿Qué es "Enviar Deudas"?</AccordionTrigger>
+                <AccordionTrigger>¿Qué es &quot;Enviar Deudas&quot;?</AccordionTrigger>
                 <AccordionContent>
                   <p className="text-gray-700 mb-3">
                     Es la función principal del sistema que te permite notificar automáticamente a tus clientes 
@@ -130,7 +130,7 @@ export default function PreguntasFrecuentesPage() {
                 <AccordionContent>
                   <p className="text-gray-700 mb-3">
                     El sistema automáticamente detecta clientes sin WhatsApp y los separa en un archivo aparte 
-                    llamado <strong>"sin-whatsapp.xlsx"</strong> que puedes descargar al finalizar.
+                    llamado <strong>&quot;sin-whatsapp.xlsx&quot;</strong> que puedes descargar al finalizar.
                   </p>
                   <p className="text-sm text-gray-600">
                     💡 <strong>Tip:</strong> Usa ese archivo para contactar a esos clientes por otro medio (correo, teléfono, correo postal).
@@ -177,7 +177,7 @@ export default function PreguntasFrecuentesPage() {
                       </ul>
                     </div>
                     <p className="text-sm text-gray-600">
-                      💡 <strong>Ejemplo práctico:</strong> Hoy procesas 100 clientes del barrio "Centro" (offset=0, límite=100). 
+                      💡 <strong>Ejemplo práctico:</strong> Hoy procesas 100 clientes del barrio &quot;Centro&quot; (offset=0, límite=100). 
                       Mañana procesas los siguientes 100 (offset=100, límite=100).
                     </p>
                   </div>
@@ -185,7 +185,7 @@ export default function PreguntasFrecuentesPage() {
               </AccordionItem>
 
               <AccordionItem value="pyse-3">
-                <AccordionTrigger>¿Qué es el "Machete para Visitas"?</AccordionTrigger>
+                <AccordionTrigger>¿Qué es el &quot;Machete para Visitas&quot;?</AccordionTrigger>
                 <AccordionContent>
                   <p className="text-gray-700 mb-3">
                     Es un Excel simplificado con 6 columnas diseñado para trabajo en campo:
@@ -225,7 +225,7 @@ export default function PreguntasFrecuentesPage() {
             
             <Accordion type="single" collapsible className="w-full">
               <AccordionItem value="prox-1">
-                <AccordionTrigger>¿Qué es "Próximos a Vencer"?</AccordionTrigger>
+                <AccordionTrigger>¿Qué es &quot;Próximos a Vencer&quot;?</AccordionTrigger>
                 <AccordionContent>
                   <p className="text-gray-700 mb-3">
                     Es un recordatorio automático para clientes con <strong>planes de pago</strong> cuyas cuotas 
@@ -233,8 +233,8 @@ export default function PreguntasFrecuentesPage() {
                   </p>
                   <div className="bg-amber-50 p-4 rounded-lg border border-amber-200">
                     <p className="font-semibold text-amber-900 mb-2">🎯 Objetivo:</p>
-                    <p className="text-sm text-gray-700">
-                      Prevenir que los clientes se atrasen en sus cuotas enviándoles un recordatorio 
+                    <p className="text-sm text-gray-600">
+                      💡 <strong>Ejemplo práctico:</strong> Hoy procesas 100 clientes del barrio &quot;Centro&quot; (offset=0, límite=100). 
                       antes de la fecha de vencimiento.
                     </p>
                   </div>
@@ -275,7 +275,7 @@ export default function PreguntasFrecuentesPage() {
                     <li>✅ La sesión de WhatsApp esté iniciada (ícono en el navbar debe estar verde)</li>
                     <li>✅ El QR haya sido escaneado con tu celular</li>
                     <li>✅ El celular tenga conexión a internet</li>
-                    <li>✅ No hay mensaje de "Sincronizando..." (espera a que termine)</li>
+                    <li>✅ No hay mensaje de &quot;Sincronizando...&quot; (espera a que termine)</li>
                   </ul>
                   <div className="bg-red-50 p-3 rounded-lg border border-red-200 mt-3">
                     <p className="text-sm text-red-900">

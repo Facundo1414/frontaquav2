@@ -383,7 +383,7 @@ export function StepSeleccionarClientesBD({ onNext }: StepSeleccionarClientesBDP
                 {maxClientsPerBarrio && parseInt(maxClientsPerBarrio) > 0 && (
                   <p className="text-xs text-blue-600 mt-2">
                     💡 Consejo: Si estas primeras {maxClientsPerBarrio} ya fueron verificadas, 
-                    selecciona estado "Pendiente" arriba para obtener las siguientes.
+                    selecciona estado &quot;Pendiente&quot; arriba para obtener las siguientes.
                   </p>
                 )}
               </div>
