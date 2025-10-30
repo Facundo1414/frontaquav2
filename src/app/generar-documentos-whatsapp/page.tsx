@@ -22,7 +22,8 @@ interface Cliente {
     monto: number
     vencimiento: string
   }[]
-  estado: 'verificado' | 'pendiente'
+  // canonical field that matches DB values (english): pending|notified|visited|verified
+  status?: 'pending' | 'notified' | 'visited' | 'verified'
 }
 
 export default function GenerarDocumentosWhatsAppPage() {
@@ -53,7 +54,7 @@ export default function GenerarDocumentosWhatsAppPage() {
           domicilio: 'Av. Colón 123',
           telefono: '3514567890',
           deudaTotal: 15000,
-          estado: 'verificado',
+          status: 'verified',
           comprobantes: [
             { numero: 'FCPP001', monto: 5000, vencimiento: '2025-09-15' },
             { numero: 'FCPP002', monto: 10000, vencimiento: '2025-10-25' },
@@ -66,7 +67,7 @@ export default function GenerarDocumentosWhatsAppPage() {
           domicilio: 'Bv. Illia 456',
           telefono: '3517654321',
           deudaTotal: 8500,
-          estado: 'verificado',
+          status: 'verified',
           comprobantes: [
             { numero: 'FCPP003', monto: 8500, vencimiento: '2025-10-20' },
           ],

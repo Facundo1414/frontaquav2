@@ -21,7 +21,7 @@ interface Client {
   debt?: number
   barrio_inm?: string
   requiresNotification?: boolean
-  status?: 'pending' | 'notified' | 'visited'
+  status?: 'pending' | 'notified' | 'visited' | 'verified'
   processedDate?: string
 }
 
@@ -39,9 +39,10 @@ export function StepSeleccionarClientesBD({ onNext }: StepSeleccionarClientesBDP
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedBarrios, setSelectedBarrios] = useState<string[]>([])
   const [phoneFilter, setPhoneFilter] = useState<'all' | 'with' | 'without'>('all')
-  const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'notified' | 'visited'>('all')
-  const [requiresNotificationFilter, setRequiresNotificationFilter] = useState<boolean | null>(null)
+  const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'notified' | 'visited' | 'verified'>('all')
   const [maxClientsPerBarrio, setMaxClientsPerBarrio] = useState<string>('') // Nuevo filtro
+  const [barrioRangeStart, setBarrioRangeStart] = useState<string>('') // Nuevo filtro de rango
+  const [barrioRangeEnd, setBarrioRangeEnd] = useState<string>('') // Nuevo filtro de rango
   
   // UI
   const [showFilters, setShowFilters] = useState(true)
@@ -55,15 +56,15 @@ export function StepSeleccionarClientesBD({ onNext }: StepSeleccionarClientesBDP
   // Aplicar filtros cuando cambien
   useEffect(() => {
     applyFilters()
-  }, [clients, searchTerm, selectedBarrios, phoneFilter, statusFilter, requiresNotificationFilter, maxClientsPerBarrio])
+  }, [clients, searchTerm, selectedBarrios, phoneFilter, statusFilter, maxClientsPerBarrio, barrioRangeStart, barrioRangeEnd])
 
   const loadClients = async () => {
     try {
       setLoading(true)
       setError(null)
       const data = await getClients()
+      // Mantener el status tal como viene del backend (en inglés) para filtros/búsquedas
       setClients(data)
-      
       // Extraer barrios únicos
       const barrios = Array.from(new Set(
         data
@@ -71,7 +72,6 @@ export function StepSeleccionarClientesBD({ onNext }: StepSeleccionarClientesBDP
           .filter((b: any): b is string => Boolean(b))
       )).sort() as string[]
       setAvailableBarrios(barrios)
-      
     } catch (err: any) {
       console.error('Error al cargar clientes:', err)
       setError(err.response?.data?.message || 'Error al cargar clientes')
@@ -112,11 +112,6 @@ export function StepSeleccionarClientesBD({ onNext }: StepSeleccionarClientesBDP
       filtered = filtered.filter(c => c.status === statusFilter)
     }
 
-    // Filtro de requiresNotification
-    if (requiresNotificationFilter !== null) {
-      filtered = filtered.filter(c => c.requiresNotification === requiresNotificationFilter)
-    }
-
     // Limitar cantidad por barrio (tomar primeros N por cada barrio)
     if (maxClientsPerBarrio && parseInt(maxClientsPerBarrio) > 0) {
       const limit = parseInt(maxClientsPerBarrio)
@@ -135,6 +130,41 @@ export function StepSeleccionarClientesBD({ onNext }: StepSeleccionarClientesBDP
       filtered = []
       barrioMap.forEach((clients) => {
         filtered.push(...clients.slice(0, limit))
+      })
+    }
+
+    // Aplicar rango por barrio (desde-hasta)
+    if (barrioRangeStart || barrioRangeEnd) {
+      const start = barrioRangeStart ? parseInt(barrioRangeStart) : 1
+      const end = barrioRangeEnd ? parseInt(barrioRangeEnd) : undefined
+
+      const barrioMap = new Map<string, Client[]>()
+      
+      // Agrupar por barrio
+      filtered.forEach(client => {
+        const barrio = client.barrio_inm || 'Sin barrio'
+        if (!barrioMap.has(barrio)) {
+          barrioMap.set(barrio, [])
+        }
+        barrioMap.get(barrio)!.push(client)
+      })
+      
+      // Aplicar rango a cada barrio
+      filtered = []
+      barrioMap.forEach((clients) => {
+        // Ordenar por unidad (UF) numéricamente para consistencia
+        clients.sort((a, b) => {
+          const aNum = parseInt(a.unidad) || 0
+          const bNum = parseInt(b.unidad) || 0
+          return aNum - bNum
+        })
+        
+        // Calcular rango: desde start, tomar (end - start) elementos
+        const rangeStart = Math.max(0, start - 1) // Convertir a 0-based
+        const count = end ? Math.max(0, end - start) : clients.length - rangeStart
+        const rangeEnd = Math.min(clients.length, rangeStart + count)
+        const sliced = clients.slice(rangeStart, rangeEnd)
+        filtered.push(...sliced)
       })
     }
 
@@ -157,24 +187,26 @@ export function StepSeleccionarClientesBD({ onNext }: StepSeleccionarClientesBDP
     onNext(filteredClients)
   }
 
-  const getStatusBadge = (status?: 'pending' | 'notified' | 'visited') => {
+  const getStatusBadge = (status?: 'pending' | 'notified' | 'visited' | 'verified') => {
     if (!status) return null
     
     const colors = {
       pending: 'bg-yellow-500',
       notified: 'bg-blue-500',
-      visited: 'bg-green-500'
+      visited: 'bg-green-500',
+      verified: 'bg-purple-600'
     }
     
     const labels = {
       pending: 'Pendiente',
       notified: 'Notificado',
-      visited: 'Visitado'
+      visited: 'Visitado',
+      verified: 'Verificado'
     }
     
     return (
-      <Badge className={`${colors[status]} text-white text-xs`}>
-        {labels[status]}
+      <Badge className={`${colors[status] || 'bg-gray-400'} text-white text-xs`}>
+        {labels[status] || status}
       </Badge>
     )
   }
@@ -309,34 +341,13 @@ export function StepSeleccionarClientesBD({ onNext }: StepSeleccionarClientesBDP
                 >
                   Visitado
                 </Button>
-              </div>
-            </div>
-
-            {/* Filtro de requiresNotification */}
-            <div>
-              <Label className="mb-2 block">Clientes Marcados en PYSE</Label>
-              <p className="text-xs text-gray-500 mb-2">Filtra clientes que fueron marcados en tu sistema PYSE para recibir notificación</p>
-              <div className="flex gap-2">
                 <Button
-                  variant={requiresNotificationFilter === null ? 'default' : 'outline'}
+                  variant={statusFilter === 'verified' ? 'default' : 'outline'}
                   size="sm"
-                  onClick={() => setRequiresNotificationFilter(null)}
+                  onClick={() => setStatusFilter('verified')}
+                  className="bg-purple-600 hover:bg-purple-700"
                 >
-                  Todos
-                </Button>
-                <Button
-                  variant={requiresNotificationFilter === true ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => setRequiresNotificationFilter(true)}
-                >
-                  Solo marcados en PYSE
-                </Button>
-                <Button
-                  variant={requiresNotificationFilter === false ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => setRequiresNotificationFilter(false)}
-                >
-                  No marcados
+                  Verificado
                 </Button>
               </div>
             </div>
@@ -389,6 +400,52 @@ export function StepSeleccionarClientesBD({ onNext }: StepSeleccionarClientesBDP
               </div>
             )}
 
+            {/* Rango por barrio */}
+            {selectedBarrios.length > 0 && (
+              <div>
+                <Label className="mb-2 block">
+                  Rango de clientes por barrio
+                </Label>
+                <p className="text-xs text-gray-500 mb-2">
+                  Selecciona un rango específico de clientes por barrio (ej: del 201 al 400 para procesar en lotes)
+                </p>
+                <div className="flex gap-2 items-center">
+                  <div className="flex-1">
+                    <Label htmlFor="rangeStart" className="text-xs text-gray-600">Desde</Label>
+                    <Input
+                      id="rangeStart"
+                      type="number"
+                      placeholder="Ej: 201"
+                      value={barrioRangeStart}
+                      onChange={(e) => setBarrioRangeStart(e.target.value)}
+                      min="1"
+                      className="text-sm"
+                    />
+                  </div>
+                  <div className="flex items-center justify-center pt-4">
+                    <span className="text-gray-400">—</span>
+                  </div>
+                  <div className="flex-1">
+                    <Label htmlFor="rangeEnd" className="text-xs text-gray-600">Hasta</Label>
+                    <Input
+                      id="rangeEnd"
+                      type="number"
+                      placeholder="Ej: 400"
+                      value={barrioRangeEnd}
+                      onChange={(e) => setBarrioRangeEnd(e.target.value)}
+                      min="1"
+                      className="text-sm"
+                    />
+                  </div>
+                </div>
+                {(barrioRangeStart || barrioRangeEnd) && (
+                  <p className="text-xs text-green-600 mt-2">
+                    📊 Procesando clientes {barrioRangeStart || '1'} a {barrioRangeEnd || 'todos'} de cada barrio seleccionado
+                  </p>
+                )}
+              </div>
+            )}
+
             {/* Botón limpiar filtros */}
             <div className="flex justify-end">
               <Button
@@ -399,8 +456,9 @@ export function StepSeleccionarClientesBD({ onNext }: StepSeleccionarClientesBDP
                   setSelectedBarrios([])
                   setPhoneFilter('all')
                   setStatusFilter('all')
-                  setRequiresNotificationFilter(null)
                   setMaxClientsPerBarrio('')
+                  setBarrioRangeStart('')
+                  setBarrioRangeEnd('')
                 }}
               >
                 Limpiar filtros

@@ -12,7 +12,7 @@ interface CuentaProcesada {
   barrio: string
   domicilio: string
   fechaProcesamiento: string
-  estado: 'pendiente' | 'notificado'
+  estado: 'pendiente' | 'notificado' | 'verificado'
 }
 
 export default function PasoDNotificacionesPage() {

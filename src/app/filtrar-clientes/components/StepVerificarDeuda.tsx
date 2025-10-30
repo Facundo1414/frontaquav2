@@ -24,7 +24,7 @@ interface Client {
   debt?: number
   barrio_inm?: string
   requiresNotification?: boolean
-  status?: 'pending' | 'notified' | 'visited'
+  status?: 'pending' | 'notified' | 'visited' | 'verified'
   processedDate?: string
 }
 
