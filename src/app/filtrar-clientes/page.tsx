@@ -18,7 +18,7 @@ export interface DebtCheckResult {
   hasPaymentPlan?: boolean
   reason?: string
   error?: string
-  barrio?: string // 🔥 Nuevo
+  barrio?: string // Nuevo
 }
 
 interface NeighborhoodWithCount {
@@ -36,19 +36,19 @@ export interface ProcessResults {
 
 export default function FiltrarClientesPage() {
   const [currentStep, setCurrentStep] = useState(1)
-  const [selectedClients, setSelectedClients] = useState<any[]>([]) // 🔥 Nuevo: clientes seleccionados desde BD
+  const [selectedClients, setSelectedClients] = useState<any[]>([]) // Nuevo: clientes seleccionados desde BD
   const [universoInfo, setUniversoInfo] = useState<{
     neighborhoods: string[]
     totalAccounts: number
     fileName: string
   } | null>(null)
-  const [neighborhoodsWithCount, setNeighborhoodsWithCount] = useState<NeighborhoodWithCount[]>([]) // 🔥 Nuevo
+  const [neighborhoodsWithCount, setNeighborhoodsWithCount] = useState<NeighborhoodWithCount[]>([]) // Nuevo
   const [barriosSeleccionados, setBarriosSeleccionados] = useState<string[]>([])
   const [filtrosActivos, setFiltrosActivos] = useState<FiltrosBarrios | null>(null)
   const [resultados, setResultados] = useState<ProcessResults | null>(null)
-  const [showExplanation, setShowExplanation] = useState(false) // 🔥 Nuevo: Para mostrar/ocultar explicación
+  const [showExplanation, setShowExplanation] = useState(false) // Nuevo: Para mostrar/ocultar explicación
 
-  // 🔥 Ya no necesitamos cargar universo automáticamente
+  // Ya no necesitamos cargar universo automáticamente
   // El flujo comienza directamente en selección desde BD
 
   const steps = [
@@ -77,7 +77,7 @@ export default function FiltrarClientesPage() {
 
   const currentStepData = steps.find(s => s.step === currentStep)
 
-  // 🔥 Nuevo handler: clientes seleccionados desde BD
+  // Nuevo handler: clientes seleccionados desde BD
   const handleClientesSeleccionados = (clients: any[]) => {
     setSelectedClients(clients)
     setCurrentStep(2)

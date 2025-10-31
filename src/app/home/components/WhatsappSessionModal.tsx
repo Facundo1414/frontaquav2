@@ -18,7 +18,7 @@ interface WhatsappSessionModalProps {
   autoCloseOnAuth?: boolean
 }
 
-// 🔥 Helper para obtener userId del token
+// Helper para obtener userId del token
 const getUserIdFromToken = (): string | null => {
   try {
     const t = getAccessToken()
@@ -31,10 +31,10 @@ const getUserIdFromToken = (): string | null => {
 }
 
 export const WhatsappSessionModal: React.FC<WhatsappSessionModalProps> = ({ open, onOpenChange, token, autoCloseOnAuth = false }) => {
-  // 🔥 Obtener userId para suscripción directa
+  // Obtener userId para suscripción directa
   const userId = getUserIdFromToken()
   
-  // 🔥 Suscribirse directamente en el modal
+  // Suscribirse directamente en el modal
   const { status: wsStatus, isSubscribed, connected } = useWhatsappStatus(userId)
   
   // Context solo para actualizar estado global

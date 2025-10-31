@@ -60,7 +60,7 @@ export function useWebSocket() {
       setConnected(false);
     }
 
-    // 🔥 SIEMPRE agregar listeners (incluso si reutilizamos)
+    // SIEMPRE agregar listeners (incluso si reutilizamos)
     const handleConnect = () => {
       if (!mountedRef.current) return;
       console.log("✅ WebSocket conectado:", globalSocket?.id);

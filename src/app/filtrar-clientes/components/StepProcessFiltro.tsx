@@ -31,7 +31,7 @@ export function StepProcessFiltro({ jobId, onComplete }: StepProcessFiltroProps)
   const [currentAction, setCurrentAction] = useState('Iniciando procesamiento...')
   const { getToken } = useGlobalContext()
   
-  // 🔥 WebSocket para actualizaciones en tiempo real
+  // WebSocket para actualizaciones en tiempo real
   const { progress: wsProgress, isSubscribed, connected } = useJobProgress(jobId)
 
   // Actualizar estado desde WebSocket

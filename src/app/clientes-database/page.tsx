@@ -123,7 +123,7 @@ function ClientsView() {
     }
   };
 
-  // 🔥 Actualizar estado inline desde la tabla
+  // Actualizar estado inline desde la tabla
   const handleStatusChange = async (clientId: string, newStatus: 'pending' | 'notified' | 'visited') => {
     try {
       await updateClient(clientId, { status: newStatus });

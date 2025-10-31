@@ -41,7 +41,7 @@ export const WhatsappSessionProvider: React.FC<{ children: React.ReactNode }> = 
   const readyToastShown = useRef(false);
   const hydrated = useRef(false);
   
-  // 🔥 NUEVO: WebSocket
+  // NUEVO: WebSocket
   const userId = getUserIdFromToken();
   const { status: wsStatus, isSubscribed, connected } = useWhatsappStatus(userId);
   
@@ -98,7 +98,7 @@ export const WhatsappSessionProvider: React.FC<{ children: React.ReactNode }> = 
     });
   }, []);
 
-  // 🔥 Actualizar desde WebSocket
+  // Actualizar desde WebSocket
   useEffect(() => {
     if (wsStatus && isSubscribed && connected) {
       console.log('📱 Usando WebSocket para WhatsApp status:', wsStatus);

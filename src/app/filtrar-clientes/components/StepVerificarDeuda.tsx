@@ -29,7 +29,7 @@ interface Client {
 }
 
 interface StepVerificarDeudaProps {
-  selectedClients?: Client[] // 🔥 Nuevo: clientes desde BD
+  selectedClients?: Client[] // Nuevo: clientes desde BD
   filtros?: FiltrosBarrios // Mantener compatibilidad con flujo viejo
   onComplete: (results: ProcessResults) => void
 }
@@ -68,15 +68,15 @@ export function StepVerificarDeuda({ selectedClients, filtros, onComplete }: Ste
     try {
       let data: ProcessResults
 
-      // 🔥 Nuevo flujo: procesar clientes seleccionados desde BD
+      // Nuevo flujo: procesar clientes seleccionados desde BD
       if (selectedClients && selectedClients.length > 0) {
         // Extraer números de unidad
         const unidades = selectedClients.map(c => parseInt(c.unidad))
         
-        // 🔥 Extraer datos de cliente para enriquecimiento
+        // Extraer datos de cliente para enriquecimiento
         const clientData = selectedClients.map(c => ({
           uf: parseInt(c.unidad),
-          barrio: c.barrio_inm, // 🔥 Enviar barrio desde la BD
+          barrio: c.barrio_inm, // Enviar barrio desde la BD
           domicilio: undefined, // No tenemos domicilio en la BD
           titular: c.titular,
         }))
@@ -90,7 +90,7 @@ export function StepVerificarDeuda({ selectedClients, filtros, onComplete }: Ste
           {
             minComprobantesVencidos: 3 // PYSE requiere mín. 3
           },
-          clientData // 🔥 Pasar datos de cliente
+          clientData // Pasar datos de cliente
         )
       }
       // Flujo original: por barrios y filtros
@@ -177,7 +177,7 @@ export function StepVerificarDeuda({ selectedClients, filtros, onComplete }: Ste
       <Card>
         <CardContent className="p-4">
           {selectedClients ? (
-            // 🔥 Nuevo: Resumen de clientes seleccionados desde BD
+            // Nuevo: Resumen de clientes seleccionados desde BD
             <div>
               <h3 className="font-medium mb-3">Clientes seleccionados: {selectedClients.length.toLocaleString()}</h3>
               <div className="space-y-2">

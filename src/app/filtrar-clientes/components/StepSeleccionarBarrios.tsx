@@ -13,7 +13,7 @@ import { toast } from "sonner"
 export interface FiltrosBarrios {
   barrios: string[]
   limitesPorBarrio?: Record<string, number>
-  offsetsPorBarrio?: Record<string, number> // 🔥 Nuevo: para paginación
+  offsetsPorBarrio?: Record<string, number> // Nuevo: para paginación
   minComprobantesVencidos?: number
   maxComprobantesVencidos?: number
   minDeuda?: number
@@ -27,7 +27,7 @@ interface NeighborhoodWithCount {
 
 interface StepSeleccionarBarriosProps {
   neighborhoods: string[] // Deprecated: usar neighborhoodsWithCount
-  neighborhoodsWithCount?: NeighborhoodWithCount[] // 🔥 Nuevo: con conteo
+  neighborhoodsWithCount?: NeighborhoodWithCount[] // Nuevo: con conteo
   onSelect: (filtros: FiltrosBarrios) => void
 }
 
@@ -38,7 +38,7 @@ export function StepSeleccionarBarrios({ neighborhoods, neighborhoodsWithCount, 
   
   // Filtros opcionales
   const [limitesPorBarrio, setLimitesPorBarrio] = useState<Record<string, number>>({})
-  const [offsetsPorBarrio, setOffsetsPorBarrio] = useState<Record<string, number>>({}) // 🔥 Nuevo
+  const [offsetsPorBarrio, setOffsetsPorBarrio] = useState<Record<string, number>>({}) // Nuevo
   const [minComprobantes, setMinComprobantes] = useState<number>(3)
   const [maxComprobantes, setMaxComprobantes] = useState<number | undefined>(undefined)
   const [minDeuda, setMinDeuda] = useState<number | undefined>(undefined)
@@ -83,7 +83,7 @@ export function StepSeleccionarBarrios({ neighborhoods, neighborhoodsWithCount, 
       filtros.limitesPorBarrio = limitesPorBarrio
     }
     if (Object.keys(offsetsPorBarrio).length > 0) {
-      filtros.offsetsPorBarrio = offsetsPorBarrio // 🔥 Nuevo
+      filtros.offsetsPorBarrio = offsetsPorBarrio // Nuevo
     }
     if (minComprobantes && minComprobantes > 0) {
       filtros.minComprobantesVencidos = minComprobantes
@@ -126,7 +126,7 @@ export function StepSeleccionarBarrios({ neighborhoods, neighborhoodsWithCount, 
   const countActiveFiltros = () => {
     let count = 0
     if (Object.keys(limitesPorBarrio).length > 0) count++
-    if (Object.keys(offsetsPorBarrio).length > 0) count++ // 🔥 Nuevo
+    if (Object.keys(offsetsPorBarrio).length > 0) count++ // Nuevo
     if (minComprobantes > 3) count++
     if (maxComprobantes) count++
     if (minDeuda) count++
@@ -136,7 +136,7 @@ export function StepSeleccionarBarrios({ neighborhoods, neighborhoodsWithCount, 
 
   const limpiarFiltros = () => {
     setLimitesPorBarrio({})
-    setOffsetsPorBarrio({}) // 🔥 Nuevo
+    setOffsetsPorBarrio({}) // Nuevo
     setMinComprobantes(3)
     setMaxComprobantes(undefined)
     setMinDeuda(undefined)

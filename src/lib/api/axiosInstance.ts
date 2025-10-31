@@ -17,7 +17,7 @@ const api = axios.create({
   timeout: 1800000,
 });
 
-// 🎯 Interceptor para añadir token automáticamente
+// Interceptor para añadir token automáticamente
 api.interceptors.request.use(
   async (config) => {
     // Intentar refrescar el token si es necesario
@@ -42,7 +42,7 @@ api.interceptors.request.use(
   }
 );
 
-// 🎯 Interceptor para manejar respuestas y refrescar tokens
+// Interceptor para manejar respuestas y refrescar tokens
 api.interceptors.response.use(
   (response) => response,
   async (error) => {

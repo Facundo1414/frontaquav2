@@ -24,7 +24,7 @@ export const getUniverseInfo = async () => {
   }
 };
 
-// 🔥 NUEVO: Obtener barrios con conteo de cuentas
+// NUEVO: Obtener barrios con conteo de cuentas
 export const getNeighborhoodsWithCount = async (): Promise<{
   neighborhoods: Array<{ neighborhood: string; accountCount: number }>;
   totalNeighborhoods: number;
@@ -71,7 +71,7 @@ export const checkDebtByNeighborhoods = async (
   neighborhoods: string[],
   filtros?: {
     limitesPorBarrio?: Record<string, number>;
-    offsetsPorBarrio?: Record<string, number>; // 🔥 Nuevo
+    offsetsPorBarrio?: Record<string, number>; // Nuevo
     minComprobantesVencidos?: number;
     maxComprobantesVencidos?: number;
     minDeuda?: number;
@@ -87,7 +87,7 @@ export const checkDebtByNeighborhoods = async (
       payload.maxPerNeighborhood = filtros.limitesPorBarrio;
     }
     if (filtros.offsetsPorBarrio) {
-      payload.offsetPerNeighborhood = filtros.offsetsPorBarrio; // 🔥 Nuevo
+      payload.offsetPerNeighborhood = filtros.offsetsPorBarrio; // Nuevo
     }
     if (filtros.minComprobantesVencidos) {
       payload.minComprobantesVencidos = filtros.minComprobantesVencidos;
@@ -116,7 +116,7 @@ export const checkDebtByNeighborhoods = async (
   return data;
 };
 
-// 🔥 NUEVO: Verificar deuda por unidades específicas (más eficiente que por barrios)
+// NUEVO: Verificar deuda por unidades específicas (más eficiente que por barrios)
 export const checkDebtByUnits = async (
   unidades: number[],
   filtros?: {
@@ -130,12 +130,12 @@ export const checkDebtByUnits = async (
     barrio?: string;
     domicilio?: string;
     titular?: string;
-  }[] // 🔥 Nuevo parámetro
+  }[] // Nuevo parámetro
 ) => {
   const token = getAccessToken();
   const payload: any = { unidades };
 
-  // 🔥 Agregar clientData si está presente
+  // Agregar clientData si está presente
   if (clientData && clientData.length > 0) {
     payload.clientData = clientData;
   }
@@ -186,7 +186,7 @@ export const generateExcelFiles = async (results: any[]) => {
   return response.data; // Retorna el Blob del ZIP
 };
 
-// 🔥 NUEVO: Generar archivo Excel APTOS solamente
+// NUEVO: Generar archivo Excel APTOS solamente
 export const generateAptosExcel = async (results: any[]): Promise<Blob> => {
   const token = getAccessToken();
   const response = await api.post(
@@ -203,7 +203,7 @@ export const generateAptosExcel = async (results: any[]): Promise<Blob> => {
   return response.data;
 };
 
-// 🔥 NUEVO: Generar archivo Excel NO APTOS solamente
+// NUEVO: Generar archivo Excel NO APTOS solamente
 export const generateNoAptosExcel = async (results: any[]): Promise<Blob> => {
   const token = getAccessToken();
   const response = await api.post(
@@ -220,7 +220,7 @@ export const generateNoAptosExcel = async (results: any[]): Promise<Blob> => {
   return response.data;
 };
 
-// 🔥 NUEVO: Generar archivo Excel MACHETE para visitar clientes
+// NUEVO: Generar archivo Excel MACHETE para visitar clientes
 export const generateMacheteExcel = async (
   results: any[],
   clientsData?: Array<{
