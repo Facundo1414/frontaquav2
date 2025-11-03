@@ -1,13 +1,58 @@
 'use client'
-import { StepsSidebar } from './components/StepsSidebar'
-import StepUploadFile from './components/StepUploadFile'
+import dynamic from 'next/dynamic'
+import { Suspense } from 'react'
 import { SendDebtsProvider, useSendDebtsContext } from '../providers/context/SendDebtsContext'
-import { AnimatePresence, motion } from 'framer-motion'
-import { DynamicExcelTable } from './components/DynamicExcelTable'
-import { StepSend } from './components/StepSend'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { StepDownload } from './components/StepDownload'
+import { Card, CardContent } from '@/components/ui/card'
+import { Loader2 } from 'lucide-react'
 
+// 🚀 Lazy load de componentes pesados
+const StepsSidebar = dynamic(() => import('./components/StepsSidebar').then(mod => ({ default: mod.StepsSidebar })), {
+  loading: () => <div className="w-64 bg-gray-50 animate-pulse rounded-lg" />,
+})
+
+const StepUploadFile = dynamic(() => import('./components/StepUploadFile'), {
+  loading: () => <LoadingStep />,
+})
+
+const StepSend = dynamic(() => import('./components/StepSend').then(mod => ({ default: mod.StepSend })), {
+  loading: () => <LoadingStep />,
+})
+
+const StepDownload = dynamic(() => import('./components/StepDownload').then(mod => ({ default: mod.StepDownload })), {
+  loading: () => <LoadingStep />,
+})
+
+const DynamicExcelTable = dynamic(() => import('./components/DynamicExcelTable').then(mod => ({ default: mod.DynamicExcelTable })), {
+  loading: () => <LoadingTable />,
+})
+
+// Lazy load para AnimatePresence y motion (framer-motion es pesado)
+const AnimatePresence = dynamic(() => import('framer-motion').then(mod => mod.AnimatePresence), {
+  ssr: false,
+}) as any
+
+const MotionDiv = dynamic(() => import('framer-motion').then(mod => mod.motion.div), {
+  ssr: false,
+}) as any
+
+// 🎨 Loading components
+function LoadingStep() {
+  return (
+    <div className="flex items-center justify-center h-64">
+      <Loader2 className="w-8 h-8 animate-spin text-primary" />
+    </div>
+  )
+}
+
+function LoadingTable() {
+  return (
+    <div className="space-y-3">
+      {[...Array(5)].map((_, i) => (
+        <div key={i} className="h-12 bg-gray-100 animate-pulse rounded" />
+      ))}
+    </div>
+  )
+}
 
 function StepContent({ step }: { step: number }) {
   switch (step) {
@@ -36,7 +81,7 @@ function Content() {
 
         {/* Tabla: 40% de la altura total */}
         <AnimatePresence>
-          <motion.div
+          <MotionDiv
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
@@ -44,7 +89,7 @@ function Content() {
             className="flex-[4] border rounded-xl shadow p-4 bg-white overflow-y-auto"
           >
             <DynamicExcelTable />
-          </motion.div>
+          </MotionDiv>
         </AnimatePresence>
           </div>
     </div>

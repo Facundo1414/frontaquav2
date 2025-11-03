@@ -1,10 +1,18 @@
 'use client';
-
+import dynamic from 'next/dynamic';
 import { useState, useEffect } from 'react';
-import { Upload, Database, FileSpreadsheet, Users, ArrowLeft, CheckCircle, XCircle, AlertCircle, Search, Filter, Phone, MapPin, DollarSign, Calendar, Edit2, Save, X, Eye, Check, MessageSquare } from 'lucide-react';
+import { Upload, Database, FileSpreadsheet, Users, ArrowLeft, CheckCircle, XCircle, AlertCircle, Search, Filter, Phone, MapPin, DollarSign, Calendar, Edit2, Save, X, Eye, Check, MessageSquare, Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { importPYSEClients, importDeudasClients, getClients, updateClient, previewPYSEImport, previewDeudasImport } from '@/lib/api';
-import { PaginatedClientsView } from './components/PaginatedClientsView';
+
+// 🚀 Lazy load del componente de vista paginada (pesado)
+const PaginatedClientsView = dynamic(() => import('./components/PaginatedClientsView').then(mod => ({ default: mod.PaginatedClientsView })), {
+  loading: () => (
+    <div className="flex items-center justify-center h-64">
+      <Loader2 className="w-8 h-8 animate-spin text-primary" />
+    </div>
+  ),
+});
 
 // Componente para ver la lista de clientes
 function ClientsView() {

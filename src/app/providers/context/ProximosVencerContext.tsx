@@ -15,6 +15,14 @@ const calcularDiasHastaFinMesActual = (): number => {
   const diffTime = finMesActual.getTime() - hoy.getTime()
   const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
   
+  // ✅ FIX Sprint 3: Validación para evitar diasAnticipacion = 0
+  // Si estamos en el último día del mes (diffDays = 0), usar el mes siguiente completo
+  if (diffDays <= 0) {
+    const finMesSiguiente = new Date(añoActual, mesActual + 2, 0)
+    const diffTimeSiguiente = finMesSiguiente.getTime() - hoy.getTime()
+    return Math.ceil(diffTimeSiguiente / (1000 * 60 * 60 * 24))
+  }
+  
   return diffDays
 }
 

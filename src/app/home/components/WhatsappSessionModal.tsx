@@ -5,7 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import Image from 'next/image'
 import { Loader2, RefreshCw } from 'lucide-react'
 import { toast } from 'sonner'
-import QRCode from 'qrcode'
+import { generateQRCode } from '@/lib/qrcode'
 import { useWhatsappSessionContext } from '@/app/providers/context/whatsapp/WhatsappSessionContext'
 import { simpleWaInit } from '@/lib/api/simpleWaApi'
 import { useWhatsappStatus } from '@/hooks/useWhatsappStatus'
@@ -132,12 +132,12 @@ export const WhatsappSessionModal: React.FC<WhatsappSessionModalProps> = ({ open
     }
   }, [open, wsReady, isSubscribed, connected])
 
-  // Convertir QR a imagen
+  // Convertir QR a imagen (lazy load QRCode library)
   useEffect(() => {
     let active = true
     if (qr) {
-      QRCode.toDataURL(qr)
-        .then(img => { if (active) setQrImage(img) })
+      generateQRCode(qr)
+        .then((img: string) => { if (active) setQrImage(img) })
         .catch(() => setQrImage(null))
     } else {
       setQrImage(null)

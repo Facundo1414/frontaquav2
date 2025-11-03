@@ -1,15 +1,41 @@
 'use client'
-
+import dynamic from 'next/dynamic'
 import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Upload, Map, Search, Download, CheckCircle2, Info, ChevronDown, ChevronUp, Users } from "lucide-react"
-import { StepUploadUniverso } from './components/StepUploadUniverso'
-import { StepSeleccionarClientesBD } from './components/StepSeleccionarClientesBD'
-import { StepSeleccionarBarrios, FiltrosBarrios } from './components/StepSeleccionarBarrios'
-import { StepVerificarDeuda } from './components/StepVerificarDeuda'
-import { StepDescargarResultados } from './components/StepDescargarResultados'
+import { Upload, Map, Search, Download, CheckCircle2, Info, ChevronDown, ChevronUp, Users, Loader2 } from "lucide-react"
 import { getUniverseInfo, getNeighborhoodsWithCount } from '@/lib/api'
+import type { FiltrosBarrios } from './components/StepSeleccionarBarrios'
+
+// 🚀 Lazy load de componentes pesados
+const StepUploadUniverso = dynamic(() => import('./components/StepUploadUniverso').then(mod => ({ default: mod.StepUploadUniverso })), {
+  loading: () => <LoadingStep />,
+})
+
+const StepSeleccionarClientesBD = dynamic(() => import('./components/StepSeleccionarClientesBD').then(mod => ({ default: mod.StepSeleccionarClientesBD })), {
+  loading: () => <LoadingStep />,
+})
+
+const StepSeleccionarBarrios = dynamic(() => import('./components/StepSeleccionarBarrios').then(mod => ({ default: mod.StepSeleccionarBarrios })), {
+  loading: () => <LoadingStep />,
+})
+
+const StepVerificarDeuda = dynamic(() => import('./components/StepVerificarDeuda').then(mod => ({ default: mod.StepVerificarDeuda })), {
+  loading: () => <LoadingStep />,
+})
+
+const StepDescargarResultados = dynamic(() => import('./components/StepDescargarResultados').then(mod => ({ default: mod.StepDescargarResultados })), {
+  loading: () => <LoadingStep />,
+})
+
+// 🎨 Loading component
+function LoadingStep() {
+  return (
+    <div className="flex items-center justify-center h-64">
+      <Loader2 className="w-8 h-8 animate-spin text-primary" />
+    </div>
+  )
+}
 
 export interface DebtCheckResult {
   uf: number

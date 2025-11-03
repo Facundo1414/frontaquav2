@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { toast } from 'sonner'
 import { motion } from 'framer-motion'
-import { Loader2 } from 'lucide-react'
+import { Loader2, AlertTriangle } from 'lucide-react'
 import {
   uploadExcelFile,
   getFileByName,
@@ -13,6 +13,9 @@ import {
 import { parseExcelBlob, parseExcelBlobWithIndexMapping } from '@/utils/parseExcelBlob'
 import { useSendDebtsContext } from '@/app/providers/context/SendDebtsContext'
 import { useWhatsappSessionContext } from '@/app/providers/context/whatsapp/WhatsappSessionContext'
+import { debtsDataSchema } from '@/lib/validations/send-debts.schema'
+import { validateExcelFile, sanitizeObject } from '@/lib/validations/validation-utils'
+import { useFileValidation } from '@/hooks/useValidation'
 
 export default function StepUploadFile() {
   const [file, setFile] = useState<File | null>(null)
@@ -24,13 +27,48 @@ export default function StepUploadFile() {
   const { snapshot } = useWhatsappSessionContext()
   const syncing = !snapshot?.ready
 
+  // Hook de validación de archivos
+  const { validateFile, fileError, clearFileError } = useFileValidation()
+
   const processFile = async (selected: File) => {
+    // 🛡️ Validar archivo antes de procesarlo
+    const isValid = validateFile(selected, validateExcelFile)
+    
+    if (!isValid) {
+      toast.error(fileError || 'Archivo inválido')
+      return
+    }
+
+    clearFileError()
     setFile(selected)
-    const fileData = await selected.arrayBuffer()
-    const blob = new Blob([fileData], { type: selected.type })
-    const parsedData = await parseExcelBlob(blob)
-    setRawData(parsedData)
-    setActiveStep(0)
+
+    try {
+      const fileData = await selected.arrayBuffer()
+      const blob = new Blob([fileData], { type: selected.type })
+      const parsedData = await parseExcelBlob(blob)
+
+      // 🛡️ Validar datos parseados con schema de Zod
+      const validation = debtsDataSchema.safeParse(parsedData)
+      
+      if (!validation.success) {
+        console.error('Error de validación:', validation.error)
+        toast.error('El archivo contiene datos inválidos. Verifica el formato.')
+        setFile(null)
+        if (fileInputRef.current) fileInputRef.current.value = ''
+        return
+      }
+
+      // 🛡️ Sanitizar datos antes de guardarlos
+      const sanitizedData = validation.data.map((row: any) => sanitizeObject(row))
+      setRawData(sanitizedData)
+      setActiveStep(0)
+      toast.success('Archivo cargado correctamente')
+    } catch (error) {
+      console.error('Error al procesar archivo:', error)
+      toast.error('Error al procesar el archivo')
+      setFile(null)
+      if (fileInputRef.current) fileInputRef.current.value = ''
+    }
   }
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -44,6 +82,13 @@ export default function StepUploadFile() {
       return toast.info('Esperá a que termine la sincronización de WhatsApp antes de filtrar.');
     }
     if (!file) return toast.error('Seleccioná un archivo primero')
+
+    // 🛡️ Re-validar antes de enviar al backend
+    const isValid = validateFile(file, validateExcelFile)
+    if (!isValid) {
+      toast.error(fileError || 'Archivo inválido')
+      return
+    }
 
     try {
       setUploading(true)
@@ -145,6 +190,14 @@ export default function StepUploadFile() {
           <p className="text-sm text-muted-foreground">
             El archivo seleccionado será filtrado para identificar clientes con y sin WhatsApp. Los que tienen WhatsApp se mostrarán en la tabla de abajo, mientras que los que no lo tienen podrán descargarse más adelante en formato excel.          
           </p>
+
+          {/* 🛡️ Mostrar error de validación si existe */}
+          {fileError && (
+            <div className="flex items-center gap-2 text-sm text-red-600 bg-red-50 p-3 rounded-lg border border-red-200 mt-2">
+              <AlertTriangle className="h-4 w-4 flex-shrink-0" />
+              <span>{fileError}</span>
+            </div>
+          )}
         </div>
       </div>
 

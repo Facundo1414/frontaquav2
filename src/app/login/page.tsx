@@ -13,7 +13,7 @@ import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { toast } from 'sonner'
-import { motion } from 'framer-motion'
+import { motion } from '@/lib/motion'
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')

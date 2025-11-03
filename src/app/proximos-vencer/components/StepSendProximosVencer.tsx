@@ -51,6 +51,12 @@ Puedes realizar el abono en cualquier Rapipago, Pago Fácil o a través de Merca
       setStatus("No hay archivo filtrado para enviar.")
       return
     }
+    
+    // ✅ FIX Sprint 3: Validación adicional para diasAnticipacion
+    if (diasAnticipacion <= 0) {
+      setStatus("Error: No se pueden procesar próximos a vencer porque no hay días válidos restantes en el mes. Por favor, intenta mañana.")
+      return
+    }
 
     setLoading(true)
     setStatus(null)

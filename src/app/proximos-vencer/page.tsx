@@ -1,14 +1,57 @@
 'use client'
-
+import dynamic from 'next/dynamic'
 import { ProximosVencerProvider, useProximosVencerContext } from '../providers/context/ProximosVencerContext'
-import { StepsSidebarProximosVencer } from './components/StepsSidebarProximosVencer'
-import StepUploadFileProximosVencer from './components/StepUploadFileProximosVencer'
-import StepSendProximosVencer from './components/StepSendProximosVencer'
-import StepDownloadProximosVencer from './components/StepDownloadProximosVencer'
-import { DynamicExcelTableProximosVencer } from './components/DynamicExcelTableProximosVencer'
 import { Card, CardContent } from '@/components/ui/card'
-import { AnimatePresence, motion } from 'framer-motion'
-import { AlertCircle } from 'lucide-react'
+import { AlertCircle, Loader2 } from 'lucide-react'
+
+// 🚀 Lazy load de componentes pesados
+const StepsSidebarProximosVencer = dynamic(() => import('./components/StepsSidebarProximosVencer').then(mod => ({ default: mod.StepsSidebarProximosVencer })), {
+  loading: () => <div className="w-64 bg-gray-50 animate-pulse rounded-lg" />,
+})
+
+const StepUploadFileProximosVencer = dynamic(() => import('./components/StepUploadFileProximosVencer'), {
+  loading: () => <LoadingStep />,
+})
+
+const StepSendProximosVencer = dynamic(() => import('./components/StepSendProximosVencer'), {
+  loading: () => <LoadingStep />,
+})
+
+const StepDownloadProximosVencer = dynamic(() => import('./components/StepDownloadProximosVencer'), {
+  loading: () => <LoadingStep />,
+})
+
+const DynamicExcelTableProximosVencer = dynamic(() => import('./components/DynamicExcelTableProximosVencer').then(mod => ({ default: mod.DynamicExcelTableProximosVencer })), {
+  loading: () => <LoadingTable />,
+})
+
+// Lazy load framer-motion
+const AnimatePresence = dynamic(() => import('framer-motion').then(mod => mod.AnimatePresence), {
+  ssr: false,
+}) as any
+
+const MotionDiv = dynamic(() => import('framer-motion').then(mod => mod.motion.div), {
+  ssr: false,
+}) as any
+
+// 🎨 Loading components
+function LoadingStep() {
+  return (
+    <div className="flex items-center justify-center h-64">
+      <Loader2 className="w-8 h-8 animate-spin text-primary" />
+    </div>
+  )
+}
+
+function LoadingTable() {
+  return (
+    <div className="space-y-3">
+      {[...Array(5)].map((_, i) => (
+        <div key={i} className="h-12 bg-gray-100 animate-pulse rounded" />
+      ))}
+    </div>
+  )
+}
 
 function StepContent({ step }: { step: number }) {
   switch (step) {
@@ -52,7 +95,7 @@ function Content() {
 
           {/* Tabla: 40% de la altura total */}
           <AnimatePresence>
-            <motion.div
+            <MotionDiv
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
@@ -60,7 +103,7 @@ function Content() {
               className="flex-[4] border rounded-xl shadow p-4 bg-white overflow-y-auto"
             >
               <DynamicExcelTableProximosVencer />
-            </motion.div>
+            </MotionDiv>
           </AnimatePresence>
         </div>
       </div>
