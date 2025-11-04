@@ -12,6 +12,8 @@ const PUBLIC_PATHS = [
   "/_next",
   "/images",
   "/fonts",
+  "/logoWater.png",
+  "/bg_topEspacioClientes.jpg",
 ];
 
 export function middleware(request: NextRequest) {
@@ -48,6 +50,6 @@ export function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|login|register|api|images|fonts).*)",
+    "/((?!_next/static|_next/image|favicon.ico|login|register|api|images|fonts|logoWater.png|bg_topEspacioClientes.jpg|.*\\.png|.*\\.jpg|.*\\.jpeg|.*\\.svg).*)",
   ],
 };

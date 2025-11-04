@@ -4,22 +4,24 @@ import { Suspense } from 'react'
 import { SendDebtsProvider, useSendDebtsContext } from '../providers/context/SendDebtsContext'
 import { Card, CardContent } from '@/components/ui/card'
 import { Loader2 } from 'lucide-react'
+import { StepIndicator, Step } from './components/StepIndicator'
+import {
+  SkeletonUploadFile,
+  SkeletonSend,
+  SkeletonDownload,
+} from './components/SkeletonLoaders'
 
 // 🚀 Lazy load de componentes pesados
-const StepsSidebar = dynamic(() => import('./components/StepsSidebar').then(mod => ({ default: mod.StepsSidebar })), {
-  loading: () => <div className="w-64 bg-gray-50 animate-pulse rounded-lg" />,
-})
-
 const StepUploadFile = dynamic(() => import('./components/StepUploadFile'), {
-  loading: () => <LoadingStep />,
+  loading: () => <SkeletonUploadFile />,
 })
 
 const StepSend = dynamic(() => import('./components/StepSend').then(mod => ({ default: mod.StepSend })), {
-  loading: () => <LoadingStep />,
+  loading: () => <SkeletonSend />,
 })
 
 const StepDownload = dynamic(() => import('./components/StepDownload').then(mod => ({ default: mod.StepDownload })), {
-  loading: () => <LoadingStep />,
+  loading: () => <SkeletonDownload />,
 })
 
 const DynamicExcelTable = dynamic(() => import('./components/DynamicExcelTable').then(mod => ({ default: mod.DynamicExcelTable })), {
@@ -54,6 +56,25 @@ function LoadingTable() {
   )
 }
 
+// 🎯 Definición de 3 pasos (la verificación de WhatsApp se hace automáticamente en el paso 1)
+const SEND_DEBTS_STEPS: Step[] = [
+  {
+    title: 'Cargar y Filtrar',
+    description: 'Sube Excel y verifica WhatsApp automáticamente',
+    status: 'pending',
+  },
+  {
+    title: 'Enviar Mensajes',
+    description: 'Envío masivo a clientes con WhatsApp',
+    status: 'pending',
+  },
+  {
+    title: 'Descargar Resultados',
+    description: 'Descarga reportes y archivos generados',
+    status: 'pending',
+  },
+]
+
 function StepContent({ step }: { step: number }) {
   switch (step) {
     case 0: return <StepUploadFile />
@@ -66,32 +87,54 @@ function StepContent({ step }: { step: number }) {
 function Content() {
   const { activeStep, setActiveStep } = useSendDebtsContext()
 
+  // 🎨 Calcular estado de cada paso dinámicamente
+  const stepsWithStatus: Step[] = SEND_DEBTS_STEPS.map((step, index) => {
+    if (index < activeStep) return { ...step, status: 'completed' as const }
+    if (index === activeStep) return { ...step, status: 'in-progress' as const }
+    return step
+  })
+
+  // 📊 Calcular progreso total (0-100)
+  const totalProgress = Math.round((activeStep / (SEND_DEBTS_STEPS.length - 1)) * 100)
+
   return (
-    <div className="flex h-[calc(100vh-9rem)]"> {/* Altura total entre header y footer */}
-      <StepsSidebar activeStep={activeStep} />
+    <div className="min-h-screen px-6 py-4 space-y-4 max-w-[1600px] mx-auto">
+      {/* 🎯 Indicador de pasos horizontal */}
+      <div className="sticky top-0 z-10 bg-background pb-2">
+        <StepIndicator steps={stepsWithStatus} currentStep={activeStep} totalProgress={totalProgress} />
+      </div>
 
-      <div className="flex flex-col flex-1 pl-4 py-2 gap-6 max-w-6xl w-full mx-auto">
-        {/* StepContent: 60% de la altura total del layout */}
-        <Card className="flex flex-col flex-[6] w-full overflow-hidden">
-          <CardContent className="h-full overflow-y-auto">
-                <StepContent step={activeStep} />
-          </CardContent>
-        </Card>
+      {/* 📋 Contenido del paso activo - Puede crecer libremente */}
+      <Card className="w-full">
+        <CardContent className="p-6">
+          <AnimatePresence mode="wait">
+            <MotionDiv
+              key={activeStep}
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              transition={{ duration: 0.2 }}
+            >
+              <StepContent step={activeStep} />
+            </MotionDiv>
+          </AnimatePresence>
+        </CardContent>
+      </Card>
 
-
-        {/* Tabla: 40% de la altura total */}
-        <AnimatePresence>
-          <MotionDiv
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.3 }}
-            className="flex-[4] border rounded-xl shadow p-4 bg-white overflow-y-auto"
-          >
+      {/* 📊 Tabla de datos - Abajo, se accede con scroll */}
+      <AnimatePresence>
+        <MotionDiv
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -10 }}
+          transition={{ duration: 0.2 }}
+          className="border rounded-xl shadow-sm bg-white"
+        >
+          <div className="max-h-[600px] overflow-y-auto p-4">
             <DynamicExcelTable />
-          </MotionDiv>
-        </AnimatePresence>
           </div>
+        </MotionDiv>
+      </AnimatePresence>
     </div>
   )
 }

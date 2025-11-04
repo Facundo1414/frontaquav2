@@ -150,29 +150,29 @@ export default function StepUploadFileProximosVencer() {
           </p>
         </div>
       )}
-      <div className="flex flex-col space-y-6 flex-1">
-        <div className="space-y-2">
-          <Label htmlFor="file">Archivo Excel</Label>
+      <div className="flex flex-col space-y-4 flex-1">
+        <div className="space-y-1.5">
+          <Label htmlFor="file" className="text-base font-semibold">Cargar archivo Excel</Label>
 
-          {/* Zona de carga */}
+          {/* Zona de carga compacta */}
           <label
             htmlFor="file"
             onDragOver={(e) => { e.preventDefault(); setIsDragOver(true) }}
             onDragLeave={() => setIsDragOver(false)}
             onDrop={handleDrop}
-            className={`flex flex-col items-center justify-center w-full border-2 border-dashed rounded-xl cursor-pointer transition 
+            className={`flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer transition 
               ${isDragOver ? 'border-blue-600 bg-blue-100' : 'border-blue-400 bg-blue-50 hover:bg-blue-100'}`}
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
-              className="h-10 w-10 text-blue-500 mb-2"
+              className="h-8 w-8 text-blue-500 mb-1"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
             >
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5-5m0 0l5 5m-5-5v12" />
             </svg>
-            <span className="text-blue-700 font-medium">
+            <span className="text-blue-700 font-medium text-sm">
               Haz clic o arrastra tu archivo aquí
             </span>
           </label>
@@ -187,13 +187,13 @@ export default function StepUploadFileProximosVencer() {
             className="hidden"
           />
 
-          <p className="text-sm text-muted-foreground">
-            El archivo seleccionado será filtrado para identificar clientes con y sin WhatsApp. Los que tienen WhatsApp se mostrarán en la tabla de abajo, mientras que los que no lo tienen podrán descargarse más adelante en formato excel.          
+          <p className="text-xs text-muted-foreground">
+            Se filtrará automáticamente por clientes con WhatsApp. Los sin WhatsApp podrán descargarse después.
           </p>
 
           {/* 🛡️ Mostrar error de validación */}
           {fileError && (
-            <div className="flex items-center gap-2 text-sm text-red-600 bg-red-50 p-3 rounded-lg border border-red-200 mt-2">
+            <div className="flex items-center gap-2 text-sm text-red-600 bg-red-50 p-2 rounded border border-red-200 mt-1">
               <AlertTriangle className="h-4 w-4 flex-shrink-0" />
               <span>{fileError}</span>
             </div>
@@ -202,17 +202,19 @@ export default function StepUploadFileProximosVencer() {
       </div>
 
       {/* Botones abajo */}
-      <div className="mt-auto flex items-center gap-4 pt-4">
-        <Button variant="secondary" onClick={handleCancel} disabled={uploading || syncing} className='bg-red-100'>
-          Eliminar
-        </Button>
-        <Button onClick={handleUpload} disabled={!file || uploading || syncing}>
-          {uploading ? 'Filtrando...' : 'Filtrar archivo'}
-        </Button>
+      <div className="border-t pt-3 mt-4">
+        <div className="flex items-center justify-end gap-2">
+          <Button variant="outline" onClick={handleCancel} disabled={uploading || syncing} className='bg-red-50 hover:bg-red-100'>
+            Eliminar
+          </Button>
+          <Button onClick={handleUpload} disabled={!file || uploading || syncing}>
+            {uploading ? 'Filtrando...' : 'Filtrar archivo →'}
+          </Button>
+        </div>
+        {syncing && (
+          <p className="text-xs mt-2 text-amber-600">Sincronizando WhatsApp… Las acciones estarán disponibles en segundos.</p>
+        )}
       </div>
-      {syncing && (
-        <p className="text-xs mt-2 text-amber-600">Sincronizando WhatsApp… Podés ver el estado arriba. Las acciones estarán disponibles en segundos.</p>
-      )}
     </motion.div>
   )
 }

@@ -6,6 +6,9 @@ import { useWhatsappSessionContext } from '@/app/providers/context/whatsapp/What
 import { motion } from 'framer-motion'
 import { Button } from '@/components/ui/button'
 import { Loader2 } from 'lucide-react'
+import { ProgressCard } from '@/app/senddebts/components/ProgressCard'
+import { useProgressWebSocket } from '@/hooks/useProgressWebSocket'
+import { useGlobalContext } from '@/app/providers/context/GlobalContext'
 
 export default function StepSendProximosVencer() {
   const {
@@ -20,8 +23,14 @@ export default function StepSendProximosVencer() {
     diasAnticipacion,
     fechaDesdeTexto,
     fechaHastaTexto,
+    filteredData,
   } = useProximosVencerContext()
   const { snapshot } = useWhatsappSessionContext()
+  const { accessToken } = useGlobalContext()
+  
+  // Extraer userId del token JWT (sub claim)
+  const userId = accessToken ? JSON.parse(atob(accessToken.split('.')[1])).sub : undefined
+  
   // Nuevo modelo: snapshot?.ready indica disponibilidad total. Consideramos "syncing" si no está ready aún.
   const syncing = !snapshot?.ready
 
@@ -39,8 +48,79 @@ Puedes realizar el abono en cualquier Rapipago, Pago Fácil o a través de Merca
   }, []); // Solo una vez al montar
 
   const [loading, setLoading] = useState(false)
+  const [jobId, setJobId] = useState<string | null>(null)
   const [status, setStatus] = useState<string | null>(null)
   const [backupFiles, setBackupFiles] = useState<string[]>([])
+  const [sendStats, setSendStats] = useState({
+    total: 0,
+    completed: 0,
+    failed: 0,
+    pending: 0,
+  })
+
+  useEffect(() => {
+    // Inicializar stats cuando se monta el componente
+    const total = filteredData?.length || 0
+    setSendStats({
+      total,
+      completed: 0,
+      failed: 0,
+      pending: total,
+    })
+  }, [filteredData])
+
+  // 🔌 Hook de progreso en tiempo real (conexión directa al worker)
+  const {
+    progress: wsProgress,
+    isCompleted: wsCompleted,
+    error: wsError,
+  } = useProgressWebSocket({
+    eventType: 'pdf', // Escuchar eventos PDF (no PYSE)
+    userId: userId,   // Filtrar solo eventos de este usuario
+  })
+
+  // Calcular progreso general y stats actuales
+  const overallProgress = wsProgress?.percentage || 0
+  const currentStats = wsProgress ? {
+    total: wsProgress.total,
+    completed: wsProgress.processed,
+    failed: 0,
+    pending: wsProgress.total - wsProgress.processed,
+  } : sendStats
+
+  // Efecto para actualizar stats con datos del WebSocket
+  useEffect(() => {
+    if (wsProgress) {
+      console.log(`📊 Progreso PDF (próximos a vencer): ${wsProgress.processed}/${wsProgress.total} (${wsProgress.percentage}%)`)
+      setSendStats({
+        total: wsProgress.total,
+        completed: wsProgress.processed,
+        failed: 0,
+        pending: wsProgress.total - wsProgress.processed,
+      })
+    }
+  }, [wsProgress])
+
+  // Efecto para avanzar cuando se completa
+  useEffect(() => {
+    if (wsCompleted && loading) {
+      console.log('✅ Envío de próximos a vencer completado via WebSocket')
+      setLoading(false)
+      setStatus('✅ Notificaciones enviadas correctamente. Pasando a descarga...')
+      setTimeout(() => {
+        setActiveStep(2)
+      }, 1500)
+    }
+  }, [wsCompleted, loading, setActiveStep])
+
+  // Efecto para manejar errores
+  useEffect(() => {
+    if (wsError && loading) {
+      console.error('❌ Error en envío de próximos a vencer:', wsError)
+      setLoading(false)
+      setStatus(`Error: ${wsError}`)
+    }
+  }, [wsError, loading])
 
   const handleSend = async () => {
     if (syncing) {
@@ -63,21 +143,43 @@ Puedes realizar el abono en cualquier Rapipago, Pago Fácil o a través de Merca
 
     try {
       const result = await sendAndScrapeProximosVencer(fileNameFiltered, message, diasAnticipacion)
-      setStatus(result.message)
+      
+      // 🎯 Backend siempre devuelve jobId para tracking en tiempo real
+      if (result.jobId) {
+        console.log('📊 JobId recibido (próximos a vencer):', result.jobId)
+        setJobId(result.jobId)
+      } else {
+        console.warn('⚠️ Backend no retornó jobId, no habrá progreso en tiempo real')
+      }
+      
+      setStatus(result.message || '✅ Notificaciones enviadas correctamente')
       if (result.file) {
         setProcessedFile(result.file) 
         setBackupFiles([])
       }
+      
+      // Si hay jobId, mantener loading=true y esperar WebSocket
+      if (result.jobId) {
+        console.log('🔌 Job iniciado, esperando progreso via WebSocket...')
+        setStatus('⏳ Procesando notificaciones de próximos a vencer...')
+        // NO hacer setLoading(false) aquí, lo hace el efecto wsCompleted/wsError
+      } else {
+        // Sin WebSocket, avanzar manualmente
+        console.log('🚀 Avanzando al paso 2 (sin WebSocket)')
+        setTimeout(() => {
+          setActiveStep(2)
+        }, 1500)
+        setLoading(false)
+      }
     } catch (error) {
+      console.error('❌ Error en envío de próximos a vencer:', error)
       setStatus("Error al enviar las notificaciones de próximos a vencer. Intenta de nuevo.")
+      setLoading(false) // Solo aquí si hay error
       try {
         // Intentar listar respaldos disponibles
         const files = await listResultBackups()
         setBackupFiles(files)
       } catch {}
-    } finally {
-      setLoading(false)
-      setActiveStep(2)
     }
   }
 
@@ -88,52 +190,40 @@ Puedes realizar el abono en cualquier Rapipago, Pago Fácil o a través de Merca
     setFileNameFiltered("")
     setProcessedFile(null)
     setNotWhatsappData("")
-    setActiveStep(0)
+    setActiveStep(0) // Volver al inicio
+  }
+  
+  const handleBack = () => {
+    setActiveStep(0) // Volver a cargar archivo
   }
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="w-full h-full flex flex-col relative"
+      className="space-y-6"
     >
-      {/* Overlay de envío */}
+      {/* Progress Card durante el envío */}
       {loading && (
-        <div className="absolute inset-0 z-50 flex flex-col justify-center items-center bg-black/30 backdrop-blur-sm">
-          <Loader2 className="animate-spin h-12 w-12 text-white mb-4" />
-          <p className="text-white font-semibold text-lg">
-            Enviando notificaciones de próximos a vencer...
-          </p>
+        <div className="mb-4">
+          <ProgressCard
+            title="Generando y enviando PDFs de próximos a vencer"
+            description={`Procesando ${currentStats.total} clientes`}
+            progress={overallProgress}
+            stats={currentStats}
+            status="processing"
+            lastProcessed={wsProgress?.processed.toString()}
+            showDetails={true}
+          />
         </div>
       )}
 
-      <div className="flex-1 space-y-4 overflow-auto">
+      <div className="space-y-3">
         <div>
           <h3 className="text-lg font-semibold">Enviar notificaciones de próximos a vencer</h3>
           <p className="text-sm text-muted-foreground">
-            Se enviarán notificaciones a los usuarios con planes de pago que vencen desde <strong>{fechaDesdeTexto}</strong> hasta el <strong>{fechaHastaTexto}</strong>.
-            Solo se notificará a usuarios con WhatsApp válido.
+            Rango: <strong>{fechaDesdeTexto}</strong> hasta <strong>{fechaHastaTexto}</strong> ({diasAnticipacion} días restantes del mes).
           </p>
-        </div>
-
-        {/* Información del rango de fechas */}
-        <div className="space-y-3 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-          <div className="flex flex-col gap-2">
-            <h4 className="text-sm font-semibold text-blue-900">📅 Rango de búsqueda automático:</h4>
-            <div className="grid grid-cols-2 gap-4 text-sm">
-              <div>
-                <span className="text-blue-700 font-medium">Desde:</span>{' '}
-                <span className="text-blue-900">{fechaDesdeTexto}</span>
-              </div>
-              <div>
-                <span className="text-blue-700 font-medium">Hasta:</span>{' '}
-                <span className="text-blue-900">{fechaHastaTexto}</span>
-              </div>
-            </div>
-            <p className="text-xs text-blue-600 mt-2">
-              ✨ El sistema busca automáticamente todas las cuotas que vencen hasta el final del mes actual ({diasAnticipacion} días restantes).
-            </p>
-          </div>
         </div>
         
         {status && (
@@ -171,45 +261,55 @@ Puedes realizar el abono en cualquier Rapipago, Pago Fácil o a través de Merca
           </div>
         )}
 
-        <div className="space-y-2">
+        <div className="space-y-1.5">
           <label htmlFor="message" className="block text-sm font-medium">
-            Mensaje para enviar (editable)
+            Mensaje (editable - usa ${'{clientName}'} para personalizar)
           </label>
           <textarea
             id="message"
-            rows={6}
-            className="w-full p-2 border rounded resize-none"
+            rows={4}
+            className="w-full p-2 border rounded resize-none text-sm"
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             disabled={loading}
           />
-          <p className="text-xs text-muted-foreground">
-            Usa ${'{clientName}'} para personalizar el nombre del cliente en cada mensaje.
-          </p>
         </div>
       </div>
 
       {/* Botones */}
-      <div className="mt-auto flex items-center gap-4 pt-4">
-        <Button
-          variant="outline"
-          onClick={handleCancel}
-          disabled={loading || syncing}
-          className='bg-red-100'
-        >
-          Cancelar
-        </Button>
-        <Button
-          onClick={handleSend}
-          disabled={loading || syncing}
-          className=""
-        >
-          {loading ? 'Enviando...' : 'Enviar notificaciones'}
-        </Button>
+      <div className="border-t pt-4 mt-6">
+        <div className="flex items-center justify-between gap-4">
+          <Button
+            variant="outline"
+            onClick={handleBack}
+            disabled={loading || syncing}
+          >
+            ← Volver
+          </Button>
+          
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={handleCancel}
+              disabled={loading || syncing}
+              className='bg-red-50 hover:bg-red-100'
+            >
+              Cancelar todo
+            </Button>
+            <Button
+              onClick={handleSend}
+              disabled={loading || syncing}
+              className=""
+            >
+              {loading ? 'Enviando...' : 'Enviar notificaciones →'}
+            </Button>
+          </div>
+        </div>
+        
+        {syncing && (
+          <p className="text-xs mt-2 text-amber-600">Sincronizando WhatsApp. El envío se habilitará automáticamente al finalizar.</p>
+        )}
       </div>
-      {syncing && (
-        <p className="text-xs mt-2 text-amber-600">Sincronizando WhatsApp. El envío se habilitará automáticamente al finalizar.</p>
-      )}
     </motion.div>
   )
 }

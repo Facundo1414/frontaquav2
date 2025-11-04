@@ -28,8 +28,14 @@ export const useAuth = () => {
         // Configurar el token manager con los nuevos tokens
         tokenManager.setTokens(result.accessToken, result.refreshToken);
 
+        // Setear cookie para middleware
+        document.cookie = `auth-token=${result.accessToken}; path=/; max-age=86400; SameSite=Strict`;
+
+        console.log("✅ Login exitoso, redirigiendo a /home...");
+
         return { success: true, username: result.user.email || email };
       } catch (error: any) {
+        console.error("❌ Error en login:", error);
         return {
           success: false,
           message: error?.response?.data?.message || "Error en login",

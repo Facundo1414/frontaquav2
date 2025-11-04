@@ -1,9 +1,10 @@
 'use client';
 import dynamic from 'next/dynamic';
 import { useState, useEffect } from 'react';
-import { Upload, Database, FileSpreadsheet, Users, ArrowLeft, CheckCircle, XCircle, AlertCircle, Search, Filter, Phone, MapPin, DollarSign, Calendar, Edit2, Save, X, Eye, Check, MessageSquare, Loader2 } from 'lucide-react';
+import { Upload, Database, FileSpreadsheet, Users, ArrowLeft, CheckCircle, XCircle, AlertCircle, Search, Filter, Phone, MapPin, DollarSign, Calendar, Edit2, Save, X, Eye, Check, MessageSquare, Loader2, Download } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { importPYSEClients, importDeudasClients, getClients, updateClient, previewPYSEImport, previewDeudasImport } from '@/lib/api';
+import * as XLSX from 'xlsx';
 
 // 🚀 Lazy load del componente de vista paginada (pesado)
 const PaginatedClientsView = dynamic(() => import('./components/PaginatedClientsView').then(mod => ({ default: mod.PaginatedClientsView })), {
@@ -292,8 +293,8 @@ function ClientsView() {
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wider cursor-help" title="Situación de la cuenta (ej: PT HA HA CS), Usuario asignado (val_atr_12), Tipo de plan y cuotas">
                   Info Cuenta
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wider" title="Deuda total del cliente">
-                  Deuda
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wider" title="Número de conexión del cliente">
+                  Conexión
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wider" title="Estado del proceso: Pendiente / Notificado / Visitado">
                   Estado
@@ -433,8 +434,8 @@ function ClientsView() {
                       <div className="flex items-start gap-2">
                         <MapPin className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
                         <div className="text-sm text-gray-900 dark:text-white">
-                          {client.calle_inm && client.numero_inm
-                            ? `${client.calle_inm} ${client.numero_inm}`
+                          {client.calle_inm || client.numero_inm
+                            ? `${client.calle_inm || ''} ${client.numero_inm || ''}`.trim()
                             : '-'}
                           {client.barrio_inm && (
                             <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
@@ -488,16 +489,30 @@ function ClientsView() {
                       </div>
                     </td>
                     <td className="px-4 py-4 whitespace-nowrap">
-                      {client.debt > 0 ? (
-                        <div className="flex items-center gap-2">
-                          <DollarSign className="w-4 h-4 text-red-500" />
-                          <span className="text-sm font-medium text-red-600 dark:text-red-400">
-                            ${client.debt.toLocaleString()}
-                          </span>
-                        </div>
-                      ) : (
-                        <span className="text-sm text-gray-400">Sin deuda</span>
-                      )}
+                      <select
+                        value={client.connection_type || ''}
+                        onChange={(e) => {
+                          const newValue = e.target.value as 'B' | 'M' | 'SOT' | 'SC' | '';
+                          updateClient(client.id, { 
+                            connectionType: newValue || null 
+                          }).then(() => {
+                            setClients(prev => prev.map(c => 
+                              c.id === client.id ? { ...c, connection_type: newValue } : c
+                            ));
+                          }).catch((err) => {
+                            console.error('Error al actualizar tipo de conexión:', err);
+                            alert('Error al actualizar el tipo de conexión');
+                          });
+                        }}
+                        className="px-3 py-1.5 text-xs font-medium rounded-lg border-2 cursor-pointer transition-all bg-gray-50 text-gray-800 border-gray-200 dark:bg-gray-900/30 dark:text-gray-400 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-900/50"
+                        title="Tipo de conexión del cliente"
+                      >
+                        <option value="">Sin especificar</option>
+                        <option value="B">B - Braseto</option>
+                        <option value="M">M - Monoblock</option>
+                        <option value="SOT">SOT - Soterrada</option>
+                        <option value="SC">SC - Sin Conexión</option>
+                      </select>
                     </td>
                     <td className="px-4 py-4 whitespace-nowrap">
                       <select
@@ -766,11 +781,17 @@ export default function ClientesDatabasePage() {
         preserveManualPhones: true, // Siempre preservar teléfonos manuales
       };
 
+      // Mostrar mensaje de progreso con tiempo estimado
+      const startTime = Date.now();
+
       const data = importType === 'pyse'
         ? await importPYSEClients(file, options)
         : await importDeudasClients(file, options);
 
-      setResult(data);
+      const endTime = Date.now();
+      const duration = ((endTime - startTime) / 1000).toFixed(1);
+
+      setResult({ ...data, duration });
       setFile(null);
       setPreview(null);
       
@@ -789,6 +810,149 @@ export default function ClientesDatabasePage() {
   const handleUpload = async () => {
     // Ahora primero mostramos el preview
     await handlePreview();
+  };
+
+  const handleDownloadTemplate = () => {
+    // Crear plantilla de ejemplo con formato PYSE
+    const templateData = [
+      // Headers
+      [
+        'unidad',         // UF (requerido)
+        'distrito',       // Distrito
+        'zona',           // Zona
+        'manzana',        // Manzana
+        'parcela',        // Parcela
+        'ph',             // PH (opcional)
+        'titular',        // Titular (requerido)
+        'te_titular',     // Teléfono titular (Sylanus)
+        'cliente',        // Cliente
+        'te_cliente',     // Teléfono cliente
+        'calle_inm',      // Calle inmueble
+        'numero_inm',     // Número inmueble
+        'barrio_inm',     // Barrio inmueble
+        'situacion',      // Situación cuenta
+        'val_atr_12',     // Usuario asignado
+        'val_atr_13',     // Info adicional
+        'tpo_plan',       // Tipo de plan
+        'cod_mot_gen',    // Código motivo
+        'can_cuo',        // Cantidad cuotas
+        'debt',           // Deuda
+        'dat_complem_inm', // Datos complementarios
+        'dat_complem_pos', // Datos complementarios pos
+      ],
+      // Ejemplo 1: Cliente con todos los datos
+      [
+        '12345',           // unidad
+        '1',               // distrito
+        '2',               // zona
+        '345',             // manzana
+        '67',              // parcela
+        'A',               // ph
+        'PÉREZ JUAN CARLOS', // titular
+        '351234567',       // te_titular
+        'PÉREZ MARÍA',     // cliente
+        '351987654',       // te_cliente
+        'AV COLÓN',        // calle_inm
+        '1234',            // numero_inm
+        'CENTRO',          // barrio_inm
+        'PT HA HA CS',     // situacion
+        'USUARIO01',       // val_atr_12
+        'Info adicional',  // val_atr_13
+        'Plan A',          // tpo_plan
+        'MOT01',           // cod_mot_gen
+        12,                // can_cuo
+        15000,             // debt
+        'Depto 2do piso',  // dat_complem_inm
+        'Torre Norte',     // dat_complem_pos
+      ],
+      // Ejemplo 2: Cliente con datos mínimos
+      [
+        '67890',           // unidad
+        '2',               // distrito
+        '3',               // zona
+        '456',             // manzana
+        '78',              // parcela
+        '',                // ph (vacío)
+        'GONZÁLEZ ROBERTO', // titular
+        '351111222',       // te_titular
+        '',                // cliente (mismo que titular)
+        '',                // te_cliente
+        'BELGRANO',        // calle_inm
+        '567',             // numero_inm
+        'NUEVA CÓRDOBA',   // barrio_inm
+        'PT HA CS',        // situacion
+        '',                // val_atr_12
+        '',                // val_atr_13
+        '',                // tpo_plan
+        '',                // cod_mot_gen
+        '',                // can_cuo
+        5000,              // debt
+        '',                // dat_complem_inm
+        '',                // dat_complem_pos
+      ],
+      // Ejemplo 3: Cliente sin teléfono
+      [
+        '11111',           // unidad
+        '3',               // distrito
+        '1',               // zona
+        '789',             // manzana
+        '12',              // parcela
+        '',                // ph
+        'RODRÍGUEZ ANA MARÍA', // titular
+        '',                // te_titular (sin teléfono)
+        '',                // cliente
+        '',                // te_cliente
+        'SAN MARTÍN',      // calle_inm
+        '890',             // numero_inm
+        'ALTO ALBERDI',    // barrio_inm
+        'PT CS',           // situacion
+        'USUARIO02',       // val_atr_12
+        '',                // val_atr_13
+        'Plan B',          // tpo_plan
+        'MOT02',           // cod_mot_gen
+        24,                // can_cuo
+        25000,             // debt
+        '',                // dat_complem_inm
+        'Fondo',           // dat_complem_pos
+      ],
+    ];
+
+    // Crear workbook
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.aoa_to_sheet(templateData);
+
+    // Ajustar ancho de columnas
+    const colWidths = [
+      { wch: 10 },  // unidad
+      { wch: 8 },   // distrito
+      { wch: 8 },   // zona
+      { wch: 10 },  // manzana
+      { wch: 10 },  // parcela
+      { wch: 5 },   // ph
+      { wch: 25 },  // titular
+      { wch: 15 },  // te_titular
+      { wch: 25 },  // cliente
+      { wch: 15 },  // te_cliente
+      { wch: 20 },  // calle_inm
+      { wch: 10 },  // numero_inm
+      { wch: 20 },  // barrio_inm
+      { wch: 15 },  // situacion
+      { wch: 15 },  // val_atr_12
+      { wch: 20 },  // val_atr_13
+      { wch: 12 },  // tpo_plan
+      { wch: 12 },  // cod_mot_gen
+      { wch: 10 },  // can_cuo
+      { wch: 10 },  // debt
+      { wch: 20 },  // dat_complem_inm
+      { wch: 20 },  // dat_complem_pos
+    ];
+    ws['!cols'] = colWidths;
+
+    // Agregar hoja al workbook
+    XLSX.utils.book_append_sheet(wb, ws, 'Plantilla Clientes');
+
+    // Generar archivo y descargar
+    XLSX.writeFile(wb, 'plantilla_clientes_pyse.xlsx');
   };
 
   return (
@@ -855,6 +1019,28 @@ export default function ClientesDatabasePage() {
             {activeTab === 'import' && (
               <>
               <div className="space-y-6">
+                {/* Botón de descargar plantilla */}
+                <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl">
+                  <div className="flex items-start gap-3">
+                    <FileSpreadsheet className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-blue-900 dark:text-blue-100 mb-2">
+                        ¿Primera vez importando?
+                      </h3>
+                      <p className="text-sm text-blue-800 dark:text-blue-200 mb-3">
+                        Descarga nuestra plantilla de ejemplo con el formato correcto y 3 ejemplos de clientes.
+                      </p>
+                      <button
+                        onClick={handleDownloadTemplate}
+                        className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-sm font-medium"
+                      >
+                        <Download className="w-4 h-4" />
+                        Descargar Plantilla de Ejemplo
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
                 {/* Selector de tipo de importación */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
@@ -963,28 +1149,58 @@ export default function ClientesDatabasePage() {
                   </div>
                 </div>
 
-                {/* Botón de importar */}
-                <button
-                  onClick={handleUpload}
-                  disabled={!file || uploading}
-                  className={`w-full py-4 px-6 rounded-xl font-semibold text-white transition-all ${
-                    !file || uploading
-                      ? 'bg-gray-300 dark:bg-gray-700 cursor-not-allowed'
-                      : 'bg-teal-500 hover:bg-teal-600 shadow-lg hover:shadow-xl'
-                  }`}
-                >
-                  {uploading ? (
-                    <div className="flex items-center justify-center gap-3">
-                      <div className="w-5 h-5 border-3 border-white border-t-transparent rounded-full animate-spin" />
-                      Importando...
+                {/* Botón de importar con indicador de progreso mejorado */}
+                {uploading || loadingPreview ? (
+                  <div className="w-full p-6 bg-teal-50 dark:bg-teal-900/20 border-2 border-teal-200 dark:border-teal-800 rounded-xl">
+                    <div className="flex flex-col items-center gap-4">
+                      <div className="relative">
+                        <div className="w-16 h-16 border-4 border-teal-200 dark:border-teal-800 rounded-full"></div>
+                        <div className="absolute top-0 left-0 w-16 h-16 border-4 border-teal-600 border-t-transparent rounded-full animate-spin"></div>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-lg font-semibold text-teal-900 dark:text-teal-100 mb-1">
+                          {loadingPreview ? 'Analizando archivo...' : 'Importando clientes...'}
+                        </p>
+                        <p className="text-sm text-teal-700 dark:text-teal-300">
+                          {loadingPreview 
+                            ? 'Validando formato y contando registros'
+                            : (importType === 'pyse' 
+                              ? 'Procesando Universo de Cuentas PYSE'
+                              : 'Procesando Planes de Pago Incumplidos')
+                          }
+                        </p>
+                        <p className="text-xs text-teal-600 dark:text-teal-400 mt-2">
+                          {loadingPreview 
+                            ? 'Esto puede tardar unos segundos...'
+                            : (preview?.totalRecords 
+                              ? `Procesando ${preview.totalRecords} registros...`
+                              : 'Esto puede tardar varios segundos...')
+                          }
+                        </p>
+                      </div>
+                      <div className="w-full max-w-md">
+                        <div className="h-2 bg-teal-200 dark:bg-teal-800 rounded-full overflow-hidden">
+                          <div className="h-full bg-teal-600 rounded-full animate-pulse" style={{ width: '100%' }}></div>
+                        </div>
+                      </div>
                     </div>
-                  ) : (
+                  </div>
+                ) : (
+                  <button
+                    onClick={handleUpload}
+                    disabled={!file}
+                    className={`w-full py-4 px-6 rounded-xl font-semibold text-white transition-all ${
+                      !file
+                        ? 'bg-gray-300 dark:bg-gray-700 cursor-not-allowed'
+                        : 'bg-teal-500 hover:bg-teal-600 shadow-lg hover:shadow-xl'
+                    }`}
+                  >
                     <div className="flex items-center justify-center gap-2">
                       <Upload className="w-5 h-5" />
                       Importar Clientes
                     </div>
-                  )}
-                </button>
+                  </button>
+                )}
 
                 {/* Error */}
                 {error && (
@@ -1035,13 +1251,18 @@ export default function ClientesDatabasePage() {
                     </div>
 
                     {/* Detalles del archivo */}
-                    <div className="p-4 bg-gray-50 dark:bg-gray-900/50 rounded-xl">
+                    <div className="p-4 bg-gray-50 dark:bg-gray-900/50 rounded-xl space-y-1">
                       <p className="text-sm text-gray-600 dark:text-gray-400">
                         <span className="font-medium">Archivo:</span> {result.fileName}
                       </p>
-                      <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
                         <span className="font-medium">Tamaño:</span> {((result.fileSize || 0) / 1024).toFixed(2)} KB
                       </p>
+                      {result.duration && (
+                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                          <span className="font-medium">Tiempo:</span> {result.duration}s
+                        </p>
+                      )}
                     </div>
 
                     {/* Errores si hay */}

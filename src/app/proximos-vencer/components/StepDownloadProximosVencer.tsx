@@ -4,9 +4,8 @@ import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { Button } from '@/components/ui/button'
 import { getFileByName, listResultBackups } from '@/lib/api'
-import { Loader2 } from 'lucide-react'
+import { Loader2, Home, Download } from 'lucide-react'
 import { useRouter } from 'next/navigation'
-import { Home } from 'lucide-react'
 
 export default function StepDownloadProximosVencer() {
   const router = useRouter()
@@ -119,24 +118,23 @@ export default function StepDownloadProximosVencer() {
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="w-full h-full flex justify-center items-center"
+      className="space-y-4"
     >
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-10 max-w-3xl w-full px-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         
         {/* Bloque Resultados */}
-        <div className="flex flex-col justify-between h-full rounded-lg">
-        <div className="space-y-3">
-            <h3 className="text-lg font-semibold">Resultados del proceso</h3>
+        <div className="border rounded-lg p-4 space-y-3">
+          <div>
+            <h3 className="text-base font-semibold">Resultados del proceso</h3>
             <p className="text-sm text-muted-foreground">
-            Acá podés descargar el archivo con todos los clientes a los que se les envió el mensaje.
-            En la columna <strong>motivo</strong> se listan aquellos que no pudieron recibirlo y la razón correspondiente.
+              Descarga el archivo con los resultados. La columna <strong>motivo</strong> indica los que fallaron.
             </p>
-        </div>
+          </div>
         {processedFile ? (
           <Button
               onClick={handleDownloadResults}
-              disabled={!processedFile || loadingResults}
-              className="w-auto h-10 mt-4"
+              disabled={loadingResults}
+              className="w-full"
           >
               {loadingResults ? (
               <>
@@ -144,41 +142,42 @@ export default function StepDownloadProximosVencer() {
                   Descargando...
               </>
               ) : (
-              'Descargar Excel con resultados'
+              'Descargar resultados'
               )}
           </Button>
         ) : (
-          <div className="mt-2">
-            <p className="text-sm text-amber-700">No se recibió el archivo de resultados. Podés descargar un respaldo:</p>
+          <div className="space-y-2">
+            <p className="text-xs text-muted-foreground">No hay archivo procesado. Intentando recuperar respaldos...</p>
             {loadingBackups ? (
               <p className="text-xs text-muted-foreground">Buscando respaldos...</p>
             ) : backupFiles.length > 0 ? (
-              <ul className="list-disc list-inside text-sm">
+              <div className="flex flex-col gap-2">
                 {backupFiles.map((name) => (
-                  <li key={name}>
-                    <button
-                      className="underline"
-                      onClick={async () => {
-                        try {
-                          const blob = await getFileByName(name)
-                          const url = window.URL.createObjectURL(blob)
-                          const a = document.createElement('a')
-                          a.href = url
-                          a.download = name
-                          document.body.appendChild(a)
-                          a.click()
-                          a.remove()
-                          window.URL.revokeObjectURL(url)
-                        } catch (e) {}
-                      }}
-                    >
-                      {name}
-                    </button>
-                  </li>
+                  <Button
+                    key={name}
+                    size="sm"
+                    variant="outline"
+                    onClick={async () => {
+                      try {
+                        const blob = await getFileByName(name)
+                        const url = window.URL.createObjectURL(blob)
+                        const a = document.createElement('a')
+                        a.href = url
+                        a.download = name
+                        document.body.appendChild(a)
+                        a.click()
+                        a.remove()
+                        window.URL.revokeObjectURL(url)
+                      } catch (e) {}
+                    }}
+                  >
+                    <Download className="mr-2 h-4 w-4" />
+                    {name}
+                  </Button>
                 ))}
-              </ul>
+              </div>
             ) : (
-              <p className="text-xs text-muted-foreground">No hay respaldos disponibles para este usuario.</p>
+              <p className="text-xs text-muted-foreground">No hay respaldos disponibles.</p>
             )}
           </div>
         )}
@@ -186,33 +185,35 @@ export default function StepDownloadProximosVencer() {
 
 
         {/* Bloque Sin WhatsApp */}
-        <div className="flex flex-col justify-between h-full  rounded-lg">
-        <div className="space-y-3">
-            <h3 className="text-lg font-semibold">Clientes sin WhatsApp</h3>
+        <div className="border rounded-lg p-4 space-y-3">
+          <div>
+            <h3 className="text-base font-semibold">Clientes sin WhatsApp</h3>
             <p className="text-sm text-muted-foreground">
-            Acá podés descargar todos los clientes que no tienen WhatsApp y que fueron filtrados en el primer paso.
+              Descarga los clientes filtrados sin WhatsApp del primer paso.
             </p>
-        </div>
-        <Button
-            onClick={handleDownloadNotWhatsApp}
-            disabled={!notWhatsappData || loadingNotWhats}
-            className="w-auto h-10 mt-4"
-        >
-            {loadingNotWhats ? (
-            <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Descargando...
-            </>
-            ) : (
-            'Descargar Excel sin WhatsApp'
-            )}
-        </Button>
+          </div>
+          <Button
+              onClick={handleDownloadNotWhatsApp}
+              disabled={!notWhatsappData || loadingNotWhats}
+              className="w-full"
+          >
+              {loadingNotWhats ? (
+              <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Descargando...
+              </>
+              ) : (
+              'Descargar sin WhatsApp'
+              )}
+          </Button>
         </div>
       </div>
-              {/* 🔹 Botón Volver a Home */}
-      <div className="flex flex-col justify-top h-full  rounded-lg">
-        <Button variant="outline" onClick={handleResetAndGoHome} className='bg-green-400'>
-          <Home className="w-4 h-4" />
+      
+      {/* Botón Volver a Home */}
+      <div className="flex justify-center pt-4">
+        <Button variant="outline" onClick={handleResetAndGoHome}>
+          <Home className="w-4 h-4 mr-2" />
+          Volver al inicio
         </Button>
       </div>
     </motion.div>

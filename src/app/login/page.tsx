@@ -29,12 +29,18 @@ export default function LoginPage() {
       return toast.error('Email inválido')
     }
 
+    console.log('🔐 Iniciando login...')
     const { success, message, username } = await login(email, password)
+
+    console.log('📊 Resultado login:', { success, username })
 
     if (success) {
       toast.success(`¡Bienvenido, ${username}!`)
+      console.log('🚀 Redirigiendo a /home...')
       router.push('/home')
+      console.log('✅ router.push ejecutado')
     } else {
+      console.error('❌ Login falló:', message)
       toast.error(message || 'Error al iniciar sesión')
     }
   }

@@ -1,6 +1,6 @@
 // context/SendDebtsContext.tsx
 'use client'
-import { createContext, useContext, useState, ReactNode } from 'react'
+import { createContext, useContext, useState, ReactNode, useCallback } from 'react'
 
 
 interface SendDebtsContextType {
@@ -18,6 +18,16 @@ interface SendDebtsContextType {
   setFileNameFiltered: (filename: string) => void
   processedFile: Blob | null
   setProcessedFile: (file: Blob | null) => void
+  // 🎯 Nuevos campos para 4 pasos y feedback en tiempo real
+  stepStatus: ('pending' | 'in-progress' | 'completed' | 'error')[]
+  setStepStatus: (index: number, status: 'pending' | 'in-progress' | 'completed' | 'error') => void
+  progressStats: {
+    total: number
+    completed: number
+    failed: number
+    pending: number
+  }
+  setProgressStats: (stats: { total: number; completed: number; failed: number; pending: number }) => void
 }
 
 const SendDebtsContext = createContext<SendDebtsContextType | undefined>(undefined)
@@ -29,8 +39,23 @@ export const SendDebtsProvider = ({ children }: { children: ReactNode }) => {
   const [rawData, setRawDataState] = useState<any[]>([])
   const [processedData, setProcessedDataState] = useState<any[]>([])
   const [fileNameFiltered, setFileNameFiltered] = useState<string | null>(null)
-  const [processedFile, setProcessedFileState] = useState<Blob | null>(null);
+  const [processedFile, setProcessedFileState] = useState<Blob | null>(null)
 
+  // 🎯 Estado para 4 pasos (compatible con 3 pasos actuales)
+  const [stepStatus, setStepStatusState] = useState<('pending' | 'in-progress' | 'completed' | 'error')[]>([
+    'pending',
+    'pending',
+    'pending',
+    'pending',
+  ])
+
+  // 📊 Estadísticas de progreso en tiempo real
+  const [progressStats, setProgressStatsState] = useState({
+    total: 0,
+    completed: 0,
+    failed: 0,
+    pending: 0,
+  })
 
   const setFilteredData = (data: any[]) => {
     setFilteredDataState(data)
@@ -43,6 +68,29 @@ export const SendDebtsProvider = ({ children }: { children: ReactNode }) => {
   const setActiveStep = (step: number) => {
     setActiveStepState(step)
   }
+
+  const setStepStatus = useCallback((index: number, status: 'pending' | 'in-progress' | 'completed' | 'error') => {
+    setStepStatusState(prev => {
+      const newStatus = [...prev]
+      newStatus[index] = status
+      return newStatus
+    })
+  }, [])
+
+  const setProgressStats = useCallback((stats: { total: number; completed: number; failed: number; pending: number }) => {
+    setProgressStatsState(prev => {
+      // Solo actualizar si los valores realmente cambiaron
+      if (
+        prev.total !== stats.total ||
+        prev.completed !== stats.completed ||
+        prev.failed !== stats.failed ||
+        prev.pending !== stats.pending
+      ) {
+        return stats
+      }
+      return prev
+    })
+  }, [])
 
   return (
     <SendDebtsContext.Provider value={{
@@ -60,6 +108,10 @@ export const SendDebtsProvider = ({ children }: { children: ReactNode }) => {
       setFileNameFiltered,
       processedFile,
       setProcessedFile: setProcessedFileState,
+      stepStatus,
+      setStepStatus,
+      progressStats,
+      setProgressStats,
     }}>
       {children}
     </SendDebtsContext.Provider>

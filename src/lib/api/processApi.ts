@@ -7,7 +7,7 @@ export const sendAndScrape = async (
   fileName: string,
   caption: string,
   tipoComprobante: "TODOS" | "PCB1" | "ATC2" = "TODOS"
-): Promise<{ message: string; file?: Blob }> => {
+): Promise<{ message: string; file?: Blob; jobId?: string }> => {
   const token = getAccessToken();
 
   try {
@@ -26,18 +26,27 @@ export const sendAndScrape = async (
     );
 
     const contentType = response.headers["content-type"];
+    // Axios normaliza headers a minúsculas en respuestas blob
+    const jobId = response.headers["x-job-id"] || response.headers["X-Job-Id"];
 
-    if (contentType.includes("application/json")) {
+    console.log("📊 Headers recibidos:", response.headers);
+    console.log("📊 JobId extraído:", jobId);
+
+    if (contentType && contentType.includes("application/json")) {
       // Si vino un JSON de error o mensaje
       const text = await response.data.text(); // Blob → string
       const json = JSON.parse(text);
-      return { message: json.message || "⚠️ Error inesperado" };
+      return {
+        message: json.message || "⚠️ Error inesperado",
+        jobId: json.jobId || jobId,
+      };
     }
 
     // Si vino un archivo Excel
     return {
       message: "✅ Procesamiento finalizado",
       file: response.data,
+      jobId, // Incluir jobId para tracking
     };
   } catch (error: any) {
     const errorMessage =
@@ -103,19 +112,16 @@ export const sendAndScrapeProximosVencer = async (
   fileName: string,
   message: string,
   diasAnticipacion: number
-): Promise<{ message: string; file?: Blob }> => {
+): Promise<{ message: string; file?: Blob; jobId?: string }> => {
   const token = getAccessToken();
 
   try {
-    // Paso 1: Obtener el archivo filtrado y convertirlo a datos
-    const blob = await getFileByName(fileName);
-    const parsedData = await parseExcelBlobWithIndexMapping(blob);
-
-    // Paso 2: Enviar los datos al endpoint de próximos a vencer
     const response = await api.post(
-      "/wa/send-proximos-vencer",
+      "/process/process-file-proximos-vencer",
       {
-        users: parsedData,
+        filename: fileName,
+        message: message,
+        expiration: 1,
         diasAnticipacion: diasAnticipacion,
       },
       {
@@ -124,37 +130,28 @@ export const sendAndScrapeProximosVencer = async (
       }
     );
 
-    console.log(
-      "Respuesta recibida - Content-Type:",
-      response.headers["content-type"]
-    );
-    console.log("Tamaño de respuesta:", response.data.size, "bytes");
-
     const contentType = response.headers["content-type"];
+    // Axios normaliza headers a minúsculas en respuestas blob
+    const jobId = response.headers["x-job-id"] || response.headers["X-Job-Id"];
 
-    // Verificar si la respuesta es muy pequeña (posible error)
-    if (response.data.size < 100) {
-      console.warn("Respuesta muy pequeña, posible error");
-      try {
-        const text = await response.data.text();
-        const json = JSON.parse(text);
-        return { message: json.message || "⚠️ Error inesperado" };
-      } catch {
-        // Si no se puede parsear como JSON, continuar como Excel
-      }
-    }
+    console.log("📊 Headers recibidos (próximos a vencer):", response.headers);
+    console.log("📊 JobId extraído (próximos a vencer):", jobId);
 
     if (contentType && contentType.includes("application/json")) {
       // Si vino un JSON de error o mensaje
       const text = await response.data.text(); // Blob → string
       const json = JSON.parse(text);
-      return { message: json.message || "⚠️ Error inesperado" };
+      return {
+        message: json.message || "⚠️ Error inesperado",
+        jobId: json.jobId || jobId,
+      };
     }
 
-    // Si vino un archivo Excel (o se asume que es Excel)
+    // Si vino un archivo Excel
     return {
       message: "✅ Procesamiento finalizado",
       file: response.data,
+      jobId, // Incluir jobId para tracking
     };
   } catch (error: any) {
     console.error("Error en sendAndScrapeProximosVencer:", error);

@@ -354,8 +354,8 @@ export function PaginatedClientsView() {
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wider" title="Dirección del inmueble">
                   Dirección
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wider" title="Deuda total del cliente">
-                  Deuda
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wider" title="Número de conexión del cliente">
+                  Conexión
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wider" title="Estado del proceso">
                   Estado
@@ -489,8 +489,8 @@ export function PaginatedClientsView() {
                         <div className="flex items-start gap-2">
                           <MapPin className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
                           <div className="text-sm text-gray-900 dark:text-white">
-                            {client.calle_inm && client.numero_inm
-                              ? `${client.calle_inm} ${client.numero_inm}`
+                            {client.calle_inm || client.numero_inm
+                              ? `${client.calle_inm || ''} ${client.numero_inm || ''}`.trim()
                               : '-'}
                             {client.barrio_inm && (
                               <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
@@ -501,16 +501,30 @@ export function PaginatedClientsView() {
                         </div>
                       </td>
                       <td className="px-4 py-4 whitespace-nowrap">
-                        {client.debt > 0 ? (
-                          <div className="flex items-center gap-2">
-                            <DollarSign className="w-4 h-4 text-red-500" />
-                            <span className="text-sm font-medium text-red-600 dark:text-red-400">
-                              ${client.debt.toLocaleString()}
-                            </span>
-                          </div>
-                        ) : (
-                          <span className="text-sm text-gray-400">Sin deuda</span>
-                        )}
+                        <select
+                          value={client.connection_type || ''}
+                          onChange={(e) => {
+                            const newValue = e.target.value as 'B' | 'M' | 'SOT' | 'SC' | '';
+                            updateClient(client.id, { 
+                              connectionType: newValue || null 
+                            }).then(() => {
+                              setClients(prev => prev.map(c => 
+                                c.id === client.id ? { ...c, connection_type: newValue } : c
+                              ));
+                            }).catch((err: any) => {
+                              console.error('Error al actualizar tipo de conexión:', err);
+                              alert('Error al actualizar el tipo de conexión');
+                            });
+                          }}
+                          className="px-3 py-1.5 text-xs font-medium rounded-lg border-2 cursor-pointer transition-all bg-gray-50 text-gray-800 border-gray-200 dark:bg-gray-900/30 dark:text-gray-400 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-900/50"
+                          title="Tipo de conexión del cliente"
+                        >
+                          <option value="">Sin especificar</option>
+                          <option value="B">B - Braseto</option>
+                          <option value="M">M - Monoblock</option>
+                          <option value="SOT">SOT - Soterrada</option>
+                          <option value="SC">SC - Sin Conexión</option>
+                        </select>
                       </td>
                       <td className="px-4 py-4 whitespace-nowrap">
                         <select

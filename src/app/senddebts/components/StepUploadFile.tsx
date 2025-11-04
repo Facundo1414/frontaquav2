@@ -16,10 +16,13 @@ import { useWhatsappSessionContext } from '@/app/providers/context/whatsapp/What
 import { debtsDataSchema } from '@/lib/validations/send-debts.schema'
 import { validateExcelFile, sanitizeObject } from '@/lib/validations/validation-utils'
 import { useFileValidation } from '@/hooks/useValidation'
+import { ProgressCard } from './ProgressCard'
+import { useProgressTracking } from '@/hooks/useProgressTracking'
 
 export default function StepUploadFile() {
   const [file, setFile] = useState<File | null>(null)
   const [uploading, setUploading] = useState(false)
+  const [jobId, setJobId] = useState<string | null>(null)
   const [isDragOver, setIsDragOver] = useState(false)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
 
@@ -29,6 +32,30 @@ export default function StepUploadFile() {
 
   // Hook de validación de archivos
   const { validateFile, fileError, clearFileError } = useFileValidation()
+
+  // 🔌 Hook de progreso en tiempo real
+  const {
+    progress: wsProgress,
+    connected: wsConnected,
+    currentPhase,
+    currentStats,
+    timeRemaining,
+    overallProgress,
+  } = useProgressTracking({
+    jobId,
+    enabled: !!jobId,
+    onCompleted: (result) => {
+      console.log('✅ Upload completado:', result)
+      setUploading(false)
+      setJobId(null)
+    },
+    onError: (error) => {
+      console.error('❌ Error en upload:', error)
+      setUploading(false)
+      setJobId(null)
+      toast.error('Error al procesar el archivo')
+    },
+  })
 
   const processFile = async (selected: File) => {
     // 🛡️ Validar archivo antes de procesarlo
@@ -98,6 +125,15 @@ export default function StepUploadFile() {
       toast.info('Archivo subido. Procesando...')
 
       const response = await uploadExcelFile(formData)
+      
+      // 🎯 Backend siempre devuelve jobId para tracking en tiempo real
+      if (response.jobId) {
+        console.log('📊 JobId recibido:', response.jobId)
+        setJobId(response.jobId)
+      } else {
+        console.warn('⚠️ Backend no retornó jobId, no habrá progreso en tiempo real')
+      }
+      
       const fileWithNoWsp = response.savedFileNames?.[0]
       const savedFile = response.savedFileNames?.[1]
 
@@ -109,13 +145,15 @@ export default function StepUploadFile() {
       const parsedData = await parseExcelBlobWithIndexMapping(blob)
 
       setFilteredData(parsedData)
-      toast.success('Archivo procesado correctamente')
+      toast.success(`✅ Archivo procesado. ${parsedData.length} clientes con WhatsApp`)
+      // Ir directo a paso 1 (enviar) - la verificación de WhatsApp ya se hizo
       setActiveStep(1)
     } catch (err) {
       console.error(err)
       toast.error('Error al procesar el archivo')
     } finally {
       setUploading(false)
+      setJobId(null)
     }
   }
 
@@ -139,18 +177,24 @@ export default function StepUploadFile() {
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="w-full h-full flex flex-col relative"
+      className="space-y-6"
     >
-      {/* Overlay de filtrado (igual estilo que el de envío) */}
+      {/* Progress Card durante la carga */}
       {uploading && (
-        <div className="absolute inset-0 z-50 flex flex-col justify-center items-center bg-black/30 backdrop-blur-sm">
-          <Loader2 className="animate-spin h-12 w-12 text-white mb-4" />
-          <p className="text-white font-semibold text-lg">
-            Filtrando archivo, por favor espere...
-          </p>
+        <div className="mb-4">
+          <ProgressCard
+            title={currentPhase?.label || "Procesando archivo Excel"}
+            description={file?.name || 'Cargando archivo...'}
+            progress={overallProgress || 0}
+            stats={currentStats || undefined}
+            status="processing"
+            estimatedTime={timeRemaining || undefined}
+            showDetails={!!currentStats}
+          />
         </div>
       )}
-      <div className="flex flex-col space-y-6 flex-1">
+
+      <div className="space-y-4">
         <div className="space-y-2">
           <Label htmlFor="file">Archivo Excel</Label>
 
@@ -188,8 +232,14 @@ export default function StepUploadFile() {
           />
 
           <p className="text-sm text-muted-foreground">
-            El archivo seleccionado será filtrado para identificar clientes con y sin WhatsApp. Los que tienen WhatsApp se mostrarán en la tabla de abajo, mientras que los que no lo tienen podrán descargarse más adelante en formato excel.          
+            El sistema <strong>automáticamente</strong>:
           </p>
+          <ul className="text-sm text-muted-foreground list-disc list-inside space-y-1 ml-2">
+            <li>Busca números en tu base de datos de clientes (más actualizados)</li>
+            <li>Verifica cuáles tienen WhatsApp activo</li>
+            <li>Filtra solo los que pueden recibir mensajes</li>
+            <li>Guarda resultados para futuras cargas (90% más rápido)</li>
+          </ul>
 
           {/* 🛡️ Mostrar error de validación si existe */}
           {fileError && (
@@ -201,17 +251,38 @@ export default function StepUploadFile() {
         </div>
       </div>
 
-      {/* Botones abajo */}
-      <div className="mt-auto flex items-center gap-4 pt-4">
-        <Button variant="secondary" onClick={handleCancel} disabled={uploading || syncing} className='bg-red-100'>
-          Eliminar
-        </Button>
-        <Button onClick={handleUpload} disabled={!file || uploading || syncing}>
-          {uploading ? 'Filtrando...' : 'Filtrar archivo'}
-        </Button>
+      {/* Botones */}
+      <div className="flex items-center justify-between gap-4 pt-4 border-t mt-6">
+        <div>
+          {file && (
+            <p className="text-sm text-gray-600">
+              📄 {file.name} ({(file.size / 1024).toFixed(1)} KB)
+            </p>
+          )}
+        </div>
+        
+        <div className="flex gap-2">
+          <Button 
+            variant="outline" 
+            onClick={handleCancel} 
+            disabled={uploading || syncing} 
+            className='bg-red-50 hover:bg-red-100'
+          >
+            Eliminar archivo
+          </Button>
+          <Button 
+            onClick={handleUpload} 
+            disabled={!file || uploading || syncing}
+          >
+            {uploading ? '⏳ Procesando...' : '🚀 Filtrar y verificar →'}
+          </Button>
+        </div>
       </div>
+      
       {syncing && (
-        <p className="text-xs mt-2 text-amber-600">Sincronizando WhatsApp… Podés ver el estado arriba. Las acciones estarán disponibles en segundos.</p>
+        <p className="text-xs text-amber-600 text-center py-2">
+          ⚠️ Sincronizando WhatsApp… Las acciones estarán disponibles en segundos.
+        </p>
       )}
     </motion.div>
   )

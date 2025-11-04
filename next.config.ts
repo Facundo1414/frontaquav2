@@ -53,7 +53,7 @@ const nextConfig: NextConfig = {
               "style-src 'self' 'unsafe-inline'",
               "img-src 'self' data: blob: https:",
               "font-src 'self' data:",
-              "connect-src 'self' https://api.supabase.co https://*.supabase.co wss://*.supabase.co http://localhost:* https://localhost:*",
+              "connect-src 'self' https://api.supabase.co https://*.supabase.co wss://*.supabase.co http://localhost:* https://localhost:* ws://localhost:* wss://localhost:*",
               "frame-ancestors 'self'",
               "base-uri 'self'",
               "form-action 'self'",
@@ -89,10 +89,17 @@ const nextConfig: NextConfig = {
 
   // 🖼️ Optimización de imágenes
   images: {
-    domains: [],
-    remotePatterns: [],
+    domains: ["localhost"],
+    remotePatterns: [
+      {
+        protocol: "http",
+        hostname: "localhost",
+        port: "3001",
+        pathname: "/**",
+      },
+    ],
     dangerouslyAllowSVG: true,
-    contentSecurityPolicy: "",
+    contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
     formats: ["image/webp", "image/avif"],
     // base64 QR sin optimizar
     unoptimized: true,
