@@ -136,9 +136,16 @@ export const WhatsappSessionModal: React.FC<WhatsappSessionModalProps> = ({ open
   useEffect(() => {
     let active = true
     if (qr) {
-      generateQRCode(qr)
-        .then((img: string) => { if (active) setQrImage(img) })
-        .catch(() => setQrImage(null))
+      // ✅ Verificar si el QR ya viene en formato data URL (Baileys)
+      if (qr.startsWith('data:image/')) {
+        // QR ya está en formato base64, usar directamente
+        setQrImage(qr)
+      } else {
+        // QR es string raw, necesita conversión (Puppeteer legacy)
+        generateQRCode(qr)
+          .then((img: string) => { if (active) setQrImage(img) })
+          .catch(() => setQrImage(null))
+      }
     } else {
       setQrImage(null)
     }

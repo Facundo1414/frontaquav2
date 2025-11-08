@@ -2,11 +2,12 @@
 
 import {  useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Filter, Upload, UploadCloud, Download, MessageCircle, Bell, FileText, Users, Check, Send, Clock, FileArchive, Database, HelpCircle } from 'lucide-react'
+import { Filter, Upload, UploadCloud, Download, MessageCircle, Bell, FileText, Users, Check, Send, Clock, FileArchive, Database, HelpCircle, Settings } from 'lucide-react'
 import { ServiceCard } from './components/ServiceCard'
 import { ModalEnDesarrollo } from './components/modal-en-desarrollo'
 import { WhatsappSessionModal } from './components/WhatsappSessionModal'
 import { useWhatsappSessionContext } from '@/app/providers/context/whatsapp/WhatsappSessionContext'
+import { useGlobalContext } from '@/app/providers/context/GlobalContext'
 import { simpleWaState } from '@/lib/api/simpleWaApi'
 
 
@@ -17,9 +18,22 @@ export default function HomePage() {
   const [modalDevVisible, setModalDevVisible] = useState(false) // nuevo modal
   // Consumimos el snapshot global (estado único)
   const { snapshot, updateFromStatus } = useWhatsappSessionContext() as any
+  const { userId } = useGlobalContext()
   // Nuevo modelo simplificado: snapshot.state ('none'|'launching'|'waiting_qr'|'syncing'|'ready'|'closing')
   const effectiveState = snapshot?.state || 'none'
   const isReady = !!snapshot?.ready
+  
+  // Admin check
+  const ADMIN_UID = process.env.NEXT_PUBLIC_ADMIN_UID || ''
+  const isAdmin = userId === ADMIN_UID
+  
+  // Debug: verificar comparación
+  console.log('🔍 HomePage Admin Check:', {
+    userId,
+    ADMIN_UID,
+    isAdmin,
+    match: userId === ADMIN_UID
+  })
 
 
 const handleClick = async () => {
@@ -115,8 +129,7 @@ const handleClickFAQ = () => {
   }
 
   return (
-  <div className="flex w-full min-h-screen">
-      <div className="flex-1 px-6 pb-10">
+  <div className="w-full min-h-screen px-6 pb-10">
       {/* Header */}
       <div className="relative flex justify-between items-center bg-white shadow-md rounded-lg p-6 mb-6">
         <div 
@@ -259,6 +272,15 @@ const handleClickFAQ = () => {
           onClick={handleClickFAQ}
           color="bg-blue-500"
         />
+        {isAdmin && (
+          <ServiceCard
+            icon={<Settings className="w-6 h-6 text-white" />}
+            title="Panel de Administración"
+            onClick={() => router.push('/admin')}
+            color="bg-gradient-to-r from-blue-600 to-purple-600"
+            badge="ADMIN"
+          />
+        )}
       </div>
 
       {/* Panel de estado duplicado removido: el banner inicial cubre esta función */}
@@ -275,7 +297,6 @@ const handleClickFAQ = () => {
         token={getAccessToken() || ''}
         autoCloseOnAuth
       />
-      </div>
     </div>
   )
 }

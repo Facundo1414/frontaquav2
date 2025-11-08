@@ -144,11 +144,38 @@ export const getClients = async (params?: {
   status?: string;
 }) => {
   const token = getAccessToken();
-  const { data } = await api.get("/clients", {
+  const response = await api.get("/clients", {
     headers: { Authorization: `Bearer ${token}` },
     params,
   });
-  return data;
+
+  console.log("🔍 Response headers:", response.headers);
+  console.log("🔍 X-Total-Count:", response.headers["x-total-count"]);
+  console.log("🔍 All header keys:", Object.keys(response.headers));
+
+  // El backend devuelve los clientes en response.data
+  // Y la información de paginación en los headers
+  const clients = response.data;
+  const total = response.headers["x-total-count"]
+    ? parseInt(response.headers["x-total-count"], 10)
+    : clients.length;
+
+  console.log("🔍 Total calculado:", total);
+  console.log("🔍 Clientes length:", clients.length);
+
+  return {
+    clients,
+    total,
+    page: response.headers["x-page"]
+      ? parseInt(response.headers["x-page"], 10)
+      : 1,
+    perPage: response.headers["x-per-page"]
+      ? parseInt(response.headers["x-per-page"], 10)
+      : 50,
+    totalPages: response.headers["x-total-pages"]
+      ? parseInt(response.headers["x-total-pages"], 10)
+      : 1,
+  };
 };
 
 /**

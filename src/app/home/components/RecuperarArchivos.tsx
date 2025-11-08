@@ -19,8 +19,57 @@ export function RecuperarArchivos() {
   const [error, setError] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
   const [fileTypeFilter, setFileTypeFilter] = useState<string>('all')
+  const [originFilter, setOriginFilter] = useState<string>('all')
+  const [dateFilter, setDateFilter] = useState<string>('all')
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 10
+
+  // Función para detectar el origen del archivo según su nombre
+  const detectFileOrigin = (fileName: string): string => {
+    const lowerName = fileName.toLowerCase()
+    
+    if (lowerName.includes('not-whatsapp') || lowerName.includes('sin-whatsapp')) {
+      return 'sin-whatsapp'
+    }
+    if (lowerName.includes('resultado') || lowerName.includes('_resultado_')) {
+      return 'resultado'
+    }
+    if (lowerName.includes('clients-with-whatsapp') || lowerName.includes('filtered')) {
+      return 'filtrado'
+    }
+    if (lowerName.includes('original') || lowerName.includes('universo')) {
+      return 'original'
+    }
+    return 'otro'
+  }
+
+  // Función para verificar si una fecha está en el rango
+  const isDateInRange = (dateString: string, range: string): boolean => {
+    if (range === 'all') return true
+    
+    const fileDate = new Date(dateString)
+    const now = new Date()
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+    
+    if (range === 'today') {
+      const fileDateDay = new Date(fileDate.getFullYear(), fileDate.getMonth(), fileDate.getDate())
+      return fileDateDay.getTime() === today.getTime()
+    }
+    
+    if (range === 'week') {
+      const weekAgo = new Date(today)
+      weekAgo.setDate(weekAgo.getDate() - 7)
+      return fileDate >= weekAgo
+    }
+    
+    if (range === 'month') {
+      const monthAgo = new Date(today)
+      monthAgo.setMonth(monthAgo.getMonth() - 1)
+      return fileDate >= monthAgo
+    }
+    
+    return true
+  }
 
   // Filtrar y buscar archivos
   const filteredFiles = useMemo(() => {
@@ -32,9 +81,16 @@ export function RecuperarArchivos() {
       const fileExtension = file.name.split('.').pop()?.toLowerCase() || ''
       const matchesType = fileTypeFilter === 'all' || fileExtension === fileTypeFilter
       
-      return matchesSearch && matchesType
+      // Filtro por origen
+      const fileOrigin = detectFileOrigin(file.name)
+      const matchesOrigin = originFilter === 'all' || fileOrigin === originFilter
+      
+      // Filtro por fecha
+      const matchesDate = isDateInRange(file.createdAt, dateFilter)
+      
+      return matchesSearch && matchesType && matchesOrigin && matchesDate
     })
-  }, [files, searchTerm, fileTypeFilter])
+  }, [files, searchTerm, fileTypeFilter, originFilter, dateFilter])
 
   // Paginación
   const totalPages = Math.ceil(filteredFiles.length / itemsPerPage)
@@ -48,10 +104,23 @@ export function RecuperarArchivos() {
     return Array.from(types).sort()
   }, [files])
 
+  // Obtener orígenes únicos con contadores
+  const fileOrigins = useMemo(() => {
+    const origins = files.map(file => detectFileOrigin(file.name))
+    const counts = {
+      'sin-whatsapp': origins.filter(o => o === 'sin-whatsapp').length,
+      'resultado': origins.filter(o => o === 'resultado').length,
+      'filtrado': origins.filter(o => o === 'filtrado').length,
+      'original': origins.filter(o => o === 'original').length,
+      'otro': origins.filter(o => o === 'otro').length,
+    }
+    return counts
+  }, [files])
+
   // Reset pagination when filters change
   useEffect(() => {
     setCurrentPage(1)
-  }, [searchTerm, fileTypeFilter])
+  }, [searchTerm, fileTypeFilter, originFilter, dateFilter])
 
   const loadFiles = async () => {
     setLoading(true)
@@ -164,7 +233,94 @@ export function RecuperarArchivos() {
                 />
               </div>
 
-              {/* Filtro por tipo */}
+              {/* Filtro por origen */}
+              <div className="flex items-center gap-2 flex-wrap">
+                <Filter className="h-4 w-4 text-gray-500" />
+                <span className="text-sm text-gray-600 font-medium">Origen:</span>
+                <Button
+                  variant={originFilter === 'all' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setOriginFilter('all')}
+                >
+                  Todos
+                </Button>
+                <Button
+                  variant={originFilter === 'sin-whatsapp' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setOriginFilter('sin-whatsapp')}
+                  disabled={fileOrigins['sin-whatsapp'] === 0}
+                >
+                  Sin WhatsApp ({fileOrigins['sin-whatsapp']})
+                </Button>
+                <Button
+                  variant={originFilter === 'resultado' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setOriginFilter('resultado')}
+                  disabled={fileOrigins['resultado'] === 0}
+                >
+                  Resultado ({fileOrigins['resultado']})
+                </Button>
+                <Button
+                  variant={originFilter === 'filtrado' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setOriginFilter('filtrado')}
+                  disabled={fileOrigins['filtrado'] === 0}
+                >
+                  Filtrado ({fileOrigins['filtrado']})
+                </Button>
+                <Button
+                  variant={originFilter === 'original' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setOriginFilter('original')}
+                  disabled={fileOrigins['original'] === 0}
+                >
+                  Original ({fileOrigins['original']})
+                </Button>
+                <Button
+                  variant={originFilter === 'otro' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setOriginFilter('otro')}
+                  disabled={fileOrigins['otro'] === 0}
+                >
+                  Otro ({fileOrigins['otro']})
+                </Button>
+              </div>
+
+              {/* Filtro por fecha */}
+              <div className="flex items-center gap-2 flex-wrap">
+                <Filter className="h-4 w-4 text-gray-500" />
+                <span className="text-sm text-gray-600 font-medium">Fecha:</span>
+                <Button
+                  variant={dateFilter === 'all' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setDateFilter('all')}
+                >
+                  Todas
+                </Button>
+                <Button
+                  variant={dateFilter === 'today' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setDateFilter('today')}
+                >
+                  Hoy
+                </Button>
+                <Button
+                  variant={dateFilter === 'week' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setDateFilter('week')}
+                >
+                  Última semana
+                </Button>
+                <Button
+                  variant={dateFilter === 'month' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setDateFilter('month')}
+                >
+                  Último mes
+                </Button>
+              </div>
+
+              {/* Filtro por tipo (movido después de los otros) */}
               <div className="flex items-center gap-2 flex-wrap">
                 <Filter className="h-4 w-4 text-gray-500" />
                 <span className="text-sm text-gray-600 font-medium">Tipo:</span>

@@ -1,0 +1,130 @@
+/**
+ * 📊 Optimization Counters Component
+ * 
+ * Sprint 12.6: Muestra contadores visuales de las fuentes de datos
+ * (BD, Worker, Inválidos) para dar transparencia al usuario.
+ */
+
+'use client'
+
+import { motion } from 'framer-motion'
+import { Database, Phone, XCircle, Users, Zap } from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
+import type { OptimizationMetrics, CacheInfo } from '@/types/send-debts-optimization'
+
+interface OptimizationCountersProps {
+  metrics: OptimizationMetrics
+  cacheInfo?: CacheInfo
+  className?: string
+}
+
+export function OptimizationCounters({ 
+  metrics, 
+  cacheInfo,
+  className = '' 
+}: OptimizationCountersProps) {
+  return (
+    <div className={`space-y-4 ${className}`}>
+      {/* Cache Badge si aplica */}
+      {cacheInfo?.cache_used && (
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex items-center justify-center"
+        >
+          <Badge variant="secondary" className="gap-2 px-3 py-1.5">
+            <Zap className="w-4 h-4" />
+            <span>Cache utilizado ({cacheInfo.cache_age_hours}h de antigüedad)</span>
+          </Badge>
+        </motion.div>
+      )}
+
+      {/* Counters Grid */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {/* Total */}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0 }}
+          className="bg-blue-50 border border-blue-200 rounded-lg p-4"
+        >
+          <div className="flex items-center gap-2 mb-2">
+            <Users className="w-5 h-5 text-blue-600" />
+            <span className="text-sm font-semibold text-blue-700">Total</span>
+          </div>
+          <p className="text-3xl font-bold text-blue-700">{metrics.total}</p>
+          <p className="text-xs text-blue-600 mt-1">
+            Procesados en {(metrics.total_time_ms / 1000).toFixed(1)}s
+          </p>
+        </motion.div>
+
+        {/* Desde BD */}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.1 }}
+          className="bg-green-50 border border-green-200 rounded-lg p-4"
+        >
+          <div className="flex items-center gap-2 mb-2">
+            <Database className="w-5 h-5 text-green-600" />
+            <span className="text-sm font-semibold text-green-700">Desde BD</span>
+          </div>
+          <p className="text-3xl font-bold text-green-700">{metrics.db_found}</p>
+          <p className="text-xs text-green-600 mt-1">
+            {Math.round(metrics.db_hit_rate)}% del total
+          </p>
+        </motion.div>
+
+        {/* Verificados con Worker */}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.2 }}
+          className="bg-yellow-50 border border-yellow-200 rounded-lg p-4"
+        >
+          <div className="flex items-center gap-2 mb-2">
+            <Phone className="w-5 h-5 text-yellow-600" />
+            <span className="text-sm font-semibold text-yellow-700">Worker</span>
+          </div>
+          <p className="text-3xl font-bold text-yellow-700">{metrics.worker_verified}</p>
+          <p className="text-xs text-yellow-600 mt-1">
+            {Math.round(metrics.worker_hit_rate)}% del total
+          </p>
+        </motion.div>
+
+        {/* Inválidos */}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.3 }}
+          className="bg-red-50 border border-red-200 rounded-lg p-4"
+        >
+          <div className="flex items-center gap-2 mb-2">
+            <XCircle className="w-5 h-5 text-red-600" />
+            <span className="text-sm font-semibold text-red-700">Inválidos</span>
+          </div>
+          <p className="text-3xl font-bold text-red-700">{metrics.invalid}</p>
+          <p className="text-xs text-red-600 mt-1">
+            {Math.round(metrics.invalid_rate)}% del total
+          </p>
+        </motion.div>
+      </div>
+
+      {/* Performance Info */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.4 }}
+        className="text-center text-sm text-muted-foreground"
+      >
+        <p>
+          💾 Búsqueda BD: {metrics.db_search_time_ms}ms | 
+          📞 Verificación Worker: {metrics.worker_verify_time_ms}ms
+          {cacheInfo?.incremental_updates && cacheInfo.incremental_updates > 0 && (
+            <> | 🔄 {cacheInfo.incremental_updates} actualizaciones incrementales</>
+          )}
+        </p>
+      </motion.div>
+    </div>
+  )
+}

@@ -13,6 +13,8 @@ interface GlobalContextType {
   getToken: () => string;
   usernameGlobal: string;
   setUsernameGlobal: (username: string) => void;
+  userId: string; // 🆕 User ID (UID) from Supabase
+  setUserId: (id: string) => void;
 }
 
 const GlobalContext = createContext<GlobalContextType | undefined>(undefined);
@@ -22,6 +24,7 @@ export const GlobalProvider = ({ children }: { children: ReactNode }) => {
   const [accessToken, setAccessTokenState] = useState<string>('');
   const [refreshToken, setRefreshTokenState] = useState<string>('');
   const [usernameGlobal, setUsernameGlobal] = useState('');
+  const [userId, setUserId] = useState<string>(''); // 🆕 User ID state
 
   // Sincronizar accessToken con localStorage al cargar la app
   useEffect(() => {
@@ -32,6 +35,9 @@ export const GlobalProvider = ({ children }: { children: ReactNode }) => {
 
     const storedUsername = localStorage.getItem('username') ?? '';
     setUsernameGlobal(storedUsername);
+
+    const storedUserId = localStorage.getItem('userId') ?? ''; // 🆕 Load userId
+    setUserId(storedUserId);
 
     // Inicializar el token manager
     tokenManager.init();
@@ -54,6 +60,12 @@ export const GlobalProvider = ({ children }: { children: ReactNode }) => {
     if (usernameGlobal) localStorage.setItem('username', usernameGlobal);
     else localStorage.removeItem('username');
   }, [usernameGlobal]);
+
+  // Guardar userId en localStorage cuando cambia 🆕
+  useEffect(() => {
+    if (userId) localStorage.setItem('userId', userId);
+    else localStorage.removeItem('userId');
+  }, [userId]);
 
   // Función mejorada para setear tokens
   const setAccessToken = (token: string) => {
@@ -92,6 +104,8 @@ export const GlobalProvider = ({ children }: { children: ReactNode }) => {
         getToken,
         usernameGlobal,
         setUsernameGlobal,
+        userId, // 🆕 Export userId
+        setUserId, // 🆕 Export setUserId
       }}
     >
       {children}

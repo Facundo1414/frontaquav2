@@ -46,8 +46,9 @@ export function useProgressWebSocket(
     const socket = io("http://localhost:3004/progress", {
       transports: ["websocket"],
       reconnection: true,
-      reconnectionAttempts: 5,
-      reconnectionDelay: 1000,
+      reconnectionAttempts: 3, // Reducido de 5 a 3
+      reconnectionDelay: 2000, // Aumentado a 2 segundos
+      timeout: 5000, // Timeout de 5 segundos
     });
 
     socketRef.current = socket;
@@ -56,8 +57,13 @@ export function useProgressWebSocket(
       console.log("✅ WebSocket conectado al worker (tipo:", eventType, ")");
     });
 
+    socket.on("connect_error", (err) => {
+      console.warn("⚠️ Error conectando al comprobante-worker:", err.message);
+      // No mostrar error al usuario, el servicio puede no estar disponible
+    });
+
     socket.on("disconnect", () => {
-      console.log("🔌 WebSocket desconectado");
+      console.log("🔌 WebSocket desconectado del comprobante-worker");
     });
 
     // Escuchar eventos según el tipo

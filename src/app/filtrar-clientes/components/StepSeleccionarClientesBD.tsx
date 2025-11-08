@@ -62,12 +62,21 @@ export function StepSeleccionarClientesBD({ onNext }: StepSeleccionarClientesBDP
     try {
       setLoading(true)
       setError(null)
-      const data = await getClients()
-      // Mantener el status tal como viene del backend (en inglés) para filtros/búsquedas
-      setClients(data)
+      // Pedir TODOS los clientes (limit: 10000 para asegurar que traiga todo)
+      const data = await getClients({ limit: 10000 })
+      
+      console.log('🔍 [filtrar-clientes] Respuesta:', data)
+      console.log('🔍 [filtrar-clientes] Total en BD:', data.total)
+      
+      // El backend puede devolver { clients: [...], total: X } o directamente [...]
+      const clientsArray = Array.isArray(data) ? data : (data.clients || data)
+      
+      console.log('🔍 [filtrar-clientes] Clientes cargados:', clientsArray.length)
+      
+      setClients(clientsArray)
       // Extraer barrios únicos
       const barrios = Array.from(new Set(
-        data
+        clientsArray
           .map((c: any) => c.barrio_inm)
           .filter((b: any): b is string => Boolean(b))
       )).sort() as string[]
@@ -161,7 +170,7 @@ export function StepSeleccionarClientesBD({ onNext }: StepSeleccionarClientesBDP
         
         // Calcular rango: desde start, tomar (end - start) elementos
         const rangeStart = Math.max(0, start - 1) // Convertir a 0-based
-        const count = end ? Math.max(0, end - start) : clients.length - rangeStart
+        const count = end ? Math.max(0, end - start + 1) : clients.length - rangeStart
         const rangeEnd = Math.min(clients.length, rangeStart + count)
         const sliced = clients.slice(rangeStart, rangeEnd)
         filtered.push(...sliced)

@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { tokenManager } from "@/lib/tokenManager";
 
 export const useAuth = () => {
-  const { setAccessToken, setRefreshToken, setUsernameGlobal } =
+  const { setAccessToken, setRefreshToken, setUsernameGlobal, setUserId } =
     useGlobalContext();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const router = useRouter();
@@ -20,10 +20,12 @@ export const useAuth = () => {
         setAccessToken(result.accessToken);
         setRefreshToken(result.refreshToken);
         setUsernameGlobal(result.user.email || email);
+        setUserId(result.user.id || ""); // 🆕 Store user ID (UID)
 
         localStorage.setItem("accessToken", result.accessToken);
         localStorage.setItem("refreshToken", result.refreshToken);
         localStorage.setItem("username", result.user.email || email);
+        localStorage.setItem("userId", result.user.id || ""); // 🆕 Store userId in localStorage
 
         // Configurar el token manager con los nuevos tokens
         tokenManager.setTokens(result.accessToken, result.refreshToken);
@@ -44,7 +46,7 @@ export const useAuth = () => {
         setIsSubmitting(false);
       }
     },
-    [setAccessToken, setRefreshToken, setUsernameGlobal]
+    [setAccessToken, setRefreshToken, setUsernameGlobal, setUserId]
   );
 
   const checkAuth = useCallback(async () => {

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Fragment } from 'react';
 import { Users, ChevronLeft, ChevronRight, Loader2, Phone, MapPin, Edit2, Save, X, XCircle, Search, Eye, DollarSign, MessageSquare } from 'lucide-react';
-import { getClients, getClientWorks, updateClient } from '@/lib/api';
+import { getClients, getClientWorks, updateClient, getClientStats } from '@/lib/api';
 
 const PAGE_SIZE = 50;
 
@@ -70,6 +70,22 @@ export function PaginatedClientsView() {
     loadClients();
   }, [currentPage, debouncedSearchTerm, statusFilter, phoneFilter]);
 
+  // Cargar estadísticas al inicio (solo una vez)
+  useEffect(() => {
+    loadStats();
+  }, []);
+
+  const loadStats = async () => {
+    try {
+      const stats = await getClientStats();
+      // stats contiene: total, withPhone, withoutPhone, pending, notified, visited, verified, etc.
+      setTotalPending(stats.pending || stats.byStatus?.pending || 0);
+    } catch (err) {
+      console.error('Error cargando estadísticas:', err);
+      // No es crítico, continuar sin estadísticas
+    }
+  };
+
   const loadClients = async () => {
     try {
       setError(null);
@@ -98,13 +114,18 @@ export function PaginatedClientsView() {
 
       const data = await getClients(params);
       
-      setClients(data.clients || data);
-      setTotalCount(data.total || data.length);
-
-      // Obtener el total de pendientes (sin paginación)
-      const pendingParams = { status: 'pending', page: 1, limit: 1 };
-      const pendingData = await getClients(pendingParams);
-      setTotalPending(pendingData.total || 0);
+      console.log('📊 Respuesta getClients:', data);
+      console.log('📊 Total count:', data.total);
+      console.log('📊 Clientes:', data.clients?.length);
+      
+      setClients(data.clients);
+      setTotalCount(data.total);
+      
+      console.log('📊 Estado después de setear:', {
+        clientsLength: data.clients.length,
+        totalCount: data.total,
+        totalPages: Math.ceil(data.total / PAGE_SIZE)
+      });
     } catch (err: any) {
       console.error('Error al cargar clientes:', err);
       setError(err.response?.data?.message || err.message || 'Error al cargar clientes');

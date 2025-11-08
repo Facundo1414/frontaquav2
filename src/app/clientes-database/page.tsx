@@ -1072,26 +1072,21 @@ export default function ClientesDatabasePage() {
                     </button>
 
                     <button
-                      onClick={() => setImportType('deudas')}
-                      className={`p-6 rounded-xl border-2 transition-all ${
-                        importType === 'deudas'
-                          ? 'border-teal-500 bg-teal-50 dark:bg-teal-900/20'
-                          : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
-                      }`}
+                      disabled
+                      className="p-6 rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 opacity-50 cursor-not-allowed relative"
                     >
-                      <FileSpreadsheet className={`w-8 h-8 mb-3 ${
-                        importType === 'deudas' ? 'text-teal-600 dark:text-teal-400' : 'text-gray-400'
-                      }`} />
-                      <h3 className={`font-semibold mb-2 ${
-                        importType === 'deudas' ? 'text-teal-900 dark:text-teal-100' : 'text-gray-900 dark:text-white'
-                      }`}>
+                      <div className="absolute top-3 right-3 px-2 py-1 bg-gray-300 dark:bg-gray-700 text-gray-600 dark:text-gray-400 text-xs font-medium rounded">
+                        Deshabilitado
+                      </div>
+                      <FileSpreadsheet className="w-8 h-8 mb-3 text-gray-400" />
+                      <h3 className="font-semibold mb-2 text-gray-500 dark:text-gray-400">
                         Planes de pagos Incumplidos
                       </h3>
-                      <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                      <p className="text-sm text-gray-500 dark:text-gray-500 mb-2">
                         Actualiza deuda y marca clientes con planes de pago vigentes
                       </p>
-                      <p className="text-xs text-teal-700 dark:text-teal-300 font-medium">
-                        💳 Importar después de visitas
+                      <p className="text-xs text-gray-500 dark:text-gray-500 font-medium">
+                        💳 Temporalmente no disponible
                       </p>
                     </button>
                   </div>
@@ -1301,12 +1296,8 @@ export default function ClientesDatabasePage() {
                         <span>Importar <strong>Universo De Cuentas</strong> → Crea/actualiza base completa de clientes</span>
                       </div>
                       <div className="flex items-start gap-3">
-                        <span className="font-bold text-teal-600 dark:text-teal-400 min-w-[120px]">DÍA 3-9:</span>
-                        <span>Visitar clientes y editar teléfonos manualmente en la tabla</span>
-                      </div>
-                      <div className="flex items-start gap-3">
-                        <span className="font-bold text-teal-600 dark:text-teal-400 min-w-[120px]">DÍA 10+:</span>
-                        <span>Importar <strong>Incumplidos</strong> → Actualiza montos y marca planes de pago</span>
+                        <span className="font-bold text-teal-600 dark:text-teal-400 min-w-[120px]">DÍA 3+:</span>
+                        <span>Visitar clientes, gestionar teléfonos y actualizar estados manualmente</span>
                       </div>
                     </div>
                   </div>
@@ -1320,23 +1311,19 @@ export default function ClientesDatabasePage() {
                     <ul className="space-y-2 text-sm text-blue-800 dark:text-blue-200">
                       <li className="flex items-start gap-2">
                         <span className="text-blue-500 mt-0.5">•</span>
-                        <span><strong>Ambos archivos van a la misma tabla</strong> de clientes</span>
+                        <span>El archivo <strong>Universo De Cuentas</strong> contiene todos los datos de clientes (UF, dirección, titular, teléfonos)</span>
                       </li>
                       <li className="flex items-start gap-2">
                         <span className="text-blue-500 mt-0.5">•</span>
-                        <span><strong>Universo De Cuentas</strong> trae datos completos (UF, dirección, titular, teléfonos)</span>
+                        <span>Los teléfonos editados manualmente <strong>nunca se sobrescriben</strong> en nuevas importaciones</span>
                       </li>
                       <li className="flex items-start gap-2">
                         <span className="text-blue-500 mt-0.5">•</span>
-                        <span><strong>Deudas</strong> solo actualiza monto de deuda y marca plan de pago</span>
+                        <span>Los clientes se identifican por <strong>UF</strong> (Unidad de Facturación)</span>
                       </li>
                       <li className="flex items-start gap-2">
                         <span className="text-blue-500 mt-0.5">•</span>
-                        <span>Los teléfonos editados manualmente <strong>nunca se sobrescriben</strong></span>
-                      </li>
-                      <li className="flex items-start gap-2">
-                        <span className="text-blue-500 mt-0.5">•</span>
-                        <span>Clientes se identifican por <strong>UF</strong> (Unidad de Facturación)</span>
+                        <span>Si un cliente ya existe, sus datos se actualizarán con la nueva información del archivo</span>
                       </li>
                     </ul>
                   </div>
