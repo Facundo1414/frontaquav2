@@ -4,7 +4,7 @@ const next = require('next');
 const { scheduleBusinessHoursShutdown } = require('./utils/business-hours');
 
 const dev = process.env.NODE_ENV !== 'production';
-const hostname = 'localhost';
+const hostname = dev ? 'localhost' : '0.0.0.0';
 const port = process.env.PORT || 3001;
 
 // Crear app Next.js
@@ -26,8 +26,8 @@ app.prepare().then(() => {
     console.error(err);
     process.exit(1);
   })
-  .listen(port, () => {
-    console.log(`🚀 Frontend Next.js corriendo en puerto ${port}`);
+  .listen(port, hostname, () => {
+    console.log(`🚀 Frontend Next.js corriendo en ${hostname}:${port}`);
     
     // Configurar auto-shutdown para horario laboral (9-16, lunes a viernes)
     scheduleBusinessHoursShutdown(16);
