@@ -37,7 +37,7 @@ function ClientsView() {
       setLoading(true);
       setError(null);
       const data = await getClients();
-      setClients(data);
+      setClients(data.clients);
     } catch (err: any) {
       console.error('Error al cargar clientes:', err);
       setError(err.response?.data?.message || err.message || 'Error al cargar clientes');
