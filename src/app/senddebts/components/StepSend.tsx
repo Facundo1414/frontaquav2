@@ -23,8 +23,7 @@ export function StepSend() {
     filteredData,
   } = useSendDebtsContext()
   const { snapshot } = useWhatsappSessionContext()
-  const { user } = useGlobalContext()
-  const userId = user?.sub
+  const { userId } = useGlobalContext()
   
   // Nuevo modelo: snapshot?.ready indica disponibilidad total. Consideramos "syncing" si no está ready aún.
   const syncing = !snapshot?.ready
