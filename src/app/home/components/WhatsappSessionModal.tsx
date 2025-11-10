@@ -161,6 +161,32 @@ export const WhatsappSessionModal: React.FC<WhatsappSessionModalProps> = ({ open
     }
   }, [isAuthenticated, autoCloseOnAuth, onOpenChange])
 
+  // Failsafe: Poll state después de mostrar QR para detectar autenticación
+  // incluso si el evento WebSocket se pierde
+  useEffect(() => {
+    if (!open || state !== 'waiting_qr') return
+    
+    const pollInterval = setInterval(async () => {
+      try {
+        const { simpleWaState } = await import('@/lib/api/simpleWaApi')
+        const st = await simpleWaState()
+        
+        // Si detectamos que está autenticado, actualizar contexto
+        if (st.ready || st.authenticated) {
+          console.log('✅ WhatsappSessionModal: Detectado autenticado via polling, actualizando contexto')
+          updateFromStatus({
+            state: st.ready ? 'ready' : 'syncing',
+            qr: null,
+          })
+        }
+      } catch (e) {
+        console.error('❌ Error en polling de estado:', e)
+      }
+    }, 2000) // Poll cada 2 segundos
+    
+    return () => clearInterval(pollInterval)
+  }, [open, state, updateFromStatus])
+
   const statusMessage = useMemo(() => {
     if (error) return error
     if (state === 'none') return 'Listo para iniciar'
