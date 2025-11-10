@@ -89,12 +89,17 @@ const nextConfig: NextConfig = {
 
   // 🖼️ Optimización de imágenes
   images: {
-    domains: ["localhost"],
     remotePatterns: [
       {
         protocol: "http",
         hostname: "localhost",
         port: "3001",
+        pathname: "/**",
+      },
+      {
+        protocol: "http",
+        hostname: "localhost",
+        port: "",
         pathname: "/**",
       },
     ],
