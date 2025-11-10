@@ -3,7 +3,7 @@ import axios from "axios";
 import { tokenManager } from "../tokenManager";
 
 // Normalizamos la base URL para garantizar que termine en /api
-let rawBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+let rawBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
 // quitar slash final
 rawBase = rawBase.replace(/\/$/, "");
 // si no termina en /api lo añadimos

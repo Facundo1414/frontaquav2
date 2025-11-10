@@ -94,7 +94,7 @@ export default function GenerarPDFsPage() {
         selectedCuentas.has(c.uf)
       )
 
-      const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3000'
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'
       const response = await fetch(`${baseUrl}/api/pdf-generator/generate-bulk`, {
         method: 'POST',
         headers: {

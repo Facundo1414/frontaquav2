@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { io, Socket } from "socket.io-client";
 
 const WEBSOCKET_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:3000";
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
 
 // Singleton para evitar múltiples conexiones
 let globalSocket: Socket | null = null;

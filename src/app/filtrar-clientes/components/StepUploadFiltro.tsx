@@ -87,7 +87,7 @@ export function StepUploadFiltro({ onSuccess }: StepUploadFiltroProps) {
         return
       }
 
-      const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3000'
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'
       const response = await fetch(`${baseUrl}/api/comprobante-filtro/preview`, {
         method: 'POST',
         headers: {
@@ -173,7 +173,7 @@ export function StepUploadFiltro({ onSuccess }: StepUploadFiltroProps) {
         return
       }
 
-      const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3000'
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'
       const response = await fetch(`${baseUrl}/api/comprobante-filtro/upload-and-filter`, {
         method: 'POST',
         headers: {

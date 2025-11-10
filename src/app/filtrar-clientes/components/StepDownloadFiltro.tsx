@@ -34,8 +34,8 @@ export function StepDownloadFiltro({ jobId, resultados, onReset }: StepDownloadF
         return
       }
 
-      const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3000'
-      const response = await fetch(`${baseUrl}/api/comprobante-filtro/download/${jobId}/${tipo}`, {
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'
+      const response = await fetch(`${baseUrl}/api/comprobante-filtro/status/${jobId}`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }

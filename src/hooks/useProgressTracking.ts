@@ -72,7 +72,7 @@ export function useProgressTracking({
     if (!enabled || !token) return;
 
     const BACKEND_URL =
-      process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:3002";
+      process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
 
     const newSocket = io(`${BACKEND_URL}/events`, {
       transports: ["websocket", "polling"],
