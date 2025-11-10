@@ -21,8 +21,7 @@ import { useState } from "react";
 
 // Leer ADMIN_UID desde variables de entorno
 const ADMIN_UID = process.env.NEXT_PUBLIC_ADMIN_UID || "";
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
 
 if (!ADMIN_UID) {
   console.error("⚠️ NEXT_PUBLIC_ADMIN_UID not set in environment variables");
