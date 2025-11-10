@@ -3,7 +3,7 @@
  * Configura el servicio para cerrarse automáticamente fuera del horario de trabajo
  */
 
-export function scheduleBusinessHoursShutdown(shutdownHour = 16) {
+function scheduleBusinessHoursShutdown(shutdownHour = 16) {
   const timezone = process.env.TZ || 'America/Argentina/Cordoba';
   const serviceName = process.env.SERVICE_NAME || 'Frontend';
   
@@ -51,7 +51,7 @@ export function scheduleBusinessHoursShutdown(shutdownHour = 16) {
 /**
  * Verifica si estamos en horario laboral (9-16, lunes a viernes)
  */
-export function isBusinessHours() {
+function isBusinessHours() {
   const timezone = process.env.TZ || 'America/Argentina/Cordoba';
   
   try {
@@ -78,3 +78,9 @@ export function isBusinessHours() {
     return true; // En caso de error, permitir operación
   }
 }
+
+// CommonJS exports
+module.exports = {
+  scheduleBusinessHoursShutdown,
+  isBusinessHours
+};
