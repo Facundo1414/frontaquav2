@@ -53,7 +53,7 @@ const nextConfig: NextConfig = {
               "style-src 'self' 'unsafe-inline'",
               "img-src 'self' data: blob: https:",
               "font-src 'self' data:",
-              "connect-src 'self' https://api.supabase.co https://*.supabase.co wss://*.supabase.co http://localhost:* https://localhost:* ws://localhost:* wss://localhost:*",
+              "connect-src 'self' https://api.supabase.co https://*.supabase.co wss://*.supabase.co https://*.up.railway.app wss://*.up.railway.app http://localhost:* https://localhost:* ws://localhost:* wss://localhost:*",
               "frame-ancestors 'self'",
               "base-uri 'self'",
               "form-action 'self'",
