@@ -43,7 +43,8 @@ export function useProgressWebSocket(
 
   useEffect(() => {
     // Conectar al WebSocket del worker
-    const workerUrl = process.env.NEXT_PUBLIC_COMPROBANTE_WORKER_URL || "http://localhost:3004";
+    const workerUrl =
+      process.env.NEXT_PUBLIC_COMPROBANTE_WORKER_URL || "http://localhost:3004";
     const socket = io(`${workerUrl}/progress`, {
       transports: ["websocket"],
       reconnection: true,
