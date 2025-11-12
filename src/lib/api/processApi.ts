@@ -6,7 +6,9 @@ import { getFileByName } from "./uploadApi";
 export const sendAndScrape = async (
   fileName: string,
   caption: string,
-  tipoComprobante: "TODOS" | "PCB1" | "ATC2" = "TODOS"
+  tipoComprobante: "TODOS" | "PCB1" | "ATC2" = "TODOS",
+  incluirIntimacion?: boolean,
+  telefonoUsuario?: string
 ): Promise<{ message: string; file?: Blob; jobId?: string }> => {
   const token = getAccessToken();
 
@@ -18,6 +20,8 @@ export const sendAndScrape = async (
         message: caption,
         expiration: 1,
         tipoComprobante,
+        incluirIntimacion,
+        telefonoUsuario,
       },
       {
         headers: { Authorization: `Bearer ${token}` },
@@ -160,5 +164,20 @@ export const sendAndScrapeProximosVencer = async (
       error?.message ||
       "❌ Error en el procesamiento";
     return { message: errorMessage };
+  }
+};
+
+export const getUserPhone = async (): Promise<string | null> => {
+  try {
+    const response = await api.get("/process/user-phone");
+
+    if (response.data?.success && response.data?.phoneNumber) {
+      return response.data.phoneNumber;
+    }
+
+    return null;
+  } catch (error: any) {
+    console.error("Error obteniendo teléfono del usuario:", error);
+    return null;
   }
 };

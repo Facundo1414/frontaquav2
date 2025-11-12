@@ -1,6 +1,6 @@
 'use client'
 import { useSendDebtsContext } from '@/app/providers/context/SendDebtsContext'
-import { sendAndScrape, listResultBackups, getFileByName } from '@/lib/api'
+import { sendAndScrape, listResultBackups, getFileByName, getUserPhone } from '@/lib/api'
 import { useState, useEffect } from 'react'
 import { useWhatsappSessionContext } from '@/app/providers/context/whatsapp/WhatsappSessionContext'
 import { motion } from 'framer-motion'
@@ -28,8 +28,11 @@ export function StepSend() {
   // Nuevo modelo: snapshot?.ready indica disponibilidad total. Consideramos "syncing" si no está ready aún.
   const syncing = !snapshot?.ready
 
-  const [message, setMessage] = useState(`Hola \${clientName}, te envío el PDF actualizado de la CUOTA PLAN DE PAGOS. 
-Por favor, no dejes que venza. Puedes realizar el abono en cualquier Rapipago, Pago Fácil o a través de Mercado Pago.
+  const [message, setMessage] = useState(`Hola \${clientName}, te envio tu comprobante actualizado de la CUOTA PLAN DE PAGOS.
+
+El PDF incluye un instructivo con todas las opciones de pago disponibles.
+
+Por favor, realiza el pago antes del vencimiento.
 
 🌐 Cclip 🔹 Al servicio de Aguas Cordobesas.`);
 
@@ -37,12 +40,30 @@ Por favor, no dejes que venza. Puedes realizar el abono en cualquier Rapipago, P
   const [jobId, setJobId] = useState<string | null>(null)
   const [status, setStatus] = useState<string | null>(null)
   const [backupFiles, setBackupFiles] = useState<string[]>([])
+  const [incluirIntimacion, setIncluirIntimacion] = useState(false)
+  const [telefonoUsuario, setTelefonoUsuario] = useState<string | null>(null)
   const [sendStats, setSendStats] = useState({
     total: 0,
     completed: 0,
     failed: 0,
     pending: 0,
   })
+
+  // Auto-fetch phone number on mount
+  useEffect(() => {
+    const fetchPhone = async () => {
+      try {
+        const phone = await getUserPhone()
+        if (phone) {
+          setTelefonoUsuario(phone)
+        }
+      } catch (error) {
+        console.warn('No se pudo obtener el teléfono del usuario:', error)
+        // No es crítico, el usuario puede continuar sin teléfono en el instructivo
+      }
+    }
+    fetchPhone()
+  }, [])
 
   useEffect(() => {
     // Inicializar stats cuando se monta el componente
@@ -123,7 +144,13 @@ Por favor, no dejes que venza. Puedes realizar el abono en cualquier Rapipago, P
 
     try {
       // Siempre enviar TODOS (plan + consumo) - el sistema maneja automáticamente cada tipo de plan
-      const result = await sendAndScrape(fileNameFiltered, message, 'TODOS')
+      const result = await sendAndScrape(
+        fileNameFiltered, 
+        message, 
+        'TODOS',
+        incluirIntimacion,
+        telefonoUsuario || undefined
+      )
       
       // 🎯 Backend siempre devuelve jobId para tracking en tiempo real
       if (result.jobId) {
@@ -242,18 +269,50 @@ Por favor, no dejes que venza. Puedes realizar el abono en cualquier Rapipago, P
           </div>
         )}
 
-        <div className="space-y-2">
-          <label htmlFor="message" className="block text-sm font-medium">
-            Mensaje para enviar (editable)
-          </label>
-          <textarea
-            id="message"
-            rows={4}
-            className="w-full p-2 border rounded resize-none"
-            value={message}
-            onChange={(e) => setMessage(e.target.value)}
-            disabled={loading}
-          />
+        <div className="space-y-4">
+          {/* Checkbox para incluir INTIMACIÓN */}
+          <div className="p-3 border rounded-lg bg-gray-50">
+            <label className="flex items-start space-x-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={incluirIntimacion}
+                onChange={(e) => setIncluirIntimacion(e.target.checked)}
+                disabled={loading}
+                className="mt-1 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+              />
+              <div className="flex-1">
+                <span className="font-medium text-sm">Incluir INTIMACIÓN</span>
+                {incluirIntimacion && (
+                  <p className="text-xs text-amber-600 mt-1 flex items-start gap-1">
+                    <span>⚠️</span>
+                    <span>
+                      Requiere que todos los clientes estén cargados en la base de datos con dirección y barrio completos.
+                      Solo se incluirá la intimación para clientes con planes vencidos.
+                    </span>
+                  </p>
+                )}
+                {telefonoUsuario && incluirIntimacion && (
+                  <p className="text-xs text-gray-500 mt-1">
+                    📞 Teléfono detectado: {telefonoUsuario}
+                  </p>
+                )}
+              </div>
+            </label>
+          </div>
+
+          <div>
+            <label htmlFor="message" className="block text-sm font-medium">
+              Mensaje para enviar (editable)
+            </label>
+            <textarea
+              id="message"
+              rows={4}
+              className="w-full p-2 border rounded resize-none mt-2"
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              disabled={loading}
+            />
+          </div>
         </div>
       </div>
 
@@ -288,7 +347,10 @@ Por favor, no dejes que venza. Puedes realizar el abono en cualquier Rapipago, P
         </div>
         
         {syncing && (
-          <p className="text-xs mt-2 text-amber-600">Sincronizando WhatsApp. El envío se habilitará automáticamente al finalizar.</p>
+          <p className="text-xs mt-2 text-amber-600 flex items-center gap-2">
+            <Loader2 className="h-3 w-3 animate-spin" />
+            <span>Conectando con WhatsApp... El envío se habilitará automáticamente.</span>
+          </p>
         )}
       </div>
     </motion.div>

@@ -1,6 +1,6 @@
 "use client";
 import React, { createContext, useContext, useState, useCallback, useRef, useEffect } from 'react';
-import { simpleWaState } from '@/lib/api/simpleWaApi';
+import { simpleWaState, simpleWaInit } from '@/lib/api/simpleWaApi';
 import { toast } from 'sonner';
 import { useWhatsappStatus } from '@/hooks/useWhatsappStatus';
 import { getAccessToken } from '@/utils/authToken';
@@ -19,6 +19,7 @@ interface WhatsappSessionContextType {
   snapshot: WhatsappSessionSnapshot | null;
   updateFromStatus: (payload: any) => void; // consumed by hook / SSE events
   markQr: (qr: string | null) => void;
+  reconnect: () => Promise<void>; // 🆕 Función para reconectar manualmente
 }
 
 const WhatsappSessionContext = createContext<WhatsappSessionContextType | undefined>(undefined);
@@ -113,8 +114,84 @@ export const WhatsappSessionProvider: React.FC<{ children: React.ReactNode }> = 
     setSnapshot(prev => prev ? { ...prev, qr, updatedAt: Date.now() } : prev);
   }, []);
 
+  // 🆕 Función de reconexión automática
+  const reconnect = useCallback(async () => {
+    console.log('🔄 Intentando reconectar WhatsApp...');
+    try {
+      const result = await simpleWaInit();
+      console.log('✅ Reconexión iniciada:', result);
+      
+      // Actualizar estado basado en la respuesta
+      if (result.ready) {
+        updateFromStatus({ state: 'ready' });
+      } else if (result.authenticated) {
+        updateFromStatus({ state: 'syncing' });
+      } else if (result.hasQR) {
+        updateFromStatus({ state: 'waiting_qr', qr: result.qr });
+      } else {
+        updateFromStatus({ state: 'launching' });
+      }
+    } catch (error) {
+      console.error('❌ Error al reconectar WhatsApp:', error);
+      // No mostrar toast de error para no molestar al usuario
+    }
+  }, [updateFromStatus]);
+
+  // 🆕 Auto-reconectar si no hay sesión activa al montar componentes que necesitan WA
+  // Verificamos periódicamente si hay sesión guardada pero no está conectada
+  useEffect(() => {
+    const checkAndReconnect = async () => {
+      // Solo intentar si:
+      // 1. Hay userId (usuario autenticado)
+      // 2. No hay snapshot o el estado es 'none'
+      // 3. No estamos ya conectados vía WebSocket
+      if (!userId) return;
+      
+      // Si ya tenemos sesión ready, no hacer nada
+      if (snapshot?.ready) return;
+      
+      console.log('🔍 Verificando estado de WhatsApp...');
+      
+      try {
+        // Verificar si hay sesión en el backend
+        const state = await simpleWaState();
+        console.log('📊 Estado actual:', state);
+        
+        // Si el backend dice que está ready pero nosotros no lo sabemos
+        if (state.ready && !snapshot?.ready) {
+          console.log('✅ Sesión activa detectada, actualizando contexto');
+          updateFromStatus({ state: 'ready' });
+        }
+        // Si está autenticado pero sincronizando
+        else if (state.authenticated && !state.ready) {
+          console.log('🔄 Sesión sincronizando');
+          updateFromStatus({ state: 'syncing' });
+        }
+        // Si no hay sesión, intentar reconectar automáticamente
+        else if (!state.ready && !state.authenticated && !snapshot?.state) {
+          console.log('🔌 No hay sesión activa, intentando reconectar...');
+          await reconnect();
+        }
+      } catch (error) {
+        console.error('❌ Error verificando estado:', error);
+      }
+    };
+    
+    // Verificar inmediatamente al montar
+    checkAndReconnect();
+    
+    // Verificar cada 10 segundos si no estamos ready
+    const interval = setInterval(() => {
+      if (!snapshot?.ready) {
+        checkAndReconnect();
+      }
+    }, 10000);
+    
+    return () => clearInterval(interval);
+  }, [userId, snapshot?.ready, snapshot?.state, reconnect, updateFromStatus]);
+
   return (
-    <WhatsappSessionContext.Provider value={{ snapshot, updateFromStatus, markQr }}>
+    <WhatsappSessionContext.Provider value={{ snapshot, updateFromStatus, markQr, reconnect }}>
       {children}
     </WhatsappSessionContext.Provider>
   );

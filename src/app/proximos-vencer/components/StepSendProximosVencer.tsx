@@ -307,7 +307,10 @@ Puedes realizar el abono en cualquier Rapipago, Pago Fácil o a través de Merca
         </div>
         
         {syncing && (
-          <p className="text-xs mt-2 text-amber-600">Sincronizando WhatsApp. El envío se habilitará automáticamente al finalizar.</p>
+          <p className="text-xs mt-2 text-amber-600 flex items-center gap-2">
+            <Loader2 className="h-3 w-3 animate-spin" />
+            <span>Conectando con WhatsApp... El envío se habilitará automáticamente.</span>
+          </p>
         )}
       </div>
     </motion.div>
