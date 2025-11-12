@@ -43,10 +43,14 @@ export const WhatsappSessionModal: React.FC<WhatsappSessionModalProps> = ({ open
   const [error, setError] = useState<string | null>(null)
   const [isInitializing, setIsInitializing] = useState(false)
   const initAttempted = useRef(false)
+  
+  // 🔧 FIX: Persistir QR localmente para evitar que desaparezca
+  const lastValidQr = useRef<string | null>(null)
 
   // Derivar estado del snapshot
   const state = snapshot?.state || 'none'
-  const qr = snapshot?.qr || null
+  // 🔧 FIX: Usar QR persistente si existe y el estado sigue siendo waiting_qr
+  const qr = snapshot?.qr || (state === 'waiting_qr' ? lastValidQr.current : null)
   const isAuthenticated = snapshot?.ready || false
   
   // WebSocket está listo cuando está conectado y suscrito
@@ -59,6 +63,9 @@ export const WhatsappSessionModal: React.FC<WhatsappSessionModalProps> = ({ open
     isSubscribed,
     connected,
     hasUserId: !!userId,
+    hasQr: !!qr,
+    hasQrImage: !!qrImage,
+    hasLastValidQr: !!lastValidQr.current,
     initAttempted: initAttempted.current 
   })
 
@@ -136,6 +143,9 @@ export const WhatsappSessionModal: React.FC<WhatsappSessionModalProps> = ({ open
   useEffect(() => {
     let active = true
     if (qr) {
+      // 🔧 FIX: Persistir QR válido en ref
+      lastValidQr.current = qr
+      
       // ✅ Verificar si el QR ya viene en formato data URL (Baileys)
       if (qr.startsWith('data:image/')) {
         // QR ya está en formato base64, usar directamente
@@ -143,14 +153,22 @@ export const WhatsappSessionModal: React.FC<WhatsappSessionModalProps> = ({ open
       } else {
         // QR es string raw, necesita conversión (Puppeteer legacy)
         generateQRCode(qr)
-          .then((img: string) => { if (active) setQrImage(img) })
+          .then((img: string) => { 
+            if (active) {
+              setQrImage(img)
+              console.log('✅ QR convertido y guardado')
+            }
+          })
           .catch(() => setQrImage(null))
       }
-    } else {
+    } else if (state !== 'waiting_qr') {
+      // 🔧 FIX: Solo limpiar QR si ya NO estamos en waiting_qr
+      // Esto evita limpiar el QR mientras el usuario está escaneando
       setQrImage(null)
+      lastValidQr.current = null
     }
     return () => { active = false }
-  }, [qr])
+  }, [qr, state])
 
   // Auto-cerrar modal si está autenticado (sin toast duplicado)
   // El toast lo maneja WhatsappSessionContext
@@ -166,6 +184,8 @@ export const WhatsappSessionModal: React.FC<WhatsappSessionModalProps> = ({ open
   useEffect(() => {
     if (!open || state !== 'waiting_qr') return
     
+    // 🔧 FIX: Aumentar intervalo de polling de 2s a 5s
+    // Esto reduce la probabilidad de interferencias con el QR
     const pollInterval = setInterval(async () => {
       try {
         const { simpleWaState } = await import('@/lib/api/simpleWaApi')
@@ -176,13 +196,15 @@ export const WhatsappSessionModal: React.FC<WhatsappSessionModalProps> = ({ open
           console.log('✅ WhatsappSessionModal: Detectado autenticado via polling, actualizando contexto')
           updateFromStatus({
             state: st.ready ? 'ready' : 'syncing',
-            qr: null,
+            qr: null, // Limpiar QR solo cuando está autenticado
           })
         }
+        // 🔧 FIX: NO actualizar si sigue teniendo QR disponible
+        // Esto evita que el polling sobrescriba el QR válido
       } catch (e) {
         console.error('❌ Error en polling de estado:', e)
       }
-    }, 2000) // Poll cada 2 segundos
+    }, 5000) // Poll cada 5 segundos (antes era 2)
     
     return () => clearInterval(pollInterval)
   }, [open, state, updateFromStatus])

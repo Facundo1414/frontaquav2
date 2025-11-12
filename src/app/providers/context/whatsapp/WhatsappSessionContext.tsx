@@ -79,15 +79,40 @@ export const WhatsappSessionProvider: React.FC<{ children: React.ReactNode }> = 
         return prev; // No cambiar para evitar re-renders innecesarios
       }
       
+      // 🔧 FIX: PRESERVAR EL QR SI YA EXISTE
+      // No sobrescribir con null/undefined si ya tenemos un QR válido
+      // Solo actualizar QR si:
+      // 1. El payload trae un QR nuevo válido (string no vacío)
+      // 2. El estado cambió a algo diferente de 'waiting_qr' (limpiar QR)
+      let newQr = prev?.qr ?? null;
+      
+      if (payload.qr && typeof payload.qr === 'string' && payload.qr.length > 0) {
+        // Hay un QR nuevo válido, usarlo
+        newQr = payload.qr;
+      } else if (state !== 'waiting_qr') {
+        // Si el estado no es 'waiting_qr', limpiar el QR
+        newQr = null;
+      }
+      // Si state === 'waiting_qr' y no hay nuevo QR, mantener el anterior
+      
       const next: WhatsappSessionSnapshot = {
         state,
-        qr: payload.qr ?? prev?.qr ?? null,
+        qr: newQr,
         regenerations: payload.regenerations ?? prev?.regenerations ?? 0,
         ready: state === 'ready',
         syncing: state === 'syncing',
         updatedAt: Date.now(),
       };
-      try { sessionStorage.setItem('whatsapp_v2_snapshot', JSON.stringify(next)); } catch { /* ignore */ }
+      
+      // Solo guardar en sessionStorage si realmente cambió algo
+      const changed = !prev || 
+        prev.state !== next.state || 
+        prev.qr !== next.qr ||
+        prev.ready !== next.ready;
+      
+      if (changed) {
+        try { sessionStorage.setItem('whatsapp_v2_snapshot', JSON.stringify(next)); } catch { /* ignore */ }
+      }
       
       // Solo mostrar toast si es la primera vez que llega a 'ready'
       if (state === 'ready' && prev?.state !== 'ready' && !readyToastShown.current) {
@@ -150,6 +175,13 @@ export const WhatsappSessionProvider: React.FC<{ children: React.ReactNode }> = 
       // Si ya tenemos sesión ready, no hacer nada
       if (snapshot?.ready) return;
       
+      // 🔧 FIX: NO VERIFICAR SI ESTAMOS ESPERANDO QR
+      // Esto evita que el polling sobrescriba el estado mientras el usuario escanea
+      if (snapshot?.state === 'waiting_qr') {
+        console.log('⏸️ Pausando verificación - usuario escaneando QR');
+        return;
+      }
+      
       console.log('🔍 Verificando estado de WhatsApp...');
       
       try {
@@ -167,7 +199,7 @@ export const WhatsappSessionProvider: React.FC<{ children: React.ReactNode }> = 
           console.log('🔄 Sesión sincronizando');
           updateFromStatus({ state: 'syncing' });
         }
-        // Si no hay sesión, intentar reconectar automáticamente
+        // Si no hay sesión Y no estamos en ningún proceso, intentar reconectar
         else if (!state.ready && !state.authenticated && !snapshot?.state) {
           console.log('🔌 No hay sesión activa, intentando reconectar...');
           await reconnect();
@@ -177,15 +209,17 @@ export const WhatsappSessionProvider: React.FC<{ children: React.ReactNode }> = 
       }
     };
     
-    // Verificar inmediatamente al montar
-    checkAndReconnect();
+    // Verificar inmediatamente al montar SOLO si no estamos waiting_qr
+    if (snapshot?.state !== 'waiting_qr') {
+      checkAndReconnect();
+    }
     
-    // Verificar cada 10 segundos si no estamos ready
+    // Verificar cada 15 segundos (aumentado de 10 a 15) si no estamos ready ni waiting_qr
     const interval = setInterval(() => {
-      if (!snapshot?.ready) {
+      if (!snapshot?.ready && snapshot?.state !== 'waiting_qr') {
         checkAndReconnect();
       }
-    }, 10000);
+    }, 15000);
     
     return () => clearInterval(interval);
   }, [userId, snapshot?.ready, snapshot?.state, reconnect, updateFromStatus]);
