@@ -508,7 +508,7 @@ function ClientsView() {
                         title="Tipo de conexión del cliente"
                       >
                         <option value="">Sin especificar</option>
-                        <option value="B">B - Braseto</option>
+                        <option value="B">B - Brasero</option>
                         <option value="M">M - Monoblock</option>
                         <option value="SOT">SOT - Soterrada</option>
                         <option value="SC">SC - Sin Conexión</option>

@@ -253,6 +253,7 @@ const handleClickFAQ = () => {
           title="Generar Documentos para WhatsApp"
           onClick={handleClickGenerarDocumentosWhatsApp}
           color="bg-purple-500"
+          badge="EN DESARROLLO"
         />
         <ServiceCard
           icon={<FileArchive className="w-6 h-6 text-white" />}
