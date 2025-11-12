@@ -40,9 +40,9 @@ export default function StepSendProximosVencer() {
   useEffect(() => {
     setMessage(`Hola \${clientName}, tienes cuotas de tu plan de pagos que vencen en los próximos días. 
 
-Te envío el PDF actualizado para que puedas realizar el pago antes del vencimiento.
+Te envío el PDF actualizado con un instructivo que incluye todas las opciones de pago disponibles.
 
-Puedes realizar el abono en cualquier Rapipago, Pago Fácil o a través de Mercado Pago.
+Por favor, realiza el pago antes del vencimiento.
 
 🌐 Cclip 🔹 Al servicio de Aguas Cordobesas.`);
   }, []); // Solo una vez al montar

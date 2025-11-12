@@ -171,7 +171,7 @@ const handleClickFAQ = () => {
       <div className="mb-8 rounded-lg border-2 border-green-300 bg-gradient-to-r from-green-50 to-emerald-50 p-6 shadow-lg">
         <div className="flex flex-col lg:flex-row items-start lg:items-center gap-4">
           <div className="flex-shrink-0">
-            <div className="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center shadow-md">
+            <div className="w-16 h-16 bg-green-600 rounded-full flex items-center justify-center shadow-md">
               <Filter className="w-8 h-8 text-white" />
             </div>
           </div>
@@ -180,7 +180,7 @@ const handleClickFAQ = () => {
               <h3 className="text-2xl font-bold text-green-900">
                 ✨ Nuevo Sistema de Filtrado para PYSE
               </h3>
-              <span className="px-3 py-1 bg-green-500 text-white text-xs font-bold rounded-full uppercase tracking-wide">
+              <span className="px-3 py-1 bg-green-600 text-white text-xs font-bold rounded-full uppercase tracking-wide">
                 Nuevo
               </span>
             </div>
@@ -232,44 +232,51 @@ const handleClickFAQ = () => {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         <ServiceCard
           icon={<Send className="w-6 h-6 text-white" />}
-          title="Enviar Deudas de PP a Clientes"
+          title="Enviar Comprobantes Vencidos"
+          description="Envía comprobantes vencidos a clientes con plan de pago"
           onClick={handleClick}
           color="bg-teal-500"
         />
         <ServiceCard
           icon={<Clock className="w-6 h-6 text-white" />}
-          title="Enviar PP que aun no vencieron"
+          title="Notificar Próximos a Vencer"
+          description="Avisa a clientes con plan de pago próximos a vencer"
           onClick={handleClickProximosVencer}
           color="bg-orange-500"
         />
         <ServiceCard
           icon={<Filter className="w-6 h-6 text-white" />}
           title="Filtrar Clientes para PYSE"
+          description="Selecciona barrios y genera Excel de aptos/no aptos"
           onClick={handleClickFiltrarClientes}
-          color="bg-green-500"
+          color="bg-green-600"
         />
         <ServiceCard
           icon={<FileText className="w-6 h-6 text-white" />}
-          title="Generar Documentos para WhatsApp"
+          title="Generar Reportes de Deuda"
+          description="Crea y envía aviso o notificación de deuda"
           onClick={handleClickGenerarDocumentosWhatsApp}
-          color="bg-purple-500"
+          color="bg-indigo-500"
           badge="EN DESARROLLO"
         />
         <ServiceCard
           icon={<FileArchive className="w-6 h-6 text-white" />}
-          title="Recuperar Archivos de Respaldo"
+          title="Recuperar Archivos"
+          description="Descarga archivos de respaldo procesados anteriormente"
           onClick={handleClickRecuperarArchivos}
           color="bg-amber-500"
         />
         <ServiceCard
           icon={<Database className="w-6 h-6 text-white" />}
-          title="Base de datos de Clientes"
+          title="Base de Clientes"
+          description="Importa tu universo de cuentas y gestiona tu base de datos de clientes"
           onClick={handleClickClientesDatabase}
           color="bg-purple-500"
         />
         <ServiceCard
           icon={<HelpCircle className="w-6 h-6 text-white" />}
           title="Preguntas Frecuentes"
+          description="Consulta dudas comunes sobre el uso de la plataforma"
           onClick={handleClickFAQ}
           color="bg-blue-500"
         />
@@ -277,6 +284,7 @@ const handleClickFAQ = () => {
           <ServiceCard
             icon={<Settings className="w-6 h-6 text-white" />}
             title="Panel de Administración"
+            description="Gestiona usuarios, servicios y configuración del sistema"
             onClick={() => router.push('/admin')}
             color="bg-gradient-to-r from-blue-600 to-purple-600"
             badge="ADMIN"
