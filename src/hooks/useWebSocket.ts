@@ -34,10 +34,14 @@ export function useWebSocket() {
       const socket = io(`${WEBSOCKET_URL}/events`, {
         transports: ["websocket", "polling"],
         reconnection: true,
-        reconnectionAttempts: 5,
+        reconnectionAttempts: 10, // Aumentado de 5 a 10
         reconnectionDelay: 1000,
-        timeout: 10000,
+        reconnectionDelayMax: 5000,
+        timeout: 20000, // Aumentado de 10000 a 20000
         autoConnect: true,
+        upgrade: true, // Permitir upgrade de polling a websocket
+        rememberUpgrade: true, // Recordar el upgrade para futuras conexiones
+        forceNew: false, // No forzar nueva conexión si ya existe
       });
 
       globalSocket = socket;
@@ -92,12 +96,20 @@ export function useWebSocket() {
 
     const handleReconnectFailed = () => {
       if (!mountedRef.current) return;
-      console.error("❌ WebSocket falló en reconectar después de 5 intentos");
+      console.warn("⚠️ WebSocket: Máximo de intentos de reconexión alcanzado");
+      console.log("ℹ️ Los comprobantes se seguirán enviando correctamente en segundo plano");
       setReconnecting(false);
     };
 
     const handleConnectError = (error: Error) => {
-      console.error("❌ Error de conexión WebSocket:", error.message);
+      // Solo loggear en modo desarrollo, no mostrar error al usuario
+      if (process.env.NODE_ENV === 'development') {
+        console.warn("⚠️ WebSocket temporal sin conexión:", {
+          message: error.message,
+          url: `${WEBSOCKET_URL}/events`,
+        });
+        console.log("ℹ️ El sistema seguirá funcionando, los datos se actualizarán al finalizar");
+      }
     };
 
     globalSocket.on("connect", handleConnect);

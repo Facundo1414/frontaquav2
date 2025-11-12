@@ -116,9 +116,10 @@ Puedes realizar el abono en cualquier Rapipago, Pago Fácil o a través de Merca
   // Efecto para manejar errores
   useEffect(() => {
     if (wsError && loading) {
-      console.error('❌ Error en envío de próximos a vencer:', wsError)
-      setLoading(false)
-      setStatus(`Error: ${wsError}`)
+      console.warn('⚠️ WebSocket desconectado durante envío de próximos a vencer:', wsError)
+      // No detener el proceso, los comprobantes se siguen enviando
+      setStatus('⏳ Procesando mensajes en segundo plano... (sin actualización en vivo)')
+      // El proceso continuará y se completará cuando el backend termine
     }
   }, [wsError, loading])
 

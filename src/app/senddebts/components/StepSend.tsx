@@ -123,9 +123,10 @@ Por favor, realiza el pago antes del vencimiento.
   // Efecto para manejar errores
   useEffect(() => {
     if (wsError && loading) {
-      console.error('❌ Error en envío:', wsError)
-      setLoading(false)
-      setStatus(`Error: ${wsError}`)
+      console.warn('⚠️ WebSocket desconectado durante envío:', wsError)
+      // No detener el proceso, los comprobantes se siguen enviando
+      setStatus('⏳ Procesando mensajes en segundo plano... (sin actualización en vivo)')
+      // El proceso continuará y se completará cuando el backend termine
     }
   }, [wsError, loading])
 
@@ -223,6 +224,16 @@ Por favor, realiza el pago antes del vencimiento.
             lastProcessed={wsProgress?.processed.toString()}
             showDetails={true}
           />
+          {wsError && (
+            <div className="mt-2 p-3 rounded-lg bg-blue-50 border border-blue-200">
+              <p className="text-sm text-blue-700">
+                <span className="font-semibold">ℹ️ Modo sin actualizaciones en vivo</span>
+                <br />
+                El sistema está procesando los comprobantes correctamente. 
+                Los resultados estarán disponibles al finalizar.
+              </p>
+            </div>
+          )}
         </div>
       )}
 
