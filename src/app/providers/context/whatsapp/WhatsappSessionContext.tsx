@@ -86,14 +86,27 @@ export const WhatsappSessionProvider: React.FC<{ children: React.ReactNode }> = 
       // 2. El estado cambió a algo diferente de 'waiting_qr' (limpiar QR)
       let newQr = prev?.qr ?? null;
       
+      console.log('🔄 updateFromStatus:', {
+        payloadState: state,
+        hasPayloadQr: 'qr' in payload,
+        payloadQrLength: payload.qr?.length || 0,
+        prevQrLength: prev?.qr?.length || 0,
+        prevState: prev?.state,
+      });
+      
       if (payload.qr && typeof payload.qr === 'string' && payload.qr.length > 0) {
         // Hay un QR nuevo válido, usarlo
+        console.log('✅ Actualizando con QR nuevo de backend (length:', payload.qr.length, ')');
         newQr = payload.qr;
-      } else if (state !== 'waiting_qr') {
-        // Si el estado no es 'waiting_qr', limpiar el QR
+      } else if (state === 'ready' || state === 'syncing') {
+        // 🔧 FIX: Solo limpiar QR cuando ya está autenticado (ready/syncing)
+        // NO limpiar cuando state='launching' porque ahí se está generando el QR
+        console.log('🧹 Limpiando QR porque ya está autenticado (estado:', state, ')');
         newQr = null;
+      } else {
+        // Mantener QR anterior para estados 'waiting_qr' y 'launching'
+        console.log('⏸️ Manteniendo QR anterior para estado:', state, '(prev length:', prev?.qr?.length || 0, ')');
       }
-      // Si state === 'waiting_qr' y no hay nuevo QR, mantener el anterior
       
       const next: WhatsappSessionSnapshot = {
         state,
@@ -128,10 +141,19 @@ export const WhatsappSessionProvider: React.FC<{ children: React.ReactNode }> = 
   useEffect(() => {
     if (wsStatus && isSubscribed && connected) {
       console.log('📱 Usando WebSocket para WhatsApp status:', wsStatus);
-      updateFromStatus({
+      
+      // 🔧 FIX: Solo incluir QR en el payload si existe en wsStatus
+      // No enviar qr: null si wsStatus no lo incluye, para evitar sobrescribir QR válido
+      const payload: any = {
         state: wsStatus.state,
-        qr: wsStatus.qr || null,
-      });
+      };
+      
+      // Solo incluir qr si está presente en wsStatus (incluso si es null explícitamente)
+      if ('qr' in wsStatus) {
+        payload.qr = wsStatus.qr;
+      }
+      
+      updateFromStatus(payload);
     }
   }, [wsStatus, isSubscribed, connected, updateFromStatus]);
 

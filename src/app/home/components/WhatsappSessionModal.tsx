@@ -179,32 +179,44 @@ export const WhatsappSessionModal: React.FC<WhatsappSessionModalProps> = ({ open
     }
   }, [isAuthenticated, autoCloseOnAuth, onOpenChange])
 
-  // Failsafe: Poll state después de mostrar QR para detectar autenticación
+  // Failsafe: Poll state después de mostrar QR para detectar autenticación Y nuevos QRs
   // incluso si el evento WebSocket se pierde
   useEffect(() => {
     if (!open || state !== 'waiting_qr') return
     
-    // 🔧 FIX: Aumentar intervalo de polling de 2s a 5s
-    // Esto reduce la probabilidad de interferencias con el QR
+    // 🔧 FIX: Polling cada 5 segundos para obtener estado actualizado (incluyendo QRs nuevos)
     const pollInterval = setInterval(async () => {
       try {
         const { simpleWaState } = await import('@/lib/api/simpleWaApi')
         const st = await simpleWaState()
         
-        // Si detectamos que está autenticado, actualizar contexto
+        console.log('🔍 Polling estado:', { 
+          ready: st.ready, 
+          authenticated: st.authenticated,
+          hasQR: !!st.qr,
+          qrLength: st.qr?.length || 0
+        })
+        
+        // 🔧 FIX: Actualizar con el estado completo del backend
+        // Esto incluye QRs regenerados que el WebSocket pudo haber perdido
         if (st.ready || st.authenticated) {
-          console.log('✅ WhatsappSessionModal: Detectado autenticado via polling, actualizando contexto')
+          console.log('✅ WhatsappSessionModal: Detectado autenticado via polling')
           updateFromStatus({
             state: st.ready ? 'ready' : 'syncing',
             qr: null, // Limpiar QR solo cuando está autenticado
           })
+        } else if (st.qr) {
+          // Si hay un QR nuevo del backend, actualizarlo
+          console.log('📱 WhatsappSessionModal: QR detectado via polling, actualizando')
+          updateFromStatus({
+            state: 'waiting_qr',
+            qr: st.qr,
+          })
         }
-        // 🔧 FIX: NO actualizar si sigue teniendo QR disponible
-        // Esto evita que el polling sobrescriba el QR válido
       } catch (e) {
         console.error('❌ Error en polling de estado:', e)
       }
-    }, 5000) // Poll cada 5 segundos (antes era 2)
+    }, 5000) // Poll cada 5 segundos
     
     return () => clearInterval(pollInterval)
   }, [open, state, updateFromStatus])
@@ -212,15 +224,19 @@ export const WhatsappSessionModal: React.FC<WhatsappSessionModalProps> = ({ open
   const statusMessage = useMemo(() => {
     if (error) return error
     if (state === 'none') return 'Listo para iniciar'
+    // 🔧 FIX: Si hay QR, mostrar mensaje de escaneo independiente del estado
+    if (qrImage) return 'Escaneá el código con WhatsApp'
     if (state === 'launching' || isInitializing) return 'Inicializando sesión...'
-    if (state === 'waiting_qr') return 'Escaneá el código con WhatsApp'
+    if (state === 'waiting_qr') return 'Esperando código QR...'
     if (state === 'syncing') return 'Sincronizando mensajes...'
     if (state === 'ready') return 'Sesión lista'
     return ''
-  }, [state, error, isInitializing])
+  }, [state, error, isInitializing, qrImage])
 
-  const showSpinner = state === 'launching' || isInitializing
-  const showQr = state === 'waiting_qr' && qrImage
+  // 🔧 FIX: Mostrar spinner solo si NO hay QR y estamos inicializando
+  const showSpinner = (state === 'launching' || isInitializing) && !qrImage
+  // 🔧 FIX: Mostrar QR si existe, independiente del estado (launching o waiting_qr)
+  const showQr = !!qrImage && state !== 'ready' && state !== 'syncing'
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
