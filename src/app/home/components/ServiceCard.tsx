@@ -26,17 +26,19 @@ export function ServiceCard({
     >
       <Card
         onClick={onClick}
-        className={`relative flex flex-col items-center justify-center text-center p-6 text-white ${color} transition-all duration-200 hover:shadow-lg h-full min-h-[160px]`}
+        className={`relative grid grid-rows-[auto_auto_1fr] gap-0 items-center justify-items-center text-center px-5 py-8 text-white ${color} transition-all duration-200 hover:shadow-lg h-[160px]`}
       >
         {badge && (
           <span className="absolute -top-2 -right-2 px-2 py-1 bg-yellow-400 text-yellow-900 text-xs font-bold rounded-full shadow-md animate-pulse">
             {badge}
           </span>
         )}
-        <div className="mb-3">{icon}</div>
-        <h3 className="text-lg font-bold mb-1">{title}</h3>
-        {description && (
-          <p className="text-sm opacity-90 leading-snug">{description}</p>
+        <div className="flex items-center justify-center">{icon}</div>
+        <h3 className="text-lg font-bold mt-2 text-center w-full">{title}</h3>
+        {description ? (
+          <p className="text-sm opacity-90 leading-tight text-center w-full mt-0.5 self-start">{description}</p>
+        ) : (
+          <div></div>
         )}
       </Card>
     </motion.div>
