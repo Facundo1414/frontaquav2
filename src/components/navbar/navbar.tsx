@@ -76,16 +76,6 @@ export default function Navbar() {
     toast.success('Sesión cerrada')
   }
 
-  const handleOpenHome = () => {
-    if (!at) {
-      toast.error('No hay token de sesión')
-      return
-    }
-    setEphemeralModalToken(at)
-    setOpenWhatsappModal(true)
-    toast.info('Abriendo panel de WhatsApp...')
-  }
-
   // Acciones administrativas (reinit/purge) eliminadas
 
 
