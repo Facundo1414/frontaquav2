@@ -167,6 +167,36 @@ const handleClickFAQ = () => {
         </div>
       )}
 
+      {/* Widget de Uso Personal */}
+      {/* TODO: Implementar cuando backend tenga API de tracking */}
+      {/* {userId && (
+        <div className="mb-8">
+          <UsageWidget userId={userId} />
+        </div>
+      )} */}
+
+      {/* Estado WhatsApp - Banner Superior */}
+      {isReady && (
+        <div className="mb-6 rounded-lg border-2 border-green-300 bg-gradient-to-r from-green-50 to-emerald-50 p-4 shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="flex-shrink-0">
+              <div className="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center">
+                <MessageCircle className="w-5 h-5 text-white" />
+              </div>
+            </div>
+            <div className="flex-1">
+              <p className="font-semibold text-green-900">WhatsApp conectado</p>
+              <p className="text-sm text-green-700">Tu sesión está activa y lista para enviar mensajes</p>
+            </div>
+            <div className="flex-shrink-0">
+              <span className="px-3 py-1 bg-green-600 text-white text-xs font-bold rounded-full">
+                ✓ ACTIVO
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Banner NUEVO: Sistema de Filtrado PYSE */}
       <div className="mb-8 rounded-lg border-2 border-green-300 bg-gradient-to-r from-green-50 to-emerald-50 p-6 shadow-lg">
         <div className="flex flex-col lg:flex-row items-start lg:items-center gap-4">

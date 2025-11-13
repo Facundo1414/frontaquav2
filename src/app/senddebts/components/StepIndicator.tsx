@@ -1,7 +1,7 @@
 // 🎯 Componente de Indicador de Pasos Mejorado
 // Similar a la estética de /clientes-database pero más simple y claro
 
-import { CheckCircle2, Circle, Loader2 } from 'lucide-react'
+import { CheckCircle2, Circle } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 export interface Step {
@@ -42,21 +42,22 @@ export function StepIndicator({ steps, currentStep, totalProgress }: StepIndicat
 
             return (
               <div key={stepId} className="flex flex-col items-center" style={{ width: `${100 / steps.length}%` }}>
-                {/* Círculo del paso */}
+                {/* Círculo del paso con animación de pulso */}
                 <div
                   className={cn(
                     'w-10 h-10 rounded-full flex items-center justify-center font-semibold transition-all duration-300 border-4 border-white shadow-lg',
                     {
-                      'bg-blue-600 text-white': isActive && !isError,
+                      'bg-blue-600 text-white animate-pulse': isInProgress, // 🎯 Animación de pulso en lugar de spinner
                       'bg-green-600 text-white': isCompleted && !isError,
                       'bg-red-600 text-white': isError,
-                      'bg-gray-200 text-gray-400': !isActive && !isCompleted && !isError,
+                      'bg-gray-200 text-gray-400': !isActive && !isCompleted && !isError && !isInProgress,
                     }
                   )}
                 >
-                  {isInProgress && <Loader2 className="w-5 h-5 animate-spin" />}
                   {isCompleted && !isError && <CheckCircle2 className="w-5 h-5" />}
-                  {!isInProgress && !isCompleted && <Circle className="w-5 h-5" />}
+                  {!isCompleted && !isError && (
+                    <span className="text-sm font-bold">{stepId}</span>
+                  )}
                 </div>
 
                 {/* Título y descripción */}

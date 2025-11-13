@@ -21,10 +21,6 @@ import { toast } from 'sonner'
 import { tokenManager } from '@/lib/tokenManager'
 import { useGlobalContext } from '@/app/providers/context/GlobalContext'
 import { userLogout } from '@/lib/api'
-import { simpleWaLogout } from '@/lib/api/simpleWaApi'
-import { QrCode } from 'lucide-react'
-import { WhatsappSessionModal } from '@/app/home/components/WhatsappSessionModal'
-import { getAccessToken } from '@/utils/authToken'
 // Replaced legacy polling hook with context snapshot
 import { useWhatsappSessionContext } from '@/app/providers/context/whatsapp/WhatsappSessionContext'
 
@@ -37,10 +33,6 @@ export default function Navbar() {
     setUsernameGlobal,
   } = useGlobalContext()
   const [isLoggingOut, setIsLoggingOut] = useState(false)
-  const [isLoggingOutWhatsApp, setIsLoggingOutWhatsApp] = useState(false)
-  // Admin actions removidas: reinit/purge
-  const [openWhatsappModal, setOpenWhatsappModal] = useState(false)
-  const [ephemeralModalToken, setEphemeralModalToken] = useState<string>('')
   const { snapshot } = useWhatsappSessionContext()
   // Adapted to v2 snapshot: state: 'none' | 'launching' | 'waiting_qr' | 'syncing' | 'ready' | 'closing'
   const whatsappState = snapshot?.state || 'none'
@@ -84,21 +76,7 @@ export default function Navbar() {
     toast.success('Sesión cerrada')
   }
 
-  const handleLogoutWhatsApp = async () => {
-    setIsLoggingOutWhatsApp(true)
-    try {
-      await simpleWaLogout()
-      toast.success('Sesión de WhatsApp cerrada')
-    } catch (error) {
-      toast.error('Error al cerrar sesión de WhatsApp')
-    } finally {
-      setIsLoggingOutWhatsApp(false)
-    }
-  }
-
-  const handleOpenWhatsappModal = async () => {
-    // Reutilizamos simplemente el access token JWT para pedir token efímero dentro del modal
-    const at = getAccessToken()
+  const handleOpenHome = () => {
     if (!at) {
       toast.error('No hay token de sesión')
       return
@@ -131,8 +109,8 @@ export default function Navbar() {
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetTrigger asChild>
           <div className="relative">
-            <Avatar className="cursor-pointer">
-              <AvatarFallback>
+            <Avatar className="cursor-pointer ring-2 ring-white hover:ring-blue-300 transition-all">
+              <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white font-bold text-lg">
                 {usernameGlobal?.charAt(0).toUpperCase() || 'U'}
               </AvatarFallback>
             </Avatar>
@@ -171,28 +149,28 @@ export default function Navbar() {
 
           <div className="py-6 space-y-4 px-4">
             <p className="text-muted-foreground text-sm">
-              Gestioná tu sesión de WhatsApp o cerrá la sesión de la plataforma.
+              Gestión de tu cuenta y configuración.
             </p>
 
-            <div className="space-y-2">
-              <Button
-                variant="secondary"
-                className="w-full justify-start gap-2"
-                onClick={handleOpenWhatsappModal}
-              >
-                <QrCode className="w-4 h-4" /> Ver / Escanear QR
-              </Button>
-
-              {/* Botones de reinit/purge eliminados */}
-
-              <Button
-                variant="outline"
-                className="w-full justify-start gap-2"
-                onClick={handleLogoutWhatsApp}
-                disabled={isLoggingOutWhatsApp}
-              >
-                {isLoggingOutWhatsApp ? 'Cerrando sesión de WhatsApp...' : 'Desloguearse de WhatsApp'}
-              </Button>
+            <div className="mt-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-sm text-gray-600 dark:text-gray-400">Estado WhatsApp:</span>
+                <span
+                  className={
+                    'px-2 py-0.5 rounded-full text-[10px] uppercase tracking-wide font-semibold ' +
+                    (isReady
+                      ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300'
+                      : whatsappState === 'waiting_qr' || whatsappState === 'launching' || whatsappState === 'syncing'
+                        ? 'bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300'
+                        : 'bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-gray-400')
+                  }
+                >
+                  {isReady ? '● Conectado' : whatsappState}
+                </span>
+              </div>
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                La sesión se gestiona automáticamente
+              </p>
             </div>
           </div>
 
@@ -208,12 +186,6 @@ export default function Navbar() {
           </SheetFooter>
         </SheetContent>
       </Sheet>
-      <WhatsappSessionModal
-        open={openWhatsappModal}
-        onOpenChange={setOpenWhatsappModal}
-        token={ephemeralModalToken}
-        autoCloseOnAuth={true}
-      />
     </nav>
   )
 }

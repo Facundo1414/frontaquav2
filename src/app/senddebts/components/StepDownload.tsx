@@ -33,7 +33,17 @@ export function StepDownload() {
       setLoadingBackups(true)
       try {
         const files = await listResultBackups()
-        setBackupFiles(files)
+        // Filtrar solo archivos de los últimos 5 minutos
+        const now = Date.now()
+        const recentFiles = files.filter(name => {
+          const match = name.match(/_resultado_(\d+)\.xlsx$/) || name.match(/-(\d+)\.xlsx$/)
+          if (match) {
+            const timestamp = parseInt(match[1])
+            return (now - timestamp) < 300000 // 5 minutos
+          }
+          return false
+        })
+        setBackupFiles(recentFiles)
       } catch (e) {
         // no-op
       } finally {

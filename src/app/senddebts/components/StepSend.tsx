@@ -42,6 +42,9 @@ Por favor, realiza el pago antes del vencimiento.
   const [backupFiles, setBackupFiles] = useState<string[]>([])
   const [incluirIntimacion, setIncluirIntimacion] = useState(false)
   const [telefonoUsuario, setTelefonoUsuario] = useState<string | null>(null)
+  const [waitingForResults, setWaitingForResults] = useState(false)
+  const [pollingAttempts, setPollingAttempts] = useState(0)
+  const [estimatedTime, setEstimatedTime] = useState<string>('')
   const [sendStats, setSendStats] = useState({
     total: 0,
     completed: 0,
@@ -105,20 +108,76 @@ Por favor, realiza el pago antes del vencimiento.
         failed: 0,
         pending: wsProgress.total - wsProgress.processed,
       })
+      
+      // NO recalcular aquí - el tiempo estimado es fijo basado en exitosos totales
     }
-  }, [wsProgress])
+  }, [wsProgress, waitingForResults])
 
-  // Efecto para avanzar cuando se completa
+  // Efecto para iniciar polling cuando PDF se completa
   useEffect(() => {
-    if (wsCompleted && loading) {
-      console.log('✅ Envío completado via WebSocket')
-      setLoading(false)
-      setStatus('✅ Mensajes enviados correctamente. Pasando a descarga...')
-      setTimeout(() => {
-        setActiveStep(2)
-      }, 1500)
+    if (wsCompleted && loading && !waitingForResults) {
+      console.log('✅ PDFs generados. Esperando que termine el envío de WhatsApp...')
+      setWaitingForResults(true)
+      setStatus('⏳ Enviando mensajes por WhatsApp...')
     }
-  }, [wsCompleted, loading, setActiveStep])
+  }, [wsCompleted, loading, waitingForResults])
+
+  // Polling para esperar archivo de resultados
+  useEffect(() => {
+    if (!waitingForResults) return
+
+    const pollForResults = async () => {
+      try {
+        const files = await listResultBackups()
+        // Buscar archivo reciente (últimos 10 minutos)
+        const now = Date.now()
+        const recentFile = files.find(name => {
+          // Formato: clients-with-whatsapp-1234567890123_resultado_1234567890123.xlsx
+          const match = name.match(/_resultado_(\d+)\.xlsx$/)
+          if (match) {
+            const timestamp = parseInt(match[1])
+            return (now - timestamp) < 600000 // 10 minutos
+          }
+          return false
+        })
+
+        if (recentFile) {
+          console.log('✅ Archivo de resultados encontrado:', recentFile)
+          const blob = await getFileByName(recentFile)
+          setProcessedFile(blob)
+          setLoading(false)
+          setWaitingForResults(false)
+          setStatus('✅ Proceso completado. Pasando a descarga...')
+          setTimeout(() => {
+            setActiveStep(2)
+          }, 1000)
+        } else if (pollingAttempts >= 20) {
+          // Después de 20 intentos, avanzar de todas formas
+          console.warn('⚠️ Timeout esperando archivo de resultados')
+          setLoading(false)
+          setWaitingForResults(false)
+          setStatus('⚠️ Mensajes enviados. Descargá el archivo desde respaldos.')
+          setTimeout(() => {
+            setActiveStep(2)
+          }, 1000)
+        } else {
+          setPollingAttempts(prev => prev + 1)
+        }
+      } catch (error: any) {
+        console.error('Error en polling:', error)
+        // Si es error 429 (rate limit), esperar más tiempo
+        if (error?.response?.status === 429) {
+          console.warn('⚠️ Rate limit alcanzado, aumentando intervalo de polling')
+        }
+        setPollingAttempts(prev => prev + 1)
+      }
+    }
+
+    // Backoff progresivo: primeros 5 intentos cada 20s, después cada 30s
+    const interval = pollingAttempts < 5 ? 20000 : 30000
+    const timer = setInterval(pollForResults, interval)
+    return () => clearInterval(timer)
+  }, [waitingForResults, pollingAttempts, setProcessedFile, setActiveStep])
 
   // Efecto para manejar errores
   useEffect(() => {
@@ -170,8 +229,9 @@ Por favor, realiza el pago antes del vencimiento.
       // Si hay jobId, mantener loading=true y esperar WebSocket
       if (result.jobId) {
         console.log('🔌 Job iniciado, esperando progreso via WebSocket...')
-        setStatus('⏳ Procesando mensajes...')
-        // NO hacer setLoading(false) aquí, lo hace onCompleted/onError
+        setStatus('⏳ Generando PDFs y verificando deudas...')
+        setPollingAttempts(0)
+        // NO hacer setLoading(false) aquí, lo hace cuando llega el archivo
       } else {
         // Sin WebSocket, avanzar manualmente
         console.log('🚀 Avanzando al paso 2 (sin WebSocket)')
@@ -216,8 +276,10 @@ Por favor, realiza el pago antes del vencimiento.
       {loading && (
         <div className="mb-4">
           <ProgressCard
-            title="Generando y enviando PDFs"
-            description={`Procesando ${currentStats.total} clientes`}
+            title={waitingForResults ? "Enviando mensajes por WhatsApp" : "Generando y enviando PDFs"}
+            description={waitingForResults 
+              ? "Esto puede tardar unos minutos" 
+              : `Procesando ${currentStats.total} clientes`}
             progress={overallProgress}
             stats={currentStats}
             status="processing"
