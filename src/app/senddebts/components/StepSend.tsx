@@ -5,10 +5,20 @@ import { useState, useEffect } from 'react'
 import { useWhatsappSessionContext } from '@/app/providers/context/whatsapp/WhatsappSessionContext'
 import { motion } from 'framer-motion'
 import { Button } from '@/components/ui/button'
-import { Loader2 } from 'lucide-react'
+import { Loader2, Info } from 'lucide-react'
 import { ProgressCard } from './ProgressCard'
 import { useProgressWebSocket } from '@/hooks/useProgressWebSocket'
 import { useGlobalContext } from '@/app/providers/context/GlobalContext'
+
+const MAX_MESSAGE_LENGTH = 500
+
+// Variables disponibles para el mensaje
+const AVAILABLE_VARIABLES = [
+  { variable: '${clientName}', description: 'Nombre del cliente' },
+  { variable: '${uf}', description: 'Unidad de Facturación' },
+  { variable: '${deuda}', description: 'Monto total de la deuda' },
+  { variable: '${telefono}', description: 'Teléfono de contacto' },
+]
 
 export function StepSend() {
   const {
@@ -373,18 +383,85 @@ Por favor, realiza el pago antes del vencimiento.
             </label>
           </div>
 
+          {/* Variables disponibles */}
+          <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <div className="flex items-start gap-2 mb-2">
+              <Info className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <h4 className="font-semibold text-sm text-blue-900 mb-2">
+                  Variables disponibles para personalizar el mensaje:
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                  {AVAILABLE_VARIABLES.map(({ variable, description }) => (
+                    <div key={variable} className="flex items-start gap-2">
+                      <code className="bg-blue-100 px-2 py-1 rounded text-xs font-mono text-blue-800 whitespace-nowrap">
+                        {variable}
+                      </code>
+                      <span className="text-xs text-blue-700">{description}</span>
+                    </div>
+                  ))}
+                </div>
+                <p className="text-xs text-blue-600 mt-2">
+                  💡 Las variables se reemplazarán automáticamente con los datos de cada cliente
+                </p>
+              </div>
+            </div>
+          </div>
+
           <div>
-            <label htmlFor="message" className="block text-sm font-medium">
-              Mensaje para enviar (editable)
-            </label>
-            <textarea
-              id="message"
-              rows={4}
-              className="w-full p-2 border rounded resize-none mt-2"
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              disabled={loading}
-            />
+            <div className="flex items-center justify-between mb-2">
+              <label htmlFor="message" className="flex items-center gap-2 text-sm font-semibold text-gray-900">
+                ✏️ Mensaje para enviar (editable)
+              </label>
+              <span className={`text-xs font-medium ${
+                message.length > MAX_MESSAGE_LENGTH 
+                  ? 'text-red-600' 
+                  : message.length > MAX_MESSAGE_LENGTH * 0.9
+                  ? 'text-amber-600'
+                  : 'text-gray-500'
+              }`}>
+                {message.length} / {MAX_MESSAGE_LENGTH} caracteres
+              </span>
+            </div>
+            <div className="relative">
+              <textarea
+                id="message"
+                rows={6}
+                className={`w-full p-3 border-2 rounded-lg resize-none transition-all ${
+                  message.length > MAX_MESSAGE_LENGTH 
+                    ? 'border-red-400 focus:border-red-500 focus:ring-2 focus:ring-red-200' 
+                    : 'border-blue-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 bg-blue-50/30'
+                }`}
+                placeholder="Escribe tu mensaje personalizado aquí..."
+                value={message}
+                onChange={(e) => {
+                  if (e.target.value.length <= MAX_MESSAGE_LENGTH) {
+                    setMessage(e.target.value)
+                  }
+                }}
+                disabled={loading}
+                maxLength={MAX_MESSAGE_LENGTH}
+              />
+              {!loading && (
+                <div className="absolute top-2 right-2">
+                  <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-blue-100 text-blue-700">
+                    ✏️ Editable
+                  </span>
+                </div>
+              )}
+            </div>
+            {message.length > MAX_MESSAGE_LENGTH * 0.9 && (
+              <p className={`text-xs mt-1 ${
+                message.length > MAX_MESSAGE_LENGTH 
+                  ? 'text-red-600' 
+                  : 'text-amber-600'
+              }`}>
+                {message.length > MAX_MESSAGE_LENGTH 
+                  ? '❌ Has alcanzado el límite máximo de caracteres'
+                  : '⚠️ Te estás acercando al límite de caracteres'
+                }
+              </p>
+            )}
           </div>
         </div>
       </div>

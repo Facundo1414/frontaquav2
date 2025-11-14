@@ -13,7 +13,9 @@ import {
   MapPin, 
   DollarSign, 
   FileText,
-  Plus
+  Plus,
+  Info,
+  HelpCircle
 } from "lucide-react"
 
 export interface FiltrosData {
@@ -141,10 +143,10 @@ export function FiltrosAvanzados({
         <div>
           <h2 className="text-2xl font-bold text-gray-900 flex items-center">
             <Filter className="h-6 w-6 mr-2 text-blue-600" />
-            Filtros Avanzados
+            Filtros Avanzados de PYSE
           </h2>
           <p className="text-sm text-gray-600 mt-1">
-            Ajusta los criterios para afinar la selección de clientes
+            Configura los criterios para seleccionar clientes aptos para corte o gestión
           </p>
         </div>
         {cantidadFiltrosActivos() > 0 && (
@@ -154,12 +156,37 @@ export function FiltrosAvanzados({
         )}
       </div>
 
+      {/* Info Banner */}
+      <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-4">
+        <div className="flex items-start gap-3">
+          <Info className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
+          <div className="flex-1">
+            <h3 className="font-semibold text-blue-900 mb-1">💡 Guía rápida de filtros</h3>
+            <ul className="text-sm text-blue-800 space-y-1">
+              <li>• <strong>Comprobantes vencidos:</strong> Cantidad de facturas sin pagar (típicamente 3+ para corte)</li>
+              <li>• <strong>Barrios:</strong> Limita el procesamiento a zonas específicas (útil para rutas)</li>
+              <li>• <strong>Deuda:</strong> Filtra por montos para priorizar casos según política de cobranza</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
       {/* Filtro: Comprobantes Vencidos */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center text-lg">
             <FileText className="h-5 w-5 mr-2 text-orange-600" />
             Comprobantes Vencidos
+            <div className="ml-2 group relative">
+              <HelpCircle className="h-4 w-4 text-gray-400 cursor-help" />
+              <div className="hidden group-hover:block absolute left-0 top-6 z-50 w-64 p-3 bg-gray-900 text-white text-xs rounded-lg shadow-lg">
+                Define cuántas facturas sin pagar debe tener un cliente para ser incluido en el filtrado.
+                <br/><br/>
+                <strong>Ejemplos comunes:</strong><br/>
+                • 3+ facturas: Clientes para corte de servicio<br/>
+                • 1-2 facturas: Recordatorios tempranos
+              </div>
+            </div>
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -183,9 +210,15 @@ export function FiltrosAvanzados({
               className="w-full"
             />
             <div className="flex justify-between text-xs text-gray-500">
-              <span>1 (más flexible)</span>
+              <span>1 (más inclusivo)</span>
+              <span>5 (recomendado)</span>
               <span>10 (más restrictivo)</span>
             </div>
+            {(localFiltros.minComprobantesVencidos || 3) >= 3 && (
+              <div className="bg-green-50 border border-green-200 rounded p-2 text-xs text-green-700">
+                ✅ Configuración típica para acciones de corte de servicio
+              </div>
+            )}
           </div>
 
           {/* Máximo (Input) */}
@@ -197,13 +230,13 @@ export function FiltrosAvanzados({
               id="max-comprobantes"
               type="number"
               min={localFiltros.minComprobantesVencidos || 1}
-              placeholder="Ej: 20"
+              placeholder="Ej: 20 (dejar vacío para sin límite)"
               value={localFiltros.maxComprobantesVencidos || ''}
               onChange={(e) => handleMaxComprobantesChange(e.target.value)}
               className="w-full"
             />
             <p className="text-xs text-gray-500">
-              Deja vacío para no limitar el máximo
+              💡 Útil para excluir clientes con deudas muy antiguas que requieren gestión especial
             </p>
           </div>
         </CardContent>
@@ -220,12 +253,23 @@ export function FiltrosAvanzados({
                 {selectedBarrios.length} seleccionado{selectedBarrios.length !== 1 ? 's' : ''}
               </Badge>
             )}
+            <div className="ml-2 group relative">
+              <HelpCircle className="h-4 w-4 text-gray-400 cursor-help" />
+              <div className="hidden group-hover:block absolute left-0 top-6 z-50 w-72 p-3 bg-gray-900 text-white text-xs rounded-lg shadow-lg">
+                Filtra por ubicación geográfica para optimizar rutas de visitas.
+                <br/><br/>
+                <strong>Límite por barrio:</strong> Define cuántos clientes procesar máximo por zona (útil para trabajo diario progresivo).
+              </div>
+            </div>
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <p className="text-sm text-gray-600">
-            Selecciona los barrios que deseas procesar. Deja vacío para procesar todos.
-          </p>
+          <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+            <p className="text-sm text-amber-900">
+              💡 <strong>Tip:</strong> Trabaja por zonas para optimizar rutas. Puedes procesar 100 clientes de "Centro" hoy (límite: 100), 
+              y mañana continuar con otros 100 usando offset.
+            </p>
+          </div>
 
           {/* Lista de barrios con checkboxes */}
           <div className="max-h-80 overflow-y-auto space-y-2 border rounded-lg p-4">
@@ -320,11 +364,21 @@ export function FiltrosAvanzados({
           <CardTitle className="flex items-center text-lg">
             <DollarSign className="h-5 w-5 mr-2 text-green-600" />
             Rango de Deuda
+            <div className="ml-2 group relative">
+              <HelpCircle className="h-4 w-4 text-gray-400 cursor-help" />
+              <div className="hidden group-hover:block absolute left-0 top-6 z-50 w-64 p-3 bg-gray-900 text-white text-xs rounded-lg shadow-lg">
+                Prioriza clientes según el monto adeudado.
+                <br/><br/>
+                <strong>Ejemplos:</strong><br/>
+                • $2000-$10000: Rango típico para gestión<br/>
+                • $10000+: Deudas prioritarias
+              </div>
+            </div>
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-sm text-gray-600">
-            Filtra clientes por el monto estimado de deuda
+            Filtra clientes por el monto total de deuda estimado
           </p>
 
           <div className="grid grid-cols-2 gap-4">
@@ -340,6 +394,9 @@ export function FiltrosAvanzados({
                 value={localFiltros.minDebt || ''}
                 onChange={(e) => handleMinDebtChange(e.target.value)}
               />
+              <p className="text-xs text-gray-500">
+                Clientes con menos deuda serán excluidos
+              </p>
             </div>
 
             <div className="space-y-2">
@@ -354,12 +411,17 @@ export function FiltrosAvanzados({
                 value={localFiltros.maxDebt || ''}
                 onChange={(e) => handleMaxDebtChange(e.target.value)}
               />
+              <p className="text-xs text-gray-500">
+                Clientes con más deuda serán excluidos
+              </p>
             </div>
           </div>
 
-          <p className="text-xs text-gray-500">
-            Deja vacío para no aplicar límites de deuda
-          </p>
+          {!localFiltros.minDebt && !localFiltros.maxDebt && (
+            <div className="bg-gray-50 border border-gray-200 rounded p-2 text-xs text-gray-600">
+              ℹ️ Sin límites de deuda configurados - se procesarán clientes con cualquier monto
+            </div>
+          )}
         </CardContent>
       </Card>
 

@@ -23,6 +23,9 @@ import { useGlobalContext } from '@/app/providers/context/GlobalContext'
 import { userLogout } from '@/lib/api'
 // Replaced legacy polling hook with context snapshot
 import { useWhatsappSessionContext } from '@/app/providers/context/whatsapp/WhatsappSessionContext'
+import { Badge } from '@/components/ui/badge'
+import { MessageCircle } from 'lucide-react'
+import api from '@/lib/api/axiosInstance'
 
 export default function Navbar() {
   const router = useRouter()
@@ -38,12 +41,35 @@ export default function Navbar() {
   const whatsappState = snapshot?.state || 'none'
   const isReady = !!snapshot?.ready
   const prevWhatsappState = useRef<string | null>(null)
+  
+  // WhatsApp Business API usage tracking
+  const [whatsappUsage, setWhatsappUsage] = useState<{
+    free_tier_used: number;
+    total_conversations: number;
+  } | null>(null)
   // Purge removido
 
   useEffect(() => {
     // Track transitions for potential future side-effects (placeholder)
     prevWhatsappState.current = whatsappState
   }, [whatsappState])
+
+  // Load WhatsApp usage on mount
+  useEffect(() => {
+    const loadWhatsappUsage = async () => {
+      try {
+        const response = await api.get('/whatsapp/usage')
+        setWhatsappUsage({
+          free_tier_used: response.data.free_tier_used,
+          total_conversations: response.data.total_conversations,
+        })
+      } catch (error) {
+        // Silently fail if not configured
+        setWhatsappUsage(null)
+      }
+    }
+    loadWhatsappUsage()
+  }, [])
 
   const [open, setOpen] = useState(false)
 
@@ -95,8 +121,28 @@ export default function Navbar() {
         </Link>
       </div>
 
-      {/* Derecha: Avatar */}
-      <Sheet open={open} onOpenChange={setOpen}>
+      {/* Derecha: Badge WhatsApp + Avatar */}
+      <div className="flex items-center gap-3">
+        {/* WhatsApp Usage Badge */}
+        {whatsappUsage && (
+          <Link href="/admin/whatsapp/usage">
+            <Badge
+              variant="outline"
+              className={`cursor-pointer transition-colors ${
+                whatsappUsage.free_tier_used < 800
+                  ? 'bg-green-100 text-green-700 border-green-300 hover:bg-green-200'
+                  : whatsappUsage.free_tier_used < 950
+                  ? 'bg-yellow-100 text-yellow-700 border-yellow-300 hover:bg-yellow-200'
+                  : 'bg-red-100 text-red-700 border-red-300 hover:bg-red-200'
+              }`}
+            >
+              <MessageCircle className="w-3 h-3 mr-1" />
+              {1000 - whatsappUsage.free_tier_used} gratis restantes
+            </Badge>
+          </Link>
+        )}
+
+        <Sheet open={open} onOpenChange={setOpen}>
         <SheetTrigger asChild>
           <div className="relative">
             <Avatar className="cursor-pointer ring-2 ring-white hover:ring-blue-300 transition-all">
@@ -176,6 +222,7 @@ export default function Navbar() {
           </SheetFooter>
         </SheetContent>
       </Sheet>
+      </div>
     </nav>
   )
 }

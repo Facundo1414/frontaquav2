@@ -11,7 +11,7 @@ import {
   SkeletonDownload,
 } from './components/SkeletonLoaders'
 
-// 🚀 Lazy load de componentes pesados
+// Lazy load de componentes pesados
 const StepUploadFile = dynamic(() => import('./components/StepUploadFile'), {
   loading: () => <SkeletonUploadFile />,
 })
@@ -37,7 +37,7 @@ const MotionDiv = dynamic(() => import('framer-motion').then(mod => mod.motion.d
   ssr: false,
 }) as any
 
-// 🎨 Loading components
+// Loading components
 function LoadingStep() {
   return (
     <div className="flex items-center justify-center h-64">
@@ -56,7 +56,7 @@ function LoadingTable() {
   )
 }
 
-// 🎯 Definición de 3 pasos (la verificación de WhatsApp se hace automáticamente en el paso 1)
+// Definicion de 3 pasos (la verificacion de WhatsApp se hace automaticamente en el paso 1)
 const SEND_DEBTS_STEPS: Step[] = [
   {
     title: 'Cargar y Filtrar',
@@ -87,14 +87,14 @@ function StepContent({ step }: { step: number }) {
 function Content() {
   const { activeStep, setActiveStep } = useSendDebtsContext()
 
-  // 🎨 Calcular estado de cada paso dinámicamente
+  // Calcular estado de cada paso dinamicamente
   const stepsWithStatus: Step[] = SEND_DEBTS_STEPS.map((step, index) => {
     if (index < activeStep) return { ...step, status: 'completed' as const }
     if (index === activeStep) return { ...step, status: 'in-progress' as const }
     return step
   })
 
-  // 📊 Calcular progreso total (0-100)
+  // Calcular progreso total (0-100)
   const totalProgress = Math.round((activeStep / (SEND_DEBTS_STEPS.length - 1)) * 100)
 
   return (
@@ -121,7 +121,7 @@ function Content() {
         </CardContent>
       </Card>
 
-      {/* 📊 Tabla de datos - Abajo, se accede con scroll */}
+      {/* 📊 Tabla de datos - Abajo, se accede con scroll */
       <AnimatePresence>
         <MotionDiv
           initial={{ opacity: 0, y: 10 }}

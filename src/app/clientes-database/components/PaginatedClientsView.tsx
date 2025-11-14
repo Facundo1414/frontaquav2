@@ -3,6 +3,9 @@
 import { useState, useEffect, Fragment } from 'react';
 import { Users, ChevronLeft, ChevronRight, Loader2, Phone, MapPin, Edit2, Save, X, XCircle, Search, Eye, DollarSign, MessageSquare } from 'lucide-react';
 import { getClients, getClientWorks, updateClient, getClientStats } from '@/lib/api';
+import { getUserFriendlyError } from '@/utils/errorMessages';
+import { EmptyState } from '@/components/EmptyState';
+import { toast } from 'sonner';
 
 const PAGE_SIZE = 50;
 
@@ -128,7 +131,9 @@ export function PaginatedClientsView() {
       });
     } catch (err: any) {
       console.error('Error al cargar clientes:', err);
-      setError(err.response?.data?.message || err.message || 'Error al cargar clientes');
+      const friendlyMessage = getUserFriendlyError(err);
+      setError(friendlyMessage);
+      toast.error(friendlyMessage);
     } finally {
       setLoading(false);
     }
@@ -148,6 +153,8 @@ export function PaginatedClientsView() {
       setClientWorks(data || []);
     } catch (err: any) {
       console.error('Error cargando trabajos:', err);
+      const friendlyMessage = getUserFriendlyError(err);
+      toast.error(friendlyMessage);
       setClientWorks([]);
     } finally {
       setLoadingWorks(false);
@@ -170,14 +177,13 @@ export function PaginatedClientsView() {
       
       const phoneValue = editingPhone.value.trim();
       if (phoneValue && !/^\+?[\d\s\-()]+$/.test(phoneValue)) {
-        alert('Formato de teléfono inválido. Use solo números, espacios, guiones o paréntesis.');
+        toast.error('Formato de teléfono inválido. Use solo números, espacios, guiones o paréntesis.');
         return;
       }
 
       await updateClient(clientId, {
         phone: phoneValue || null,
-        phone_source: 'manual',
-        phone_updated_at: new Date().toISOString(),
+        phoneSource: 'manual',
       });
 
       setClients(prev => prev.map(c => 
@@ -187,9 +193,11 @@ export function PaginatedClientsView() {
       ));
 
       setEditingPhone(null);
+      toast.success('Teléfono actualizado correctamente');
     } catch (err: any) {
       console.error('Error al actualizar teléfono:', err);
-      alert(err.response?.data?.message || 'Error al actualizar el teléfono');
+      const friendlyMessage = getUserFriendlyError(err);
+      toast.error(friendlyMessage);
     } finally {
       setSavingPhone(false);
     }
@@ -220,9 +228,11 @@ export function PaginatedClientsView() {
       ));
 
       setEditingNotes(null);
+      toast.success('Notas actualizadas correctamente');
     } catch (err: any) {
       console.error('Error al actualizar notas:', err);
-      alert(err.response?.data?.message || 'Error al actualizar las notas');
+      const friendlyMessage = getUserFriendlyError(err);
+      toast.error(friendlyMessage);
     } finally {
       setSavingNotes(false);
     }
@@ -392,13 +402,30 @@ export function PaginatedClientsView() {
             <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
               {clients.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="px-6 py-12 text-center">
-                    <Users className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-                    <p className="text-gray-600 dark:text-gray-400">
-                      {searchTerm || phoneFilter !== 'all' || statusFilter !== 'all'
-                        ? 'No se encontraron clientes con los filtros aplicados'
+                  <td colSpan={9} className="px-6 py-12">
+                    <EmptyState
+                      icon={Users}
+                      title={searchTerm || phoneFilter !== 'all' || statusFilter !== 'all'
+                        ? 'No se encontraron clientes'
                         : 'No hay clientes registrados'}
-                    </p>
+                      description={searchTerm || phoneFilter !== 'all' || statusFilter !== 'all'
+                        ? 'Intenta ajustar los filtros de búsqueda para ver más resultados'
+                        : 'Importa tu universo de cuentas para comenzar a gestionar tus clientes'}
+                      action={
+                        (searchTerm || phoneFilter !== 'all' || statusFilter !== 'all') ? (
+                          <button 
+                            onClick={() => {
+                              setSearchTerm('');
+                              setPhoneFilter('all');
+                              setStatusFilter('all');
+                            }}
+                            className="text-blue-600 hover:text-blue-800 font-medium"
+                          >
+                            Limpiar filtros
+                          </button>
+                        ) : undefined
+                      }
+                    />
                   </td>
                 </tr>
               ) : (

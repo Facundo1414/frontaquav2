@@ -4,8 +4,11 @@ import { useState, useEffect, useMemo } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Download, FileText, RefreshCw, AlertCircle, Search, Filter } from "lucide-react"
-import { getUserFiles, downloadUserFile } from "@/lib/api/comprobanteApi"
+import { Download, FileText, RefreshCw, AlertCircle, Search, Filter, FileArchive, Trash2 } from "lucide-react"
+import { getUserFiles, downloadUserFile, deleteUserFile } from "@/lib/api/comprobanteApi"
+import { EmptyState } from "@/components/EmptyState"
+import { getUserFriendlyError } from '@/utils/errorMessages'
+import { toast } from 'sonner'
 
 interface UserFile {
   name: string
@@ -22,6 +25,8 @@ export function RecuperarArchivos() {
   const [originFilter, setOriginFilter] = useState<string>('all')
   const [dateFilter, setDateFilter] = useState<string>('all')
   const [currentPage, setCurrentPage] = useState(1)
+  const [deletingFile, setDeletingFile] = useState<string | null>(null)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null)
   const itemsPerPage = 10
 
   // Función para detectar el origen del archivo según su nombre
@@ -130,7 +135,9 @@ export function RecuperarArchivos() {
       const data = await getUserFiles()
       setFiles(data)
     } catch (err: any) {
-      setError(err.message || 'Error al cargar archivos')
+      const friendlyMessage = getUserFriendlyError(err)
+      setError(friendlyMessage)
+      toast.error(friendlyMessage)
       console.error('Error al cargar archivos:', err)
     } finally {
       setLoading(false)
@@ -148,9 +155,28 @@ export function RecuperarArchivos() {
       a.click()
       window.URL.revokeObjectURL(url)
       document.body.removeChild(a)
+      toast.success(`Archivo "${fileName}" descargado correctamente`)
     } catch (err: any) {
       console.error('Error al descargar archivo:', err)
-      alert('Error al descargar archivo: ' + err.message)
+      const friendlyMessage = getUserFriendlyError(err)
+      toast.error(friendlyMessage)
+    }
+  }
+
+  const handleDeleteFile = async (fileName: string) => {
+    setDeletingFile(fileName)
+    try {
+      await deleteUserFile(fileName)
+      // Actualizar la lista de archivos
+      setFiles(prevFiles => prevFiles.filter(f => f.name !== fileName))
+      toast.success(`Archivo "${fileName}" eliminado correctamente`)
+      setShowDeleteConfirm(null)
+    } catch (err: any) {
+      console.error('Error al eliminar archivo:', err)
+      const friendlyMessage = getUserFriendlyError(err)
+      toast.error(friendlyMessage)
+    } finally {
+      setDeletingFile(null)
     }
   }
 
@@ -214,6 +240,10 @@ export function RecuperarArchivos() {
                   <li>Archivos guardados cuando un proceso se interrumpe</li>
                   <li>Backups automáticos de datos importantes</li>
                 </ul>
+                <p className="mt-3 text-red-700 font-semibold">
+                  ⚠️ Puedes eliminar archivos que ya no necesites, pero esta acción es permanente. 
+                  Asegúrate de tener una copia local antes de eliminar.
+                </p>
               </div>
             </div>
           </div>
@@ -366,21 +396,36 @@ export function RecuperarArchivos() {
               <p className="text-gray-600 text-lg">Cargando archivos...</p>
             </div>
           ) : filteredFiles.length === 0 && files.length > 0 ? (
-            <div className="text-center py-12">
-              <FileText className="h-16 w-16 mx-auto mb-3 text-gray-300" />
-              <p className="text-gray-600 text-lg font-medium mb-1">No se encontraron archivos</p>
-              <p className="text-gray-500 text-sm">
-                Intenta ajustar los filtros de búsqueda
-              </p>
-            </div>
+            <EmptyState
+              icon={Search}
+              title="No se encontraron archivos"
+              description="Intenta ajustar los filtros de búsqueda para ver más resultados"
+              action={
+                <Button 
+                  variant="outline"
+                  onClick={() => {
+                    setSearchTerm('');
+                    setFileTypeFilter('all');
+                    setOriginFilter('all');
+                    setDateFilter('all');
+                  }}
+                >
+                  Limpiar Filtros
+                </Button>
+              }
+            />
           ) : files.length === 0 ? (
-            <div className="text-center py-12">
-              <FileText className="h-16 w-16 mx-auto mb-3 text-gray-300" />
-              <p className="text-gray-600 text-lg font-medium mb-1">No hay archivos disponibles</p>
-              <p className="text-gray-500 text-sm">
-                Los archivos de respaldo aparecerán aquí cuando se ejecute Send Debts
-              </p>
-            </div>
+            <EmptyState
+              icon={FileArchive}
+              title="No hay archivos disponibles"
+              description="Los archivos de respaldo aparecerán aquí cuando ejecutes procesos como Send Debts o filtrado de clientes"
+              action={
+                <Button variant="outline" onClick={loadFiles}>
+                  <RefreshCw className="mr-2 h-4 w-4" />
+                  Actualizar
+                </Button>
+              }
+            />
           ) : (
             <>
               {/* Lista de archivos */}
@@ -399,15 +444,53 @@ export function RecuperarArchivos() {
                         </p>
                       </div>
                     </div>
-                    <Button
-                      onClick={() => downloadFile(file.name)}
-                      size="sm"
-                      variant="outline"
-                      className="flex-shrink-0"
-                    >
-                      <Download className="h-4 w-4 mr-2" />
-                      Descargar
-                    </Button>
+                    
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <Button
+                        onClick={() => downloadFile(file.name)}
+                        size="sm"
+                        variant="outline"
+                      >
+                        <Download className="h-4 w-4 mr-2" />
+                        Descargar
+                      </Button>
+
+                      {/* Botón de eliminar con confirmación */}
+                      {showDeleteConfirm === file.name ? (
+                        <div className="flex items-center gap-2 bg-red-50 border border-red-200 rounded px-3 py-2">
+                          <span className="text-sm text-red-700 font-medium">¿Eliminar?</span>
+                          <Button
+                            onClick={() => handleDeleteFile(file.name)}
+                            size="sm"
+                            variant="destructive"
+                            disabled={deletingFile === file.name}
+                          >
+                            {deletingFile === file.name ? (
+                              <RefreshCw className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <>Sí</>
+                            )}
+                          </Button>
+                          <Button
+                            onClick={() => setShowDeleteConfirm(null)}
+                            size="sm"
+                            variant="outline"
+                            disabled={deletingFile === file.name}
+                          >
+                            No
+                          </Button>
+                        </div>
+                      ) : (
+                        <Button
+                          onClick={() => setShowDeleteConfirm(file.name)}
+                          size="sm"
+                          variant="ghost"
+                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>

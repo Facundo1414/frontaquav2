@@ -5,9 +5,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Search, Filter, Users, DollarSign, MapPin, ArrowRight, Loader2 } from "lucide-react"
+import { Search, Filter, Users, DollarSign, MapPin, ArrowRight, Loader2, Database } from "lucide-react"
 import { getClients } from '@/lib/api/clientsApi'
 import { Badge } from "@/components/ui/badge"
+import { EmptyState } from "@/components/EmptyState"
+import { useRouter } from 'next/navigation'
+import { getUserFriendlyError } from '@/utils/errorMessages'
 
 interface Client {
   id: string
@@ -30,6 +33,7 @@ interface StepSeleccionarClientesBDProps {
 }
 
 export function StepSeleccionarClientesBD({ onNext }: StepSeleccionarClientesBDProps) {
+  const router = useRouter()
   const [clients, setClients] = useState<Client[]>([])
   const [filteredClients, setFilteredClients] = useState<Client[]>([])
   const [loading, setLoading] = useState(true)
@@ -74,6 +78,13 @@ export function StepSeleccionarClientesBD({ onNext }: StepSeleccionarClientesBDP
       console.log('🔍 [filtrar-clientes] Clientes cargados:', clientsArray.length)
       
       setClients(clientsArray)
+      
+      // Si no hay clientes, mostrar empty state
+      if (clientsArray.length === 0) {
+        setError('NO_CLIENTS')
+        return
+      }
+      
       // Extraer barrios únicos
       const barrios = Array.from(new Set(
         clientsArray
@@ -83,7 +94,8 @@ export function StepSeleccionarClientesBD({ onNext }: StepSeleccionarClientesBDP
       setAvailableBarrios(barrios)
     } catch (err: any) {
       console.error('Error al cargar clientes:', err)
-      setError(err.response?.data?.message || 'Error al cargar clientes')
+      const friendlyMessage = getUserFriendlyError(err)
+      setError(friendlyMessage)
     } finally {
       setLoading(false)
     }
@@ -234,6 +246,23 @@ export function StepSeleccionarClientesBD({ onNext }: StepSeleccionarClientesBDP
   }
 
   if (error) {
+    // Empty state especial para cuando no hay clientes en BD
+    if (error === 'NO_CLIENTS') {
+      return (
+        <EmptyState
+          icon={Database}
+          title="No hay clientes en tu base de datos"
+          description="Para usar el filtrado PYSE, primero debes importar tu universo de cuentas desde la sección 'Base de Clientes'"
+          action={
+            <Button onClick={() => router.push('/clientes-database')} size="lg">
+              <Database className="mr-2 h-4 w-4" />
+              Ir a Base de Clientes
+            </Button>
+          }
+        />
+      )
+    }
+    
     return (
       <Card>
         <CardContent className="p-8">

@@ -9,19 +9,34 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion"
-import { ArrowLeft, HelpCircle, BookOpen, Video, FileQuestion, Phone, Play, CheckCircle2, AlertCircle, Info } from 'lucide-react'
+import { ArrowLeft, HelpCircle, BookOpen, Video, FileQuestion, Phone, Play, CheckCircle2, AlertCircle, Info, Upload, Send, Download, Printer } from 'lucide-react'
 import { useRouter } from 'next/navigation'
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
+import { ButtonPreview } from '@/components/ButtonPreview'
 
 export default function PreguntasFrecuentesPage() {
   const router = useRouter()
   const [activeView, setActiveView] = useState<'faq' | 'tutorials'>('faq')
   const [activeTutorial, setActiveTutorial] = useState<string | null>(null)
+  const tutorialDetailRef = useRef<HTMLDivElement>(null)
+
+  // Scroll suave cuando se selecciona un tutorial
+  useEffect(() => {
+    if (activeTutorial && tutorialDetailRef.current) {
+      // Delay pequeño para asegurar que el contenido se renderizó
+      setTimeout(() => {
+        tutorialDetailRef.current?.scrollIntoView({ 
+          behavior: 'smooth', 
+          block: 'start' 
+        })
+      }, 100)
+    }
+  }, [activeTutorial])
 
   const tutorials = [
     {
       id: 'enviar-deudas',
-      title: '📤 Enviar Deudas por WhatsApp',
+      title: '📤 Enviar Notificaciones de Deuda por WhatsApp',
       difficulty: 'Fácil',
       duration: '5 min',
       description: 'Aprende a notificar a tus clientes sobre sus deudas pendientes de forma masiva',
@@ -31,14 +46,16 @@ export default function PreguntasFrecuentesPage() {
           title: 'Accede al módulo',
           description: 'Desde el menú principal, haz clic en "Enviar Deudas"',
           details: 'Verás la pantalla principal donde podrás configurar el envío masivo de notificaciones.',
-          tip: 'Asegúrate de que WhatsApp esté conectado (verás un indicador verde en la parte superior)'
+          tip: 'Asegúrate de que WhatsApp esté conectado (verás un indicador verde en la parte superior)',
+          preview: <ButtonPreview label="Enviar Deudas" icon={Send} variant="default" />
         },
         {
           number: 2,
           title: 'Selecciona el archivo Excel',
           description: 'Haz clic en "Seleccionar archivo" y elige tu base de datos de clientes',
-          details: 'El archivo debe contener las columnas: UF, Nombre, Teléfono, y Deuda. El sistema detectará automáticamente el formato.',
-          tip: 'El sistema acepta archivos .xlsx y .xls. Tamaño máximo recomendado: 1000 clientes por envío'
+          details: 'Para clientes con plan de pago activo, debes subir el archivo llamado "incumplidos" que contiene la información de cuotas vencidas. El archivo debe contener las columnas: UF, Nombre, Teléfono, y Deuda. El sistema detectará automáticamente el formato.',
+          tip: '⚠️ IMPORTANTE: Para planes de pago, usa el archivo "incumplidos". El sistema acepta archivos .xlsx y .xls. Tamaño máximo recomendado: 1000 clientes por envío',
+          preview: <ButtonPreview label="Seleccionar archivo" icon={Upload} variant="outline" />
         },
         {
           number: 3,
@@ -57,16 +74,25 @@ export default function PreguntasFrecuentesPage() {
         {
           number: 5,
           title: 'Inicia el envío',
-          description: 'Haz clic en "Iniciar Envío" y monitorea el progreso',
+          description: 'Haz clic en "Enviar mensajes" y monitorea el progreso',
           details: 'Verás en tiempo real cuántos mensajes se enviaron exitosamente, cuántos fallaron, y el estado de cada cliente. El proceso puede pausarse en cualquier momento.',
-          tip: 'El sistema envía con delays automáticos para evitar bloqueos de WhatsApp (2-5 segundos entre mensajes)'
+          tip: 'El sistema envía con delays automáticos para evitar bloqueos de WhatsApp (2-5 segundos entre mensajes)',
+          preview: <ButtonPreview label="Enviar mensajes →" icon={Send} variant="default" />
         },
         {
           number: 6,
           title: 'Descarga el reporte',
           description: 'Al finalizar, descarga el Excel con los resultados',
           details: 'El archivo incluye columnas adicionales: "Estado del envío", "Hora de envío", "Error (si aplica)". Este reporte te permite hacer seguimiento y reenviar a clientes que no recibieron el mensaje.',
-          tip: 'Guarda este reporte en tu carpeta de archivos. También queda disponible en la sección "Archivos"'
+          tip: 'Guarda este reporte en tu carpeta de archivos. También queda disponible en la sección "Archivos"',
+          preview: <ButtonPreview label="Descargar resultados" icon={Download} variant="default" />
+        },
+        {
+          number: 7,
+          title: 'Manejo de errores: Espacio Clientes caído',
+          description: 'Si Espacio Clientes está en mantenimiento o caído durante el envío',
+          details: 'Cuando Espacio Clientes no está disponible, en el archivo final la columna "motivo" indicará que no se pudo generar el comprobante de pago. En estos casos, puedes volver a enviar solo los clientes que tuvieron este error una vez que Espacio Clientes esté operativo nuevamente.',
+          tip: '💡 Filtrar el Excel final por la columna "motivo" para identificar rápidamente los clientes afectados y reenviarles el comprobante más tarde'
         }
       ]
     },
@@ -153,8 +179,9 @@ export default function PreguntasFrecuentesPage() {
           number: 3,
           title: 'Selecciona el archivo Excel',
           description: 'Carga tu base de datos de cuotas',
-          details: 'El archivo debe incluir: UF, Nombre, Teléfono, Cuota, Vencimiento, Monto.',
-          tip: 'Asegúrate de que las fechas de vencimiento estén en formato correcto (DD/MM/YYYY)'
+          details: '⚠️ IMPORTANTE: Debes subir el archivo de Plan de pago llamado "incumplidos". El archivo debe incluir: UF, Nombre, Teléfono, Cuota, Vencimiento, Monto.',
+          tip: 'Asegúrate de que las fechas de vencimiento estén en formato correcto (DD/MM/YYYY)',
+          preview: <ButtonPreview label="Seleccionar archivo" icon={Upload} variant="outline" />
         },
         {
           number: 4,
@@ -220,8 +247,35 @@ export default function PreguntasFrecuentesPage() {
 
   return (
     <div className="w-full min-h-screen px-6 pb-10">
+      {/* Estilos para impresión */}
+      <style jsx global>{`
+        @media print {
+          /* Ocultar elementos de navegación */
+          .no-print {
+            display: none !important;
+          }
+          
+          /* Ocultar header con botón volver */
+          header,
+          nav,
+          .print-hide {
+            display: none !important;
+          }
+          
+          /* Ajustar márgenes de página */
+          @page {
+            margin: 1cm;
+          }
+          
+          /* Evitar saltos de página dentro de pasos */
+          .step-container {
+            page-break-inside: avoid;
+          }
+        }
+      `}</style>
+
       {/* Header */}
-      <div className="mb-6">
+      <div className="mb-6 no-print">
         <Button
           variant="ghost"
           onClick={() => router.push('/home')}
@@ -245,7 +299,7 @@ export default function PreguntasFrecuentesPage() {
       </div>
 
       {/* View Selector Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8 no-print">
         <Card 
           className={`cursor-pointer hover:shadow-lg transition-all ${activeView === 'tutorials' ? 'ring-2 ring-blue-500' : ''}`}
           onClick={() => {
@@ -581,7 +635,7 @@ export default function PreguntasFrecuentesPage() {
       {activeView === 'tutorials' && (
         <>
           {/* Tutorials Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8 no-print">
             {tutorials.map((tutorial) => (
               <Card
                 key={tutorial.id}
@@ -618,7 +672,7 @@ export default function PreguntasFrecuentesPage() {
 
           {/* Active Tutorial Detail */}
           {activeTutorial && (
-            <Card className="border-2 border-purple-300 shadow-2xl">
+            <Card ref={tutorialDetailRef} className="border-2 border-purple-300 shadow-2xl">
               <CardContent className="p-8">
                 {tutorials
                   .filter((t) => t.id === activeTutorial)
@@ -634,7 +688,7 @@ export default function PreguntasFrecuentesPage() {
                         <Button
                           variant="ghost"
                           onClick={() => setActiveTutorial(null)}
-                          className="text-gray-500 hover:text-gray-700"
+                          className="text-gray-500 hover:text-gray-700 no-print"
                         >
                           Cerrar
                         </Button>
@@ -662,6 +716,13 @@ export default function PreguntasFrecuentesPage() {
                               <p className="text-gray-700 font-medium mb-2">
                                 {step.description}
                               </p>
+                              {/* @ts-ignore */}
+                              {step.preview && (
+                                <div className="mb-3">
+                                  {/* @ts-ignore */}
+                                  {step.preview}
+                                </div>
+                              )}
                               <p className="text-gray-600 text-sm mb-3">
                                 {step.details}
                               </p>
@@ -689,9 +750,38 @@ export default function PreguntasFrecuentesPage() {
                         <h3 className="text-xl font-bold text-green-900 mb-2">
                           ¡Excelente trabajo!
                         </h3>
-                        <p className="text-green-700">
+                        <p className="text-green-700 mb-4">
                           Ahora dominas esta función. Practica para ganar confianza.
                         </p>
+                        
+                        {/* Opción de imprimir tutorial */}
+                        <div className="mt-6 pt-6 border-t border-green-200 no-print">
+                          <div className="bg-white rounded-lg p-4 border border-green-200">
+                            <div className="flex items-center justify-center gap-3 mb-3">
+                              <Printer className="w-5 h-5 text-purple-600" />
+                              <h4 className="font-semibold text-gray-900">Opción de imprimir en PDF</h4>
+                            </div>
+                            <p className="text-sm text-gray-600 mb-3">
+                              Puedes imprimir el archivo de resultados directamente desde Excel o convertirlo a PDF para archivarlo. 
+                              Esto es útil para mantener registros físicos de los envíos realizados.
+                            </p>
+                            <div className="flex items-center justify-center">
+                              <Button
+                                onClick={() => window.print()}
+                                variant="outline"
+                                className="flex items-center gap-2"
+                              >
+                                <Printer className="w-4 h-4" />
+                                Imprimir Tutorial
+                              </Button>
+                            </div>
+                            <div className="mt-3 bg-yellow-50 border border-yellow-200 rounded p-3">
+                              <p className="text-xs text-yellow-900">
+                                <span className="font-semibold">💡 Tip:</span> En Excel: Archivo → Imprimir → Guardar como PDF
+                              </p>
+                            </div>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   ))}

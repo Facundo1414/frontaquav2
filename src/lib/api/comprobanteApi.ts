@@ -322,3 +322,13 @@ export const downloadUserFile = async (fileName: string): Promise<Blob> => {
   });
   return data;
 };
+
+// Eliminar archivo de respaldo específico (opcional para el usuario)
+export const deleteUserFile = async (fileName: string): Promise<void> => {
+  const token = getAccessToken();
+  await api.delete(`/comprobante-filtro/files/${fileName}`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+};

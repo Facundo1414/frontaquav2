@@ -14,19 +14,35 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { toast } from 'sonner'
 import { motion } from '@/lib/motion'
+import { LoadingOverlay } from '@/components/LoadingOverlay'
+import { getUserFriendlyError } from '@/utils/errorMessages'
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [emailError, setEmailError] = useState('')
+  const [isRedirecting, setIsRedirecting] = useState(false)
   const { login, isSubmitting } = useAuth()
   const router = useRouter()
 
   const validateEmail = (email: string) => /\S+@\S+\.\S+/.test(email)
 
+  const handleEmailChange = (value: string) => {
+    setEmail(value)
+    if (value && !validateEmail(value)) {
+      setEmailError('Formato de email inválido')
+    } else {
+      setEmailError('')
+    }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    
+    // Validación final
     if (!validateEmail(email)) {
-      return toast.error('Email inválido')
+      setEmailError('Formato de email inválido')
+      return toast.error('Por favor, verifica tu email')
     }
 
     console.log('🔐 Iniciando login...')
@@ -36,12 +52,18 @@ export default function LoginPage() {
 
     if (success) {
       toast.success(`¡Bienvenido, ${username}!`)
+      setIsRedirecting(true)
+      
+      // Pequeña pausa para animación de salida
+      await new Promise(resolve => setTimeout(resolve, 500))
+      
       console.log('🚀 Redirigiendo a /home...')
       router.push('/home')
       console.log('✅ router.push ejecutado')
     } else {
       console.error('❌ Login falló:', message)
-      toast.error(message || 'Error al iniciar sesión')
+      const friendlyMessage = getUserFriendlyError(message || 'Error desconocido')
+      toast.error(friendlyMessage)
     }
   }
 
@@ -123,10 +145,14 @@ export default function LoginPage() {
                   type="email"
                   placeholder="Ingresa tu email de usuario"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={(e) => handleEmailChange(e.target.value)}
                   disabled={isSubmitting}
+                  className={emailError ? 'border-red-500' : ''}
                   required
                 />
+                {emailError && (
+                  <p className="text-red-500 text-sm mt-1">{emailError}</p>
+                )}
               </motion.div>
 
               <motion.div
@@ -148,13 +174,18 @@ export default function LoginPage() {
                 />
               </motion.div>
 
-              <Button type="submit" className="w-full" disabled={isSubmitting}>
+              <Button type="submit" className="w-full" disabled={isSubmitting || !!emailError}>
                 {isSubmitting ? 'Cargando...' : 'Iniciar Sesión'}
               </Button>
             </form>
           </CardContent>
         </Card>
       </div>
+
+      {/* Loading overlay durante redirección */}
+      {isRedirecting && (
+        <LoadingOverlay message="Redirigiendo al inicio..." />
+      )}
 
       {/* CSS para animación de gradiente */}
       <style jsx global>{`
