@@ -99,12 +99,12 @@ function Content() {
 
   return (
     <div className="min-h-screen px-6 py-4 space-y-4 max-w-[1600px] mx-auto">
-      {/* 🎯 Indicador de pasos horizontal */}
+      {/* Indicador de pasos horizontal */}
       <div className="sticky top-0 z-10 bg-background pb-2">
         <StepIndicator steps={stepsWithStatus} currentStep={activeStep} totalProgress={totalProgress} />
       </div>
 
-      {/* 📋 Contenido del paso activo - Puede crecer libremente */}
+      {/* Contenido del paso activo */}
       <Card className="w-full">
         <CardContent className="p-6">
           <AnimatePresence mode="wait">
@@ -121,7 +121,7 @@ function Content() {
         </CardContent>
       </Card>
 
-      {/* 📊 Tabla de datos - Abajo, se accede con scroll */
+      {/* Tabla de datos */}
       <AnimatePresence>
         <MotionDiv
           initial={{ opacity: 0, y: 10 }}

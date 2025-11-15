@@ -412,8 +412,8 @@ export function StepSeleccionarClientesBD({ onNext }: StepSeleccionarClientesBDP
               </div>
             )}
 
-            {/* Límite por barrio */}
-            {selectedBarrios.length > 0 && (
+            {/* Límite por barrio - DESHABILITADO (redundante con Rango) */}
+            {selectedBarrios.length > 0 && false && (
               <div>
                 <Label htmlFor="maxPerBarrio" className="mb-2 block">
                   Límite de clientes por barrio

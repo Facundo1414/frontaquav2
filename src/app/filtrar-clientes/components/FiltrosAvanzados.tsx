@@ -303,8 +303,8 @@ export function FiltrosAvanzados({
                       </div>
                     </div>
                     
-                    {/* Input de límite solo si está seleccionado */}
-                    {isSelected && (
+                    {/* Input de límite deshabilitado (redundante con Rango de clientes) */}
+                    {isSelected && false && (
                       <div className="flex items-center space-x-2" onClick={(e) => e.stopPropagation()}>
                         <Label className="text-xs text-gray-600 whitespace-nowrap">
                           Límite:

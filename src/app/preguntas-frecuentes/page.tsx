@@ -114,39 +114,32 @@ export default function PreguntasFrecuentesPage() {
           number: 2,
           title: 'Selecciona los barrios',
           description: 'Elige uno o varios barrios para procesar',
-          details: 'Puedes seleccionar todos los barrios o solo algunos específicos. La lista se carga automáticamente desde tu base de datos.',
-          tip: 'Trabaja por zonas para optimizar rutas de visitas'
+          details: 'Puedes seleccionar todos los barrios o solo algunos específicos. La lista se carga automáticamente desde tu base de datos. Simplemente marca los barrios que quieres incluir en el análisis.',
+          tip: 'Trabaja por zonas para optimizar rutas de visitas. El sistema procesará todos los clientes de los barrios seleccionados según los demás filtros'
         },
         {
           number: 3,
-          title: 'Configura límites y offsets',
-          description: 'Define cuántos clientes procesar por barrio',
-          details: 'El "Límite" indica la cantidad máxima de clientes a procesar. El "Offset" permite saltar clientes ya procesados (útil para continuar al día siguiente).',
-          tip: 'Ejemplo: Límite 100, Offset 0 (día 1) → Límite 100, Offset 100 (día 2)'
+          title: 'Configura el rango de clientes (opcional)',
+          description: 'Define qué clientes procesar de cada barrio seleccionado',
+          details: 'El "Rango de clientes por barrio" te permite procesar un subconjunto específico. Por ejemplo: si el barrio Las Flores tiene 500 clientes, puedes procesar solo del 1 al 200 (o dejar "Hasta" vacío para procesar desde 1 hasta el final). Si dejas ambos campos vacíos, se procesan TODOS los clientes del barrio.',
+          tip: '💡 Ejemplo práctico:\n\n• Día 1: Seleccionar "Las Flores" + Rango "Desde: (vacío) Hasta: 200" = Procesa las primeras 200 cuentas\n\n• Día 2 (Opción A): Seleccionar "Las Flores" + Estado "Pendiente" = Procesa solo las que NO se procesaron el día anterior\n\n• Día 2 (Opción B - MÁS RECOMENDADO): Seleccionar "Las Flores" + Rango "Desde: 201 Hasta: 400" = Procesa las siguientes 200 cuentas sin importar el estado'
         },
         {
           number: 4,
-          title: 'Establece filtros de deuda',
-          description: 'Define rangos de comprobantes vencidos y montos',
-          details: 'Comprobantes mínimos: típicamente 3 o más para acciones de corte. Monto mínimo/máximo: ajusta según tu política de cobranzas.',
-          tip: 'Para corte de servicio: mínimo 3 comprobantes. Para recordatorios: 1-2 comprobantes'
+          title: 'Ejecuta el filtrado',
+          description: 'Haz clic en "Procesar" y espera los resultados',
+          details: 'El sistema analizará tu base completa y clasificará clientes en APTOS y NO APTOS según los criterios definidos. Puedes usar filtros de estado de notificación (Pendiente, Notificado, Verificado, Visitado) para refinar tu búsqueda.',
+          tip: 'El proceso puede tomar varios minutos si tienes muchos clientes. El sistema consulta deudas en tiempo real desde Sylanus'
         },
         {
           number: 5,
-          title: 'Ejecuta el filtrado',
-          description: 'Haz clic en "Procesar" y espera los resultados',
-          details: 'El sistema analizará tu base completa y clasificará clientes en APTOS y NO APTOS según los criterios definidos.',
-          tip: 'El proceso puede tomar varios minutos si tienes muchos clientes'
-        },
-        {
-          number: 6,
           title: 'Descarga los archivos',
           description: 'Obtén los Excel de clientes APTOS y NO APTOS',
           details: 'APTOS: Clientes que cumplen todos los criterios (listos para acción). NO APTOS: Clientes que no califican (tienen plan de pago, menos comprobantes, etc.).',
           tip: 'Revisa el archivo NO APTOS para identificar clientes con planes de pago activos'
         },
         {
-          number: 7,
+          number: 6,
           title: 'Genera el Relevamiento para Visitas',
           description: 'Si lo necesitas, descarga el archivo simplificado para campo',
           details: 'Este archivo contiene solo 6 columnas (UF, Dirección, Teléfono, Deuda, Conexión, Observación) ideal para imprimir y llevar en visitas.',

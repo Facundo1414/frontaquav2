@@ -6,6 +6,7 @@ import { Filter, Upload, UploadCloud, Download, MessageCircle, Bell, FileText, U
 import { ServiceCard } from './components/ServiceCard'
 import { ModalEnDesarrollo } from './components/modal-en-desarrollo'
 import { WhatsappSessionModal } from './components/WhatsappSessionModal'
+import { WhatsappUsageWidget } from './components/WhatsappUsageWidget'
 import { useWhatsappSessionContext } from '@/app/providers/context/whatsapp/WhatsappSessionContext'
 import { useGlobalContext } from '@/app/providers/context/GlobalContext'
 import { simpleWaState } from '@/lib/api/simpleWaApi'
@@ -167,13 +168,12 @@ const handleClickFAQ = () => {
         </div>
       )}
 
-      {/* Widget de Uso Personal */}
-      {/* TODO: Implementar cuando backend tenga API de tracking */}
-      {/* {userId && (
+      {/* Widget de Uso de WhatsApp */}
+      {userId && (
         <div className="mb-8">
-          <UsageWidget userId={userId} />
+          <WhatsappUsageWidget userId={userId} />
         </div>
-      )} */}
+      )}
 
       {/* Estado WhatsApp - Banner Superior */}
       {isReady && (

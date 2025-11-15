@@ -1,112 +1,93 @@
-"use client";
+'use client'
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import { useGlobalContext } from "@/app/providers/context/GlobalContext";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { useGlobalContext } from '@/app/providers/context/GlobalContext'
+import api from '@/lib/api/axiosInstance'
+import { toast } from 'sonner'
 import {
-  MessageCircle,
-  TrendingUp,
-  DollarSign,
-  Calendar,
-  Loader2,
-  Settings,
   AlertCircle,
-  CheckCircle2,
+  ArrowLeft,
+  Users,
+  MessageCircle,
+  DollarSign,
+  Loader2,
   Shield,
-} from "lucide-react";
-import api from "@/lib/api/axiosInstance";
-import { toast } from "sonner";
-import {
-  AreaChart,
-  Area,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  Legend,
-  PieChart,
-  Pie,
-  Cell,
-} from "recharts";
+} from 'lucide-react'
+import { Alert, AlertDescription } from '@/components/ui/alert'
 
-interface MonthlyUsage {
-  total_conversations: number;
-  free_tier_used: number;
-  paid_conversations: number;
-  total_cost: number;
-  by_purpose: Record<string, number>;
-  current_month: string;
+const ADMIN_UID = process.env.NEXT_PUBLIC_ADMIN_UID || ''
+
+interface UserUsage {
+  user_id: string
+  email: string
+  total_conversations: number
+  free_tier_used: number
+  paid_conversations: number
+  total_cost: number
+  current_month: string
 }
 
-interface WhatsappConfig {
-  whatsapp_phone_number_id: string;
-  whatsapp_business_account_id: string;
-  whatsapp_enabled: boolean;
-  whatsapp_verified_at?: string;
+interface ModeInfo {
+  mode: string
+  description: string
+  is_admin: boolean
 }
 
-const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884D8", "#82CA9D"];
-const FREE_TIER_LIMIT = 1000;
-const COST_PER_CONVERSATION = 0.095;
-const ADMIN_UID = process.env.NEXT_PUBLIC_ADMIN_UID || '';
+export default function AdminWhatsappUsagePage() {
+  const router = useRouter()
+  const { userId } = useGlobalContext()
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true)
+  const [isLoading, setIsLoading] = useState(false)
+  const [allUsersUsage, setAllUsersUsage] = useState<UserUsage[]>([])
+  const [modeInfo, setModeInfo] = useState<ModeInfo | null>(null)
 
-export default function WhatsappUsagePage() {
-  const router = useRouter();
-  const { userId } = useGlobalContext();
-  const [config, setConfig] = useState<WhatsappConfig | null>(null);
-  const [usage, setUsage] = useState<MonthlyUsage | null>(null);
-  const [history, setHistory] = useState<MonthlyUsage[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
-
-  // Verificar autenticación
+  // Verificar autenticación y que sea admin
   useEffect(() => {
+    console.log('🔐 Admin WhatsApp Usage - Auth Check:', {
+      userId,
+      ADMIN_UID,
+      isAdmin: userId === ADMIN_UID,
+    })
+
     if (!userId) {
-      toast.error("Debe iniciar sesión para acceder");
-      router.push("/login");
-      return;
+      toast.error('Debe iniciar sesión para acceder')
+      router.push('/login')
+      return
     }
 
-    const isAdmin = userId === ADMIN_UID;
-    console.log('🔐 WhatsApp Usage - Auth Check:', {
-      userId,
-      isAdmin,
-    });
+    if (userId !== ADMIN_UID) {
+      toast.error('Acceso denegado: Solo administradores')
+      router.push('/home')
+      return
+    }
 
-    setIsCheckingAuth(false);
-  }, [userId, router]);
+    setIsCheckingAuth(false)
+  }, [userId, router])
 
   useEffect(() => {
     if (!isCheckingAuth) {
-      loadData();
+      loadData()
     }
-  }, [isCheckingAuth]);
+  }, [isCheckingAuth])
 
   const loadData = async () => {
-    setIsLoading(true);
+    setIsLoading(true)
     try {
-      const [configRes, usageRes, historyRes] = await Promise.all([
-        api.get<WhatsappConfig>("/whatsapp/config"),
-        api.get<MonthlyUsage>("/whatsapp/usage"),
-        api.get<MonthlyUsage[]>("/whatsapp/usage/history?months=6"),
-      ]);
+      const [modeRes, usageRes] = await Promise.all([
+        api.get<ModeInfo>('/whatsapp/mode'),
+        api.get<UserUsage[]>('/whatsapp/admin/all-users-usage'),
+      ])
 
-      setConfig(configRes.data);
-      setUsage(usageRes.data);
-      setHistory(historyRes.data);
-    } catch (error) {
-      console.error("Error loading data", error);
+      setModeInfo(modeRes.data)
+      setAllUsersUsage(usageRes.data)
+    } catch (error: any) {
+      console.error('Error loading admin usage data', error)
+      toast.error('Error al cargar datos de uso')
     } finally {
-      setIsLoading(false);
+      setIsLoading(false)
     }
-  };
+  }
 
   if (isCheckingAuth || isLoading) {
     return (
@@ -116,250 +97,180 @@ export default function WhatsappUsagePage() {
           <p className="text-muted-foreground">Cargando datos de uso...</p>
         </div>
       </div>
-    );
+    )
   }
 
-  if (!config || !config.whatsapp_enabled) {
-    const isAdmin = userId === ADMIN_UID;
-    
-    return (
-      <div className="container max-w-4xl mx-auto py-16 px-4">
-        <Alert>
-          <AlertCircle className="w-5 h-5" />
-          <AlertDescription>
-            <div className="flex justify-between items-center">
-              <div>
-                <p className="font-medium">
-                  {isAdmin 
-                    ? "Cuenta Admin - Sin tracking de uso" 
-                    : "WhatsApp Cloud API no configurado"}
-                </p>
-                <p className="text-sm text-muted-foreground mt-1">
-                  {isAdmin
-                    ? "Tu cuenta usa Baileys sin tracking de costos. No hay estadísticas que mostrar."
-                    : "Configura tus credenciales para comenzar a usar WhatsApp Business"}
-                </p>
-              </div>
-              {!isAdmin && (
-                <Button onClick={() => router.push("/admin/whatsapp/config")}>
-                  Configurar Ahora
-                </Button>
-              )}
-            </div>
-          </AlertDescription>
-        </Alert>
-      </div>
-    );
-  }
-
-  const freeRemaining = Math.max(0, FREE_TIER_LIMIT - (usage?.free_tier_used || 0));
-  const freePercentage = ((usage?.free_tier_used || 0) / FREE_TIER_LIMIT) * 100;
-  const projectedMonthly =
-    history.length > 0
-      ? history.slice(0, 3).reduce((sum, m) => sum + m.total_conversations, 0) / Math.min(3, history.length)
-      : 0;
-  const projectedCost = Math.max(0, (projectedMonthly - FREE_TIER_LIMIT) * COST_PER_CONVERSATION);
-
-  // Prepare chart data
-  const historyChartData = history
-    .slice()
-    .reverse()
-    .map((m) => ({
-      month: m.current_month,
-      Conversaciones: m.total_conversations,
-      Costo: parseFloat(m.total_cost.toFixed(2)),
-    }));
-
-  const purposeChartData = usage
-    ? Object.entries(usage.by_purpose).map(([name, value]) => ({
-        name: name.charAt(0).toUpperCase() + name.slice(1),
-        value,
-      }))
-    : [];
+  // Calcular totales
+  const totalConversations = allUsersUsage.reduce((sum, u) => sum + u.total_conversations, 0)
+  const totalCost = allUsersUsage.reduce((sum, u) => sum + u.total_cost, 0)
+  const totalUsers = allUsersUsage.length
 
   return (
-    <div className="container max-w-7xl mx-auto py-8 px-4 space-y-6">
+    <div className="min-h-screen bg-background">
       {/* Header */}
-      <div className="flex justify-between items-start">
-        <div>
-          <h1 className="text-3xl font-bold">Uso de WhatsApp Business API</h1>
-          <p className="text-muted-foreground mt-2">
-            Monitorea tus conversaciones y costos en tiempo real
+      <div className="bg-white shadow-md border-b">
+        <div className="container max-w-6xl mx-auto px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <button
+                onClick={() => router.push('/admin')}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <ArrowLeft className="w-5 h-5" />
+              </button>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h1 className="text-2xl font-bold text-gray-900">Uso de WhatsApp - Todos los Usuarios</h1>
+                  <div className="flex items-center gap-1 px-2 py-1 bg-green-100 text-green-800 rounded text-xs font-medium">
+                    <Shield className="w-3 h-3" />
+                    Admin
+                  </div>
+                </div>
+                <p className="text-sm text-gray-600">Panel de administración</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Content */}
+      <main className="container max-w-6xl mx-auto px-6 py-8">
+        {/* Banner Admin */}
+        {modeInfo?.is_admin && (
+          <Alert className="mb-6 border-yellow-300 bg-yellow-50">
+            <AlertCircle className="w-5 h-5 text-yellow-600" />
+            <AlertDescription className="text-yellow-800">
+              <strong>Cuenta Admin:</strong> Tu cuenta usa Baileys Worker (sin tracking ni costos).
+              Esta página muestra el uso de todos los usuarios que usan WhatsApp Cloud API.
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {/* Stats Summary */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <div className="bg-white rounded-lg shadow-md p-6 border border-gray-200">
+            <div className="flex items-center justify-between mb-4">
+              <div className="bg-blue-100 p-3 rounded-lg">
+                <Users className="w-6 h-6 text-blue-600" />
+              </div>
+            </div>
+            <h3 className="text-sm font-medium text-gray-600 mb-1">Usuarios Activos</h3>
+            <p className="text-3xl font-bold text-gray-900">{totalUsers}</p>
+            <p className="text-xs text-gray-500 mt-2">Con WhatsApp Cloud API</p>
+          </div>
+
+          <div className="bg-white rounded-lg shadow-md p-6 border border-gray-200">
+            <div className="flex items-center justify-between mb-4">
+              <div className="bg-green-100 p-3 rounded-lg">
+                <MessageCircle className="w-6 h-6 text-green-600" />
+              </div>
+            </div>
+            <h3 className="text-sm font-medium text-gray-600 mb-1">Conversaciones Totales</h3>
+            <p className="text-3xl font-bold text-gray-900">{totalConversations}</p>
+            <p className="text-xs text-gray-500 mt-2">Este mes</p>
+          </div>
+
+          <div className="bg-white rounded-lg shadow-md p-6 border border-gray-200">
+            <div className="flex items-center justify-between mb-4">
+              <div className="bg-amber-100 p-3 rounded-lg">
+                <DollarSign className="w-6 h-6 text-amber-600" />
+              </div>
+            </div>
+            <h3 className="text-sm font-medium text-gray-600 mb-1">Costo Total</h3>
+            <p className="text-3xl font-bold text-gray-900">${totalCost.toFixed(2)}</p>
+            <p className="text-xs text-gray-500 mt-2">USD este mes</p>
+          </div>
+        </div>
+
+        {/* Users Table */}
+        <div className="bg-white rounded-lg shadow-md border border-gray-200 overflow-hidden">
+          <div className="px-6 py-4 border-b border-gray-200">
+            <h2 className="text-lg font-semibold text-gray-900">Detalle por Usuario</h2>
+          </div>
+          
+          {allUsersUsage.length === 0 ? (
+            <div className="p-8 text-center text-gray-500">
+              <Users className="w-12 h-12 mx-auto mb-3 text-gray-400" />
+              <p>No hay usuarios con WhatsApp Cloud API configurado</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-gray-50 border-b border-gray-200">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Usuario
+                    </th>
+                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Conversaciones
+                    </th>
+                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Gratis
+                    </th>
+                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Pagadas
+                    </th>
+                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Costo (USD)
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200">
+                  {allUsersUsage.map((user) => (
+                    <tr key={user.user_id} className="hover:bg-gray-50 transition-colors">
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-3">
+                          <div className="bg-blue-100 p-2 rounded-full">
+                            <Users className="w-4 h-4 text-blue-600" />
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-gray-900">{user.email}</p>
+                            <p className="text-xs text-gray-500">{user.current_month}</p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <MessageCircle className="w-4 h-4 text-gray-400" />
+                          <span className="text-sm font-semibold text-gray-900">
+                            {user.total_conversations}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                          {user.free_tier_used}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
+                          {user.paid_conversations}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          <DollarSign className="w-4 h-4 text-gray-400" />
+                          <span className="text-sm font-semibold text-gray-900">
+                            {user.total_cost.toFixed(2)}
+                          </span>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+
+        {/* Info Footer */}
+        <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <p className="text-sm text-blue-800">
+            💡 <strong>Nota:</strong> Esta página solo muestra usuarios que usan WhatsApp Cloud API.
+            Los usuarios con Baileys (como el admin) no aparecen aquí porque no tienen tracking de uso.
           </p>
         </div>
-        <Button variant="outline" onClick={() => router.push("/admin/whatsapp/config")}>
-          <Settings className="w-4 h-4 mr-2" />
-          Configuración
-        </Button>
-      </div>
-
-      {/* Status Banner */}
-      <Alert
-        className={
-          freePercentage < 80
-            ? "bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800"
-            : freePercentage < 95
-            ? "bg-yellow-50 dark:bg-yellow-950 border-yellow-200 dark:border-yellow-800"
-            : "bg-red-50 dark:bg-red-950 border-red-200 dark:border-red-800"
-        }
-      >
-        <CheckCircle2 className="w-5 h-5" />
-        <AlertDescription>
-          <p className="font-medium">
-            {freePercentage < 80
-              ? "✅ Estás dentro del free tier"
-              : freePercentage < 95
-              ? "⚠️ Acercándote al límite gratuito"
-              : "🔴 Has superado el free tier"}
-          </p>
-          <p className="text-sm mt-1">
-            {freeRemaining > 0
-              ? `Te quedan ${freeRemaining} conversaciones gratuitas este mes`
-              : `Has usado ${usage?.paid_conversations || 0} conversaciones pagadas`}
-          </p>
-        </AlertDescription>
-      </Alert>
-
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Conversaciones (Mes)</CardTitle>
-            <MessageCircle className="w-4 h-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{usage?.total_conversations || 0}</div>
-            <p className="text-xs text-muted-foreground">
-              {usage?.free_tier_used || 0} gratuitas, {usage?.paid_conversations || 0} pagadas
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Free Tier Restante</CardTitle>
-            <Calendar className="w-4 h-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{freeRemaining}</div>
-            <Progress value={freePercentage} className="mt-2" />
-            <p className="text-xs text-muted-foreground mt-1">
-              {freePercentage.toFixed(1)}% usado de 1,000
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Costo Este Mes</CardTitle>
-            <DollarSign className="w-4 h-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">${(usage?.total_cost || 0).toFixed(2)}</div>
-            <p className="text-xs text-muted-foreground">USD</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Proyección Mensual</CardTitle>
-            <TrendingUp className="w-4 h-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">${projectedCost.toFixed(2)}</div>
-            <p className="text-xs text-muted-foreground">
-              ~{Math.round(projectedMonthly)} conversaciones/mes
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Charts Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Historical Chart */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Historial de Uso (6 meses)</CardTitle>
-            <CardDescription>Conversaciones y costos por mes</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <AreaChart data={historyChartData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="month" />
-                <YAxis yAxisId="left" />
-                <YAxis yAxisId="right" orientation="right" />
-                <Tooltip />
-                <Legend />
-                <Area
-                  yAxisId="left"
-                  type="monotone"
-                  dataKey="Conversaciones"
-                  stroke="#8884d8"
-                  fill="#8884d8"
-                  fillOpacity={0.6}
-                />
-                <Area
-                  yAxisId="right"
-                  type="monotone"
-                  dataKey="Costo"
-                  stroke="#82ca9d"
-                  fill="#82ca9d"
-                  fillOpacity={0.6}
-                />
-              </AreaChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-
-        {/* Purpose Breakdown */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Conversaciones por Propósito</CardTitle>
-            <CardDescription>Distribución de uso este mes</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {purposeChartData.length > 0 ? (
-              <ResponsiveContainer width="100%" height={300}>
-                <PieChart>
-                  <Pie
-                    data={purposeChartData}
-                    cx="50%"
-                    cy="50%"
-                    labelLine={false}
-                    label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                    outerRadius={80}
-                    fill="#8884d8"
-                    dataKey="value"
-                  >
-                    {purposeChartData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                </PieChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="flex items-center justify-center h-[300px] text-muted-foreground">
-                No hay datos de conversaciones aún
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Info Footer */}
-      <Card className="bg-muted">
-        <CardContent className="pt-6">
-          <h3 className="font-semibold mb-2">💡 Optimiza tus costos</h3>
-          <ul className="text-sm space-y-1 text-muted-foreground">
-            <li>• Agrupa mensajes al mismo contacto en 24 horas = 1 sola conversación</li>
-            <li>• Usa mensajes de sesión cuando el cliente te escribió primero (gratis hasta que responda)</li>
-            <li>• Los templates siempre se cobran (aunque el cliente no responda)</li>
-            <li>• Planifica envíos para maximizar el free tier de 1,000/mes</li>
-          </ul>
-        </CardContent>
-      </Card>
+      </main>
     </div>
-  );
+  )
 }
