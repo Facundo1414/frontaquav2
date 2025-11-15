@@ -2,7 +2,6 @@
 import { useSendDebtsContext } from '@/app/providers/context/SendDebtsContext'
 import { sendAndScrape, listResultBackups, getFileByName, getUserPhone } from '@/lib/api'
 import { useState, useEffect } from 'react'
-import { useWhatsappSessionContext } from '@/app/providers/context/whatsapp/WhatsappSessionContext'
 import { motion } from 'framer-motion'
 import { Button } from '@/components/ui/button'
 import { Loader2, Info } from 'lucide-react'
@@ -32,11 +31,7 @@ export function StepSend() {
     setNotWhatsappData,
     filteredData,
   } = useSendDebtsContext()
-  const { snapshot } = useWhatsappSessionContext()
   const { userId } = useGlobalContext()
-  
-  // Nuevo modelo: snapshot?.ready indica disponibilidad total. Consideramos "syncing" si no está ready aún.
-  const syncing = !snapshot?.ready
 
   const [message, setMessage] = useState(`Hola \${clientName}, te envio tu comprobante actualizado de la CUOTA PLAN DE PAGOS.
 
@@ -200,10 +195,6 @@ Por favor, realiza el pago antes del vencimiento.
   }, [wsError, loading])
 
   const handleSend = async () => {
-    if (syncing) {
-      setStatus('Esperá a que termine la sincronización de WhatsApp antes de enviar.');
-      return;
-    }
     if (!fileNameFiltered) {
       setStatus("No hay archivo filtrado para enviar.")
       return

@@ -38,45 +38,57 @@ export default function HomePage() {
 
 
 const handleClick = async () => {
-  // Consultar snapshot orquestador actual para evitar abrir modal innecesario
-  try {
-    const st = await simpleWaState(); // { worker, authenticated, ready, hasQR, qr? }
-    const mappedState = st.ready
-      ? 'ready'
-      : (st.authenticated
-          ? 'syncing'
-          : (st.hasQR ? 'waiting_qr' : 'launching'));
-    updateFromStatus({ state: mappedState, qr: st.qr || null });
-    if (st.ready || st.authenticated) {
+  // Solo admin necesita verificar sesión de Baileys
+  if (isAdmin) {
+    // Admin: verificar Baileys Worker
+    try {
+      const st = await simpleWaState(); // { worker, authenticated, ready, hasQR, qr? }
+      const mappedState = st.ready
+        ? 'ready'
+        : (st.authenticated
+            ? 'syncing'
+            : (st.hasQR ? 'waiting_qr' : 'launching'));
+      updateFromStatus({ state: mappedState, qr: st.qr || null });
+      if (st.ready || st.authenticated) {
+        router.push('/senddebts');
+        return;
+      }
+    } catch {/* ignorar y continuar */}
+    if (!isReady) {
+      setModalVisible(true);
+    } else {
       router.push('/senddebts');
-      return;
     }
-  } catch {/* ignorar y continuar */}
-  if (!isReady) {
-    setModalVisible(true);
   } else {
+    // Usuarios regulares: ir directo (usan Cloud API)
     router.push('/senddebts');
   }
 }
 
 const handleClickProximosVencer = async () => {
-  // Misma lógica de validación de sesión WhatsApp que el método original
-  try {
-    const st = await simpleWaState();
-    const mappedState = st.ready
-      ? 'ready'
-      : (st.authenticated
-          ? 'syncing'
-          : (st.hasQR ? 'waiting_qr' : 'launching'));
-    updateFromStatus({ state: mappedState, qr: st.qr || null });
-    if (st.ready || st.authenticated) {
+  // Solo admin necesita verificar sesión de Baileys
+  if (isAdmin) {
+    // Admin: verificar Baileys Worker
+    try {
+      const st = await simpleWaState();
+      const mappedState = st.ready
+        ? 'ready'
+        : (st.authenticated
+            ? 'syncing'
+            : (st.hasQR ? 'waiting_qr' : 'launching'));
+      updateFromStatus({ state: mappedState, qr: st.qr || null });
+      if (st.ready || st.authenticated) {
+        router.push('/proximos-vencer');
+        return;
+      }
+    } catch {/* ignorar y continuar */}
+    if (!isReady) {
+      setModalVisible(true);
+    } else {
       router.push('/proximos-vencer');
-      return;
     }
-  } catch {/* ignorar y continuar */}
-  if (!isReady) {
-    setModalVisible(true);
   } else {
+    // Usuarios regulares: ir directo (usan Cloud API)
     router.push('/proximos-vencer');
   }
 }
@@ -144,8 +156,8 @@ const handleClickFAQ = () => {
         <img src="/logoWater.png" alt="Logo" className="h-32 object-contain relative z-10" />
       </div>
 
-      {/* Banner de sesión WhatsApp no lista */}
-      {!isReady && (
+      {/* Banner de sesión WhatsApp no lista - SOLO ADMIN */}
+      {isAdmin && !isReady && (
         <div
           role="alert"
           className="mb-8 rounded-lg border border-blue-200 bg-blue-50 text-blue-900 p-4 shadow-sm"
@@ -154,7 +166,7 @@ const handleClickFAQ = () => {
             <div className="flex items-start gap-3">
               <MessageCircle className="w-5 h-5 mt-0.5" />
               <div>
-                <p className="font-semibold">Tu sesión de WhatsApp no está lista</p>
+                <p className="font-semibold">Tu sesión de WhatsApp (Baileys) no está lista</p>
                 <p className="text-sm opacity-90">Iniciá sesión para poder enviar las deudas a tus clientes.</p>
               </div>
             </div>
@@ -168,15 +180,15 @@ const handleClickFAQ = () => {
         </div>
       )}
 
-      {/* Widget de Uso de WhatsApp */}
-      {userId && (
+      {/* Widget de Uso de WhatsApp - SOLO USUARIOS REGULARES */}
+      {!isAdmin && userId && (
         <div className="mb-8">
           <WhatsappUsageWidget userId={userId} />
         </div>
       )}
 
-      {/* Estado WhatsApp - Banner Superior */}
-      {isReady && (
+      {/* Estado WhatsApp - Banner Superior - SOLO ADMIN */}
+      {isAdmin && isReady && (
         <div className="mb-6 rounded-lg border-2 border-green-300 bg-gradient-to-r from-green-50 to-emerald-50 p-4 shadow-sm">
           <div className="flex items-center gap-3">
             <div className="flex-shrink-0">
@@ -185,7 +197,7 @@ const handleClickFAQ = () => {
               </div>
             </div>
             <div className="flex-1">
-              <p className="font-semibold text-green-900">WhatsApp conectado</p>
+              <p className="font-semibold text-green-900">WhatsApp conectado (Baileys)</p>
               <p className="text-sm text-green-700">Tu sesión está activa y lista para enviar mensajes</p>
             </div>
             <div className="flex-shrink-0">
@@ -329,13 +341,15 @@ const handleClickFAQ = () => {
       {/* Modal en desarrollo (otros features) */}
       <ModalEnDesarrollo open={modalDevVisible} onOpenChange={setModalDevVisible} />
 
-      {/* Modal WhatsApp unificado (usa SSE + regeneraciones) */}
-      <WhatsappSessionModal
-        open={modalVisible}
-        onOpenChange={setModalVisible}
-        token={getAccessToken() || ''}
-        autoCloseOnAuth
-      />
+      {/* Modal WhatsApp unificado (usa SSE + regeneraciones) - SOLO ADMIN */}
+      {isAdmin && (
+        <WhatsappSessionModal
+          open={modalVisible}
+          onOpenChange={setModalVisible}
+          token={getAccessToken() || ''}
+          autoCloseOnAuth
+        />
+      )}
     </div>
   )
 }

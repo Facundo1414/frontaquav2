@@ -12,7 +12,6 @@ import {
 } from '@/lib/api'
 import { parseExcelBlob, parseExcelBlobWithIndexMapping } from '@/utils/parseExcelBlob'
 import { useSendDebtsContext } from '@/app/providers/context/SendDebtsContext'
-import { useWhatsappSessionContext } from '@/app/providers/context/whatsapp/WhatsappSessionContext'
 import { debtsDataSchema } from '@/lib/validations/send-debts.schema'
 import { validateExcelFile, sanitizeObject } from '@/lib/validations/validation-utils'
 import { useFileValidation } from '@/hooks/useValidation'
@@ -27,8 +26,6 @@ export default function StepUploadFile() {
   const fileInputRef = useRef<HTMLInputElement | null>(null)
 
   const { setActiveStep, setRawData, setFilteredData, setFileNameFiltered, setNotWhatsappData } = useSendDebtsContext()
-  const { snapshot } = useWhatsappSessionContext()
-  const syncing = !snapshot?.ready
 
   // Hook de validación de archivos
   const { validateFile, fileError, clearFileError } = useFileValidation()
@@ -105,9 +102,6 @@ export default function StepUploadFile() {
   }
 
   const handleUpload = async () => {
-    if (syncing) {
-      return toast.info('Esperá a que termine la sincronización de WhatsApp antes de filtrar.');
-    }
     if (!file) return toast.error('Seleccioná un archivo primero')
 
     // 🛡️ Re-validar antes de enviar al backend
@@ -265,25 +259,19 @@ export default function StepUploadFile() {
           <Button 
             variant="outline" 
             onClick={handleCancel} 
-            disabled={uploading || syncing} 
+            disabled={uploading}
             className='bg-red-50 hover:bg-red-100'
           >
             Eliminar archivo
           </Button>
           <Button 
             onClick={handleUpload} 
-            disabled={!file || uploading || syncing}
+            disabled={!file || uploading}
           >
             {uploading ? '⏳ Procesando...' : '🚀 Filtrar y verificar →'}
           </Button>
         </div>
       </div>
-      
-      {syncing && (
-        <p className="text-xs text-amber-600 text-center py-2">
-          ⚠️ Sincronizando WhatsApp… Las acciones estarán disponibles en segundos.
-        </p>
-      )}
     </motion.div>
   )
 }

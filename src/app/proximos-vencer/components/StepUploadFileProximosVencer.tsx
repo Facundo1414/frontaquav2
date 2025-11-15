@@ -12,7 +12,6 @@ import {
 } from '@/lib/api'
 import { parseExcelBlob, parseExcelBlobWithIndexMapping } from '@/utils/parseExcelBlob'
 import { useProximosVencerContext } from '@/app/providers/context/ProximosVencerContext'
-import { useWhatsappSessionContext } from '@/app/providers/context/whatsapp/WhatsappSessionContext'
 import { proximosVencerDataSchema } from '@/lib/validations/proximos-vencer.schema'
 import { validateExcelFile, sanitizeObject } from '@/lib/validations/validation-utils'
 import { useFileValidation } from '@/hooks/useValidation'
@@ -24,8 +23,6 @@ export default function StepUploadFileProximosVencer() {
   const fileInputRef = useRef<HTMLInputElement | null>(null)
 
   const { setActiveStep, setRawData, setFilteredData, setFileNameFiltered, setNotWhatsappData } = useProximosVencerContext()
-  const { snapshot } = useWhatsappSessionContext()
-  const syncing = !snapshot?.ready
 
   // 🛡️ Hook de validación
   const { validateFile, fileError, clearFileError } = useFileValidation()
@@ -78,9 +75,6 @@ export default function StepUploadFileProximosVencer() {
   }
 
   const handleUpload = async () => {
-    if (syncing) {
-      return toast.info('Esperá a que termine la sincronización de WhatsApp antes de filtrar.');
-    }
     if (!file) return toast.error('Seleccioná un archivo primero')
 
     // 🛡️ Re-validar antes de enviar
@@ -204,16 +198,13 @@ export default function StepUploadFileProximosVencer() {
       {/* Botones abajo */}
       <div className="border-t pt-3 mt-4">
         <div className="flex items-center justify-end gap-2">
-          <Button variant="outline" onClick={handleCancel} disabled={uploading || syncing} className='bg-red-50 hover:bg-red-100'>
+          <Button variant="outline" onClick={handleCancel} disabled={uploading} className='bg-red-50 hover:bg-red-100'>
             Eliminar
           </Button>
-          <Button onClick={handleUpload} disabled={!file || uploading || syncing}>
+          <Button onClick={handleUpload} disabled={!file || uploading}>
             {uploading ? 'Filtrando...' : 'Filtrar archivo →'}
           </Button>
         </div>
-        {syncing && (
-          <p className="text-xs mt-2 text-amber-600">Sincronizando WhatsApp… Las acciones estarán disponibles en segundos.</p>
-        )}
       </div>
     </motion.div>
   )

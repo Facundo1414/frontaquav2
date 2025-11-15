@@ -5,7 +5,6 @@ import { Button } from '@/components/ui/button'
 import { motion } from 'framer-motion'
 import { CheckCircle2, XCircle, AlertTriangle, Phone } from 'lucide-react'
 import { useSendDebtsContext } from '@/app/providers/context/SendDebtsContext'
-import { useWhatsappSessionContext } from '@/app/providers/context/whatsapp/WhatsappSessionContext'
 import { ProgressCard } from './ProgressCard'
 import { Badge } from '@/components/ui/badge'
 
@@ -18,8 +17,6 @@ interface VerificationResult {
 
 export function StepVerifyWhatsApp() {
   const { rawData, setFilteredData, setActiveStep, progressStats, setProgressStats } = useSendDebtsContext()
-  const { snapshot } = useWhatsappSessionContext()
-  const syncing = !snapshot?.ready
 
   const [verifying, setVerifying] = useState(false)
   const [progress, setProgress] = useState(0)
@@ -44,10 +41,6 @@ export function StepVerifyWhatsApp() {
   }, [totalRecords, hasWhatsAppCount, noWhatsAppCount, pendingCount, setProgressStats])
 
   const handleVerify = async () => {
-    if (syncing) {
-      return
-    }
-
     setVerifying(true)
     setProgress(0)
     setResults([])
@@ -218,7 +211,7 @@ export function StepVerifyWhatsApp() {
       {/* Botones de acción */}
       <div className="mt-auto flex items-center justify-between gap-4 pt-4 border-t">
         <div className="flex gap-2">
-          <Button variant="outline" onClick={handleBack} disabled={verifying || syncing}>
+          <Button variant="outline" onClick={handleBack} disabled={verifying}>
             ← Volver
           </Button>
         </div>
@@ -226,10 +219,10 @@ export function StepVerifyWhatsApp() {
         <div className="flex gap-2">
           {!verifying && results.length === 0 && (
             <>
-              <Button variant="secondary" onClick={handleSkip} disabled={syncing}>
+              <Button variant="secondary" onClick={handleSkip}>
                 Omitir verificación
               </Button>
-              <Button onClick={handleVerify} disabled={syncing || totalRecords === 0}>
+              <Button onClick={handleVerify} disabled={totalRecords === 0}>
                 Iniciar verificación
               </Button>
             </>
@@ -242,12 +235,6 @@ export function StepVerifyWhatsApp() {
           )}
         </div>
       </div>
-
-      {syncing && (
-        <p className="text-xs text-amber-600 text-center">
-          Sincronizando WhatsApp... La verificación estará disponible en segundos.
-        </p>
-      )}
     </motion.div>
   )
 }

@@ -2,7 +2,6 @@
 import { useProximosVencerContext } from '@/app/providers/context/ProximosVencerContext'
 import { sendAndScrapeProximosVencer, listResultBackups, getFileByName } from '@/lib/api'
 import { useState, useEffect } from 'react'
-import { useWhatsappSessionContext } from '@/app/providers/context/whatsapp/WhatsappSessionContext'
 import { motion } from 'framer-motion'
 import { Button } from '@/components/ui/button'
 import { Loader2 } from 'lucide-react'
@@ -25,14 +24,10 @@ export default function StepSendProximosVencer() {
     fechaHastaTexto,
     filteredData,
   } = useProximosVencerContext()
-  const { snapshot } = useWhatsappSessionContext()
   const { accessToken } = useGlobalContext()
   
   // Extraer userId del token JWT (sub claim)
   const userId = accessToken ? JSON.parse(atob(accessToken.split('.')[1])).sub : undefined
-  
-  // Nuevo modelo: snapshot?.ready indica disponibilidad total. Consideramos "syncing" si no está ready aún.
-  const syncing = !snapshot?.ready
 
   const [message, setMessage] = useState('');
 
@@ -186,10 +181,6 @@ Por favor, realiza el pago antes del vencimiento.
   }, [wsError, loading])
 
   const handleSend = async () => {
-    if (syncing) {
-      setStatus('Esperá a que termine la sincronización de WhatsApp antes de enviar.');
-      return;
-    }
     if (!fileNameFiltered) {
       setStatus("No hay archivo filtrado para enviar.")
       return
@@ -348,7 +339,7 @@ Por favor, realiza el pago antes del vencimiento.
           <Button
             variant="outline"
             onClick={handleBack}
-            disabled={loading || syncing}
+            disabled={loading}
           >
             ← Volver
           </Button>
@@ -357,27 +348,20 @@ Por favor, realiza el pago antes del vencimiento.
             <Button
               variant="outline"
               onClick={handleCancel}
-              disabled={loading || syncing}
+              disabled={loading}
               className='bg-red-50 hover:bg-red-100'
             >
               Cancelar todo
             </Button>
             <Button
               onClick={handleSend}
-              disabled={loading || syncing}
+              disabled={loading}
               className=""
             >
               {loading ? 'Enviando...' : 'Enviar notificaciones →'}
             </Button>
           </div>
         </div>
-        
-        {syncing && (
-          <p className="text-xs mt-2 text-amber-600 flex items-center gap-2">
-            <Loader2 className="h-3 w-3 animate-spin" />
-            <span>Conectando con WhatsApp... El envío se habilitará automáticamente.</span>
-          </p>
-        )}
       </div>
     </motion.div>
   )

@@ -34,6 +34,7 @@ export default function Navbar() {
     setRefreshToken,
     usernameGlobal,
     setUsernameGlobal,
+    userId,
   } = useGlobalContext()
   const [isLoggingOut, setIsLoggingOut] = useState(false)
   const { snapshot } = useWhatsappSessionContext()
@@ -41,6 +42,10 @@ export default function Navbar() {
   const whatsappState = snapshot?.state || 'none'
   const isReady = !!snapshot?.ready
   const prevWhatsappState = useRef<string | null>(null)
+  
+  // Admin check
+  const ADMIN_UID = process.env.NEXT_PUBLIC_ADMIN_UID || ''
+  const isAdmin = userId === ADMIN_UID
   
   // WhatsApp Business API usage tracking
   const [whatsappUsage, setWhatsappUsage] = useState<{
@@ -123,9 +128,9 @@ export default function Navbar() {
 
       {/* Derecha: Badge WhatsApp + Avatar */}
       <div className="flex items-center gap-3">
-        {/* WhatsApp Usage Badge */}
-        {whatsappUsage && (
-          <Link href="/admin/whatsapp/usage">
+        {/* WhatsApp Usage Badge - Solo para usuarios regulares */}
+        {!isAdmin && whatsappUsage && (
+          <Link href="/whatsapp/usage">
             <Badge
               variant="outline"
               className={`cursor-pointer transition-colors ${
@@ -150,37 +155,43 @@ export default function Navbar() {
                 {usernameGlobal?.charAt(0).toUpperCase() || 'U'}
               </AvatarFallback>
             </Avatar>
-            <span
-              className={
-                'absolute -right-1 -bottom-1 h-3 w-3 rounded-full ring-2 ring-white transition-colors ' +
-                (isReady
-                  ? 'bg-green-500'
-                  : whatsappState === 'waiting_qr' || whatsappState === 'launching' || whatsappState === 'syncing'
-                    ? 'bg-amber-400'
-                    : 'bg-gray-400')
-              }
-              title={`Estado WhatsApp: ${isReady ? 'ready' : whatsappState}`}
-            />
+            {/* Indicador de estado Baileys - Solo para admin */}
+            {isAdmin && (
+              <span
+                className={
+                  'absolute -right-1 -bottom-1 h-3 w-3 rounded-full ring-2 ring-white transition-colors ' +
+                  (isReady
+                    ? 'bg-green-500'
+                    : whatsappState === 'waiting_qr' || whatsappState === 'launching' || whatsappState === 'syncing'
+                      ? 'bg-amber-400'
+                      : 'bg-gray-400')
+                }
+                title={`Estado WhatsApp: ${isReady ? 'ready' : whatsappState}`}
+              />
+            )}
           </div>
         </SheetTrigger>
         <SheetContent side="right">
           <SheetHeader>
             <SheetTitle>Hola, {usernameGlobal || 'Usuario'}</SheetTitle>
-            <div className="mt-2 text-xs font-medium flex items-center gap-2">
-              <span className="text-muted-foreground">WhatsApp:</span>
-              <span
-                className={
-                  'px-2 py-0.5 rounded-full text-[10px] uppercase tracking-wide font-semibold ' +
-                  (isReady
-                    ? 'bg-green-100 text-green-700'
-                    : whatsappState === 'waiting_qr' || whatsappState === 'launching' || whatsappState === 'syncing'
-                      ? 'bg-amber-100 text-amber-700'
-                      : 'bg-gray-200 text-gray-600')
-                }
-              >
-                {isReady ? 'ready' : whatsappState}
-              </span>
-            </div>
+            {/* Estado WhatsApp - Solo para admin */}
+            {isAdmin && (
+              <div className="mt-2 text-xs font-medium flex items-center gap-2">
+                <span className="text-muted-foreground">WhatsApp:</span>
+                <span
+                  className={
+                    'px-2 py-0.5 rounded-full text-[10px] uppercase tracking-wide font-semibold ' +
+                    (isReady
+                      ? 'bg-green-100 text-green-700'
+                      : whatsappState === 'waiting_qr' || whatsappState === 'launching' || whatsappState === 'syncing'
+                        ? 'bg-amber-100 text-amber-700'
+                        : 'bg-gray-200 text-gray-600')
+                  }
+                >
+                  {isReady ? 'ready' : whatsappState}
+                </span>
+              </div>
+            )}
           </SheetHeader>
 
           <div className="py-6 space-y-4 px-4">
@@ -188,26 +199,29 @@ export default function Navbar() {
               Gestión de tu cuenta y configuración.
             </p>
 
-            <div className="mt-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
-              <div className="flex items-center gap-2 mb-2">
-                <span className="text-sm text-gray-600 dark:text-gray-400">Estado WhatsApp:</span>
-                <span
-                  className={
-                    'px-2 py-0.5 rounded-full text-[10px] uppercase tracking-wide font-semibold ' +
-                    (isReady
-                      ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300'
-                      : whatsappState === 'waiting_qr' || whatsappState === 'launching' || whatsappState === 'syncing'
-                        ? 'bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300'
-                        : 'bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-gray-400')
-                  }
-                >
-                  {isReady ? '● Conectado' : whatsappState}
-                </span>
+            {/* Panel de estado WhatsApp - Solo para admin */}
+            {isAdmin && (
+              <div className="mt-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-sm text-gray-600 dark:text-gray-400">Estado WhatsApp:</span>
+                  <span
+                    className={
+                      'px-2 py-0.5 rounded-full text-[10px] uppercase tracking-wide font-semibold ' +
+                      (isReady
+                        ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300'
+                        : whatsappState === 'waiting_qr' || whatsappState === 'launching' || whatsappState === 'syncing'
+                          ? 'bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300'
+                          : 'bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-gray-400')
+                    }
+                  >
+                    {isReady ? '● Conectado' : whatsappState}
+                  </span>
+                </div>
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  La sesión se gestiona automáticamente
+                </p>
               </div>
-              <p className="text-xs text-gray-500 dark:text-gray-400">
-                La sesión se gestiona automáticamente
-              </p>
-            </div>
+            )}
           </div>
 
 
