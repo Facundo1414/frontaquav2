@@ -26,6 +26,8 @@ import { useWhatsappSessionContext } from '@/app/providers/context/whatsapp/What
 import { Badge } from '@/components/ui/badge'
 import { MessageCircle } from 'lucide-react'
 import api from '@/lib/api/axiosInstance'
+import PlanBadge from '@/components/subscription/PlanBadge'
+import { useSubscription } from '@/context/SubscriptionContext'
 
 export default function Navbar() {
   const router = useRouter()
@@ -38,6 +40,7 @@ export default function Navbar() {
   } = useGlobalContext()
   const [isLoggingOut, setIsLoggingOut] = useState(false)
   const { snapshot } = useWhatsappSessionContext()
+  const { isPro } = useSubscription()
   // Adapted to v2 snapshot: state: 'none' | 'launching' | 'waiting_qr' | 'syncing' | 'ready' | 'closing'
   const whatsappState = snapshot?.state || 'none'
   const isReady = !!snapshot?.ready
@@ -128,8 +131,8 @@ export default function Navbar() {
 
       {/* Derecha: Badge WhatsApp + Avatar */}
       <div className="flex items-center gap-3">
-        {/* WhatsApp Usage Badge - Solo para usuarios regulares */}
-        {!isAdmin && whatsappUsage && (
+        {/* WhatsApp Usage Badge - Solo para usuarios PRO (no admin, no BASE) */}
+        {!isAdmin && isPro && whatsappUsage && (
           <Link href="/whatsapp/usage">
             <Badge
               variant="outline"
@@ -173,7 +176,15 @@ export default function Navbar() {
         </SheetTrigger>
         <SheetContent side="right">
           <SheetHeader>
-            <SheetTitle>Hola, {usernameGlobal || 'Usuario'}</SheetTitle>
+            <SheetTitle className="flex items-center gap-2">
+              Hola, {usernameGlobal || 'Usuario'}
+            </SheetTitle>
+            {/* Plan Badge */}
+            {!isAdmin && (
+              <div className="flex justify-start mt-2">
+                <PlanBadge size="sm" />
+              </div>
+            )}
             {/* Estado WhatsApp - Solo para admin */}
             {isAdmin && (
               <div className="mt-2 text-xs font-medium flex items-center gap-2">

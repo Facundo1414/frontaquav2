@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from 'next/font/google'
 import './globals.css'
 import { Toaster } from '@/components/ui/sonner'
 import { GlobalProvider } from '@/app/providers/context/GlobalContext'
+import { SubscriptionProvider } from '@/context/SubscriptionContext'
 import { WebSocketProvider } from '@/components/WebSocketProvider'
 import { QueryProvider } from '@/lib/react-query'
 import PrivateLayout from './PrivateLayout'
@@ -35,12 +36,14 @@ export default function RootLayout({
       >
         <QueryProvider>
           <GlobalProvider>
-            <WebSocketProvider>
-              {/* PrivateLayout decidirá si aplica wrappers (providers) según la ruta */}
-              <PrivateLayout>
-                {children}
-              </PrivateLayout>
-            </WebSocketProvider>
+            <SubscriptionProvider>
+              <WebSocketProvider>
+                {/* PrivateLayout decidirá si aplica wrappers (providers) según la ruta */}
+                <PrivateLayout>
+                  {children}
+                </PrivateLayout>
+              </WebSocketProvider>
+            </SubscriptionProvider>
             {/* El Toaster queda global para que también funcione en /login */}
             <Toaster position="top-right" />
           </GlobalProvider>

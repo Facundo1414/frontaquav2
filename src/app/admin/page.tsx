@@ -101,7 +101,7 @@ export default function AdminDashboard() {
         {/* WhatsApp Management Cards */}
         <div className="mb-8">
           <h2 className="text-2xl font-bold text-gray-900 mb-4">📱 Gestión de WhatsApp</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {/* WhatsApp Configuration Card */}
             <div 
               onClick={() => router.push('/admin/whatsapp/config')}
@@ -142,6 +142,27 @@ export default function AdminDashboard() {
               </h3>
               <p className="text-gray-600 text-sm">
                 Monitorea el uso de mensajes, estadísticas y límites de WhatsApp Cloud API
+              </p>
+            </div>
+
+            {/* Subscriptions Management Card */}
+            <div 
+              onClick={() => router.push('/admin/subscriptions')}
+              className="bg-white rounded-lg shadow-md p-6 border border-gray-200 hover:shadow-lg hover:border-amber-400 transition-all duration-200 cursor-pointer group"
+            >
+              <div className="flex items-start justify-between mb-4">
+                <div className="bg-amber-100 p-3 rounded-lg group-hover:bg-amber-200 transition-colors">
+                  <svg className="w-6 h-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                  </svg>
+                </div>
+                <span className="text-gray-400 group-hover:text-amber-600 transition-colors">→</span>
+              </div>
+              <h3 className="text-xl font-semibold text-gray-900 mb-2 group-hover:text-amber-600 transition-colors">
+                Gestión de Suscripciones
+              </h3>
+              <p className="text-gray-600 text-sm">
+                Administra planes de usuarios, registra pagos y controla accesos al sistema
               </p>
             </div>
           </div>

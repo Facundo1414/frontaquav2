@@ -11,12 +11,20 @@ export interface WhatsappStatus {
   authenticated?: boolean;
 }
 
-export function useWhatsappStatus(userId: string | null) {
+export function useWhatsappStatus(userId: string | null, enabled = true) {
   const { socket, connected } = useWebSocket();
   const [status, setStatus] = useState<WhatsappStatus | null>(null);
   const [isSubscribed, setIsSubscribed] = useState(false);
 
   useEffect(() => {
+    // Skip si está deshabilitado (usuarios BASE no necesitan WhatsApp)
+    if (!enabled) {
+      console.log(
+        "📱 useWhatsappStatus: Deshabilitado (usuario no necesita WhatsApp)"
+      );
+      return;
+    }
+
     if (!socket || !connected || !userId) {
       console.log("📱 useWhatsappStatus: Esperando conexión...", {
         socket: !!socket,

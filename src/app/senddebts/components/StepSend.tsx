@@ -463,7 +463,7 @@ Por favor, realiza el pago antes del vencimiento.
           <Button
             variant="outline"
             onClick={handleBack}
-            disabled={loading || syncing}
+            disabled={loading}
           >
             ← Volver
           </Button>
@@ -472,27 +472,20 @@ Por favor, realiza el pago antes del vencimiento.
             <Button
               variant="outline"
               onClick={handleCancel}
-              disabled={loading || syncing}
+              disabled={loading}
               className='bg-red-50 hover:bg-red-100'
             >
               Cancelar todo
             </Button>
             <Button
               onClick={handleSend}
-              disabled={loading || syncing}
+              disabled={loading}
               className=""
             >
               {loading ? 'Enviando...' : 'Enviar mensajes →'}
             </Button>
           </div>
         </div>
-        
-        {syncing && (
-          <p className="text-xs mt-2 text-amber-600 flex items-center gap-2">
-            <Loader2 className="h-3 w-3 animate-spin" />
-            <span>Conectando con WhatsApp... El envío se habilitará automáticamente.</span>
-          </p>
-        )}
       </div>
     </motion.div>
   )

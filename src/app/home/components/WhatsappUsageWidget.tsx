@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { MessageCircle, TrendingUp, DollarSign, AlertCircle, Loader2 } from 'lucide-react'
 import api from '@/lib/api/axiosInstance'
+import { useSubscription } from '@/context/SubscriptionContext'
 
 interface MonthlyUsage {
   sent_messages: number
@@ -22,10 +23,14 @@ export function WhatsappUsageWidget({ userId }: { userId: string }) {
   const [loading, setLoading] = useState(true)
   const [usage, setUsage] = useState<MonthlyUsage | null>(null)
   const [config, setConfig] = useState<WhatsappConfig | null>(null)
+  const { isPro } = useSubscription()
   const isAdmin = userId === ADMIN_UID
 
   // Admin no ve este widget
   if (isAdmin) return null
+  
+  // Usuarios BASE no necesitan ver WhatsApp
+  if (!isPro) return null
 
   useEffect(() => {
     loadUsage()

@@ -44,10 +44,20 @@ export const WhatsappSessionProvider: React.FC<{ children: React.ReactNode }> = 
   
   // NUEVO: WebSocket
   const userId = getUserIdFromToken();
-  const { status: wsStatus, isSubscribed, connected } = useWhatsappStatus(userId);
+  
+  // Solo habilitar WhatsApp status para Admin
+  // Usuarios PRO usan WhatsApp Cloud API directamente desde los endpoints, no necesitan WebSocket
+  // Usuarios BASE no usan WhatsApp en absoluto
+  const ADMIN_UID = process.env.NEXT_PUBLIC_ADMIN_UID || '';
+  const isAdmin = userId === ADMIN_UID;
+  const shouldEnableWhatsapp = isAdmin; // Solo admin necesita el WebSocket de WhatsApp
+  
+  const { status: wsStatus, isSubscribed, connected } = useWhatsappStatus(userId, shouldEnableWhatsapp);
   
   console.log('📱 WhatsappSessionContext state:', {
     userId: !!userId,
+    isAdmin,
+    shouldEnableWhatsapp,
     connected,
     isSubscribed,
     hasStatus: !!wsStatus
@@ -186,7 +196,14 @@ export const WhatsappSessionProvider: React.FC<{ children: React.ReactNode }> = 
 
   // 🆕 Auto-reconectar si no hay sesión activa al montar componentes que necesitan WA
   // Verificamos periódicamente si hay sesión guardada pero no está conectada
+  // SOLO para Admin - Usuarios PRO/BASE no necesitan esto
   useEffect(() => {
+    // Skip completamente si no es admin
+    if (!shouldEnableWhatsapp) {
+      console.log('⏭️ WhatsApp auto-reconnect: Deshabilitado (usuario no es admin)');
+      return;
+    }
+
     const checkAndReconnect = async () => {
       // Solo intentar si:
       // 1. Hay userId (usuario autenticado)
@@ -226,8 +243,15 @@ export const WhatsappSessionProvider: React.FC<{ children: React.ReactNode }> = 
           console.log('🔌 No hay sesión activa, intentando reconectar...');
           await reconnect();
         }
-      } catch (error) {
-        console.error('❌ Error verificando estado:', error);
+      } catch (error: any) {
+        console.error('❌ Error verificando estado WhatsApp:', error?.response?.status || error?.message);
+        
+        // Si es error 500 o error de red, probablemente el baileys-worker no está corriendo
+        // No es un error crítico para usuarios BASE, simplemente no mostrar WhatsApp
+        if (error?.response?.status === 500 || error?.code === 'ERR_NETWORK') {
+          console.warn('⚠️ Baileys worker no disponible - WhatsApp features deshabilitados');
+          // No hacer nada, el usuario puede seguir usando la app
+        }
       }
     };
     
@@ -244,7 +268,7 @@ export const WhatsappSessionProvider: React.FC<{ children: React.ReactNode }> = 
     }, 15000);
     
     return () => clearInterval(interval);
-  }, [userId, snapshot?.ready, snapshot?.state, reconnect, updateFromStatus]);
+  }, [userId, snapshot?.ready, snapshot?.state, reconnect, updateFromStatus, shouldEnableWhatsapp]);
 
   return (
     <WhatsappSessionContext.Provider value={{ snapshot, updateFromStatus, markQr, reconnect }}>

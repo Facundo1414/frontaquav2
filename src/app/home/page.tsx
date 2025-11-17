@@ -10,6 +10,7 @@ import { WhatsappUsageWidget } from './components/WhatsappUsageWidget'
 import { useWhatsappSessionContext } from '@/app/providers/context/whatsapp/WhatsappSessionContext'
 import { useGlobalContext } from '@/app/providers/context/GlobalContext'
 import { simpleWaState } from '@/lib/api/simpleWaApi'
+import { RequiresPlan } from '@/components/subscription'
 
 
 export default function HomePage() {
@@ -180,12 +181,8 @@ const handleClickFAQ = () => {
         </div>
       )}
 
-      {/* Widget de Uso de WhatsApp - SOLO USUARIOS REGULARES */}
-      {!isAdmin && userId && (
-        <div className="mb-8">
-          <WhatsappUsageWidget userId={userId} />
-        </div>
-      )}
+      {/* Widget de Uso de WhatsApp - SOLO USUARIOS PRO (no admin, no BASE) */}
+      {/* Usuarios BASE no necesitan ver WhatsApp */}
 
       {/* Estado WhatsApp - Banner Superior - SOLO ADMIN */}
       {isAdmin && isReady && (
@@ -272,20 +269,24 @@ const handleClickFAQ = () => {
 
       {/* Tarjetas de Servicios */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        <ServiceCard
-          icon={<Send className="w-6 h-6 text-white" />}
-          title="Enviar Comprobantes Vencidos"
-          description="Envía comprobantes vencidos a clientes con plan de pago"
-          onClick={handleClick}
-          color="bg-teal-500"
-        />
-        <ServiceCard
-          icon={<Clock className="w-6 h-6 text-white" />}
-          title="Notificar Próximos a Vencer"
-          description="Avisa a clientes con plan de pago próximos a vencer"
-          onClick={handleClickProximosVencer}
-          color="bg-orange-500"
-        />
+        <RequiresPlan plan="PRO">
+          <ServiceCard
+            icon={<Send className="w-6 h-6 text-white" />}
+            title="Enviar Comprobantes Vencidos"
+            description="Envía comprobantes vencidos a clientes con plan de pago"
+            onClick={handleClick}
+            color="bg-teal-500"
+          />
+        </RequiresPlan>
+        <RequiresPlan plan="PRO">
+          <ServiceCard
+            icon={<Clock className="w-6 h-6 text-white" />}
+            title="Notificar Próximos a Vencer"
+            description="Avisa a clientes con plan de pago próximos a vencer"
+            onClick={handleClickProximosVencer}
+            color="bg-orange-500"
+          />
+        </RequiresPlan>
         <ServiceCard
           icon={<Filter className="w-6 h-6 text-white" />}
           title="Filtrar Clientes para PYSE"
