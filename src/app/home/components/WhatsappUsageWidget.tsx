@@ -26,15 +26,19 @@ export function WhatsappUsageWidget({ userId }: { userId: string }) {
   const { isPro } = useSubscription()
   const isAdmin = userId === ADMIN_UID
 
+  // Hooks deben estar antes de cualquier return
+  useEffect(() => {
+    // Solo cargar si no es admin y es PRO
+    if (!isAdmin && isPro) {
+      loadUsage()
+    }
+  }, [isAdmin, isPro])
+
   // Admin no ve este widget
   if (isAdmin) return null
   
   // Usuarios BASE no necesitan ver WhatsApp
   if (!isPro) return null
-
-  useEffect(() => {
-    loadUsage()
-  }, [])
 
   const loadUsage = async () => {
     try {

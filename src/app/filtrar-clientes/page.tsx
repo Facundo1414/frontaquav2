@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Upload, Map, Search, Download, CheckCircle2, Info, ChevronDown, ChevronUp, Users, Loader2 } from "lucide-react"
 import { getUniverseInfo, getNeighborhoodsWithCount } from '@/lib/api'
 import { PyseUsageBar } from '@/components/PyseUsageBar'
+import { PyseUsageWidget } from '../home/components/PyseUsageWidget'
 import type { FiltrosBarrios } from './components/StepSeleccionarBarrios'
 
 // 🚀 Lazy load de componentes pesados
@@ -74,6 +75,7 @@ export default function FiltrarClientesPage() {
   const [filtrosActivos, setFiltrosActivos] = useState<FiltrosBarrios | null>(null)
   const [resultados, setResultados] = useState<ProcessResults | null>(null)
   const [showExplanation, setShowExplanation] = useState(false) // Nuevo: Para mostrar/ocultar explicación
+  const [refreshTrigger, setRefreshTrigger] = useState(0) // Trigger para actualizar widget PYSE
 
   // Ya no necesitamos cargar universo automáticamente
   // El flujo comienza directamente en selección desde BD
@@ -113,6 +115,8 @@ export default function FiltrarClientesPage() {
   const handleVerificacionCompleta = (results: ProcessResults) => {
     setResultados(results)
     setCurrentStep(3)
+    // Actualizar el widget PYSE después de la verificación
+    setRefreshTrigger(prev => prev + 1)
   }
 
   const resetProcess = () => {
@@ -153,9 +157,9 @@ export default function FiltrarClientesPage() {
         </p>
       </div>
 
-      {/* PYSE Usage Bar */}
+      {/* PYSE Usage Widget */}
       <div className="mb-6">
-        <PyseUsageBar />
+        <PyseUsageWidget refreshTrigger={refreshTrigger} />
       </div>
 
       {/* Explicación del Nuevo Flujo - COLAPSABLE */}

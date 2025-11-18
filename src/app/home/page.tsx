@@ -3,6 +3,7 @@
 import {  useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Filter, Upload, UploadCloud, Download, MessageCircle, Bell, FileText, Users, Check, Send, Clock, FileArchive, Database, HelpCircle, Settings } from 'lucide-react'
+import { Alert, AlertDescription } from '@/components/ui/alert'
 import { ServiceCard } from './components/ServiceCard'
 import { ModalEnDesarrollo } from './components/modal-en-desarrollo'
 import { WhatsappSessionModal } from './components/WhatsappSessionModal'
@@ -207,12 +208,12 @@ const handleClickFAQ = () => {
       )}
 
       {/* Widget de Uso de WhatsApp - SOLO USUARIOS PRO (no admin) */}
-      {!isAdmin && (
-        <WhatsappUsageWidget />
+      {!isAdmin && userId && (
+        <WhatsappUsageWidget userId={userId} />
       )}
 
       {/* Banner NUEVO: Sistema de Filtrado PYSE */}
-      <div className="mb-8 rounded-lg border-2 border-green-300 bg-gradient-to-r from-green-50 to-emerald-50 p-6 shadow-lg">
+      <div className="mb-8 mt-6 rounded-lg border-2 border-green-300 bg-gradient-to-r from-green-50 to-emerald-50 p-6 shadow-lg">
         <div className="flex flex-col lg:flex-row items-start lg:items-center gap-4">
           <div className="flex-shrink-0">
             <div className="w-16 h-16 bg-green-600 rounded-full flex items-center justify-center shadow-md">

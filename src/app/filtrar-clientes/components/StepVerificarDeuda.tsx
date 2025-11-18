@@ -11,6 +11,15 @@ import { useProgressWebSocket } from '@/hooks/useProgressWebSocket'
 import { ProcessResults } from '../page'
 import { FiltrosBarrios } from './StepSeleccionarBarrios'
 import { checkDebtByNeighborhoods, checkDebtByUnits } from '@/lib/api'
+import api from '@/lib/api/axiosInstance'
+
+interface PyseQuotaStatus {
+  used_today: number
+  remaining_today: number
+  limit_daily: number
+  percentage_used: number
+  can_query: boolean
+}
 
 interface Client {
   id: string
@@ -37,8 +46,22 @@ interface StepVerificarDeudaProps {
 export function StepVerificarDeuda({ selectedClients, filtros, onComplete }: StepVerificarDeudaProps) {
   const [processing, setProcessing] = useState(false)
   const [progress, setProgress] = useState(0)
+  const [quotaStatus, setQuotaStatus] = useState<PyseQuotaStatus | null>(null)
   const { getToken } = useGlobalContext()
   const { progress: wsProgress, isCompleted, error: wsError, resetProgress } = useProgressWebSocket()
+
+  // Cargar estado de cuota al montar
+  useEffect(() => {
+    const fetchQuota = async () => {
+      try {
+        const response = await api.get<PyseQuotaStatus>('/pyse/usage/status')
+        setQuotaStatus(response.data)
+      } catch (error) {
+        console.error('Error fetching quota:', error)
+      }
+    }
+    fetchQuota()
+  }, [])
 
   // Actualizar progreso desde WebSocket
   useEffect(() => {
@@ -72,7 +95,7 @@ export function StepVerificarDeuda({ selectedClients, filtros, onComplete }: Ste
       if (selectedClients && selectedClients.length > 0) {
         // Extraer números de unidad
         const unidades = selectedClients.map(c => parseInt(c.unidad))
-        
+
         // Extraer datos de cliente para enriquecimiento
         const clientData = selectedClients.map(c => ({
           uf: parseInt(c.unidad),
@@ -80,13 +103,13 @@ export function StepVerificarDeuda({ selectedClients, filtros, onComplete }: Ste
           domicilio: undefined, // No tenemos domicilio en la BD
           titular: c.titular,
         }))
-        
+
         console.log(`🎯 Verificando deuda para ${unidades.length} unidades específicas...`)
         console.log(`📋 Datos de cliente incluidos: barrio, titular`)
-        
+
         // Usar el nuevo endpoint optimizado con datos de cliente
         data = await checkDebtByUnits(
-          unidades, 
+          unidades,
           {
             minComprobantesVencidos: 3 // PYSE requiere mín. 3
           },
@@ -101,10 +124,10 @@ export function StepVerificarDeuda({ selectedClients, filtros, onComplete }: Ste
       else {
         throw new Error('No hay clientes ni filtros seleccionados')
       }
-      
+
       setProgress(100)
       toast.success(`✅ Verificación completa: ${data.totalProcessed} cuentas procesadas`)
-      
+
       // Pequeño delay para mostrar el 100%
       setTimeout(() => {
         onComplete(data)
@@ -135,10 +158,10 @@ export function StepVerificarDeuda({ selectedClients, filtros, onComplete }: Ste
               </h3>
               <div className="space-y-2 text-sm">
                 <p className="text-blue-800">
-                  <strong>⚡ ¿Qué hace este paso?</strong> El sistema consultará automáticamente 
+                  <strong>⚡ ¿Qué hace este paso?</strong> El sistema consultará automáticamente
                   el estado de deuda de cada cuenta seleccionada.
                 </p>
-                
+
                 <div className="mt-3 p-3 bg-white border-2 border-blue-200 rounded-lg">
                   <p className="text-sm font-medium text-blue-900 mb-2">
                     📋 <strong>Clasificación automática:</strong>
@@ -163,7 +186,7 @@ export function StepVerificarDeuda({ selectedClients, filtros, onComplete }: Ste
 
                 <div className="mt-3 p-3 bg-amber-50 border-2 border-amber-300 rounded-lg">
                   <p className="text-sm text-amber-900">
-                    ⏱️ <strong>Tiempo estimado:</strong> Algunos minutos según cantidad de cuentas. 
+                    ⏱️ <strong>Tiempo estimado:</strong> Algunos minutos según cantidad de cuentas.
                     El sistema respeta límites (500 req/hora por usuario) para no saturar Aguas Cordobesas.
                   </p>
                 </div>
@@ -228,7 +251,7 @@ export function StepVerificarDeuda({ selectedClients, filtros, onComplete }: Ste
                     )}
                     {(filtros.minDeuda || filtros.maxDeuda) && (
                       <li>
-                        • Rango de deuda: 
+                        • Rango de deuda:
                         {filtros.minDeuda && ` mín. $${filtros.minDeuda.toLocaleString()}`}
                         {filtros.maxDeuda && `, máx. $${filtros.maxDeuda.toLocaleString()}`}
                       </li>
@@ -248,8 +271,8 @@ export function StepVerificarDeuda({ selectedClients, filtros, onComplete }: Ste
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium">
-                  {wsProgress ? 
-                    `Procesando ${wsProgress.processed} de ${wsProgress.total} cuentas` : 
+                  {wsProgress ?
+                    `Procesando ${wsProgress.processed} de ${wsProgress.total} cuentas` :
                     'Procesando...'}
                 </span>
                 <span className="text-sm text-gray-600">{progress}%</span>
@@ -258,8 +281,8 @@ export function StepVerificarDeuda({ selectedClients, filtros, onComplete }: Ste
               <div className="flex items-center justify-center space-x-2 text-gray-600">
                 <Loader2 className="h-5 w-5 animate-spin" />
                 <span className="text-sm">
-                  {wsProgress ? 
-                    `📊 ${wsProgress.processed}/${wsProgress.total} cuentas verificadas...` : 
+                  {wsProgress ?
+                    `📊 ${wsProgress.processed}/${wsProgress.total} cuentas verificadas...` :
                     'Consultando Aguas Cordobesas...'}
                 </span>
               </div>
@@ -275,15 +298,21 @@ export function StepVerificarDeuda({ selectedClients, filtros, onComplete }: Ste
 
       {/* Start Button */}
       {!processing && (
-        <div className="flex justify-center">
+        <div className="flex flex-col items-center gap-3">
           <Button
             onClick={handleVerificar}
             size="lg"
             className="w-full sm:w-auto"
+            disabled={!quotaStatus?.can_query}
           >
             <Search className="mr-2 h-5 w-5" />
-            Iniciar Verificación de Deuda
+            {quotaStatus?.can_query ? 'Iniciar Verificación de Deuda' : 'Cuota Diaria Agotada'}
           </Button>
+          {!quotaStatus?.can_query && (
+            <p className="text-sm text-red-600 text-center">
+              ⚠️ Has alcanzado el límite diario de 1000 consultas. Se restablecerá mañana a las 00:00 hs.
+            </p>
+          )}
         </div>
       )}
 

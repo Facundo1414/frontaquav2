@@ -12,6 +12,7 @@ import {
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
+import { Clock } from 'lucide-react'
 import { toast } from 'sonner'
 import { motion } from '@/lib/motion'
 import { LoadingOverlay } from '@/components/LoadingOverlay'
@@ -105,6 +106,25 @@ export default function LoginPage() {
         >
           Gestiona tus clientes con WhatsApp de forma simple y eficiente.
         </motion.p>
+
+        {/* Aviso de Horario de Servicio */}
+        <motion.div
+          className="mt-8 bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-white/20 max-w-sm"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.9, duration: 1 }}
+        >
+          <div className="flex items-center gap-2 mb-2">
+            <Clock className="w-5 h-5 text-yellow-300" />
+            <h4 className="font-semibold text-white">Horario de Servicio</h4>
+          </div>
+          <p className="text-sm text-white/90">
+            Los servicios están disponibles de <strong>Lunes a Viernes</strong> de <strong>9:00 a 16:00 hs</strong>
+          </p>
+          <p className="text-xs text-white/75 mt-2">
+            Fuera de este horario, puede iniciar sesión pero algunos servicios podrían estar limitados.
+          </p>
+        </motion.div>
 
         {/* Animación de burbujas decorativas (opcional) */}
         <motion.div
