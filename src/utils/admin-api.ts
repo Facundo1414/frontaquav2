@@ -37,11 +37,15 @@ interface ApiOptions extends RequestInit {
 async function adminFetch(endpoint: string, options: ApiOptions = {}) {
   const url = `${API_BASE_URL}/api${endpoint}`;
 
+  // Obtener token JWT de localStorage
+  const accessToken =
+    typeof window !== "undefined" ? localStorage.getItem("accessToken") : "";
+
   const config: RequestInit = {
     ...options,
     headers: {
       "Content-Type": "application/json",
-      "x-user-id": ADMIN_UID,
+      ...(accessToken && { Authorization: `Bearer ${accessToken}` }),
       ...options.headers,
     },
   };
@@ -79,6 +83,48 @@ export const adminAPI = {
 
   async getHealth() {
     return adminFetch("/admin/health");
+  },
+
+  /**
+   * Services Management
+   */
+  services: {
+    // Info
+    async getAllInfo() {
+      return adminFetch("/admin/services/info");
+    },
+
+    async getInfo(serviceId: string) {
+      return adminFetch(`/admin/services/info/${serviceId}`);
+    },
+
+    // Logs
+    async getLogs(serviceId?: string, limit: number = 100) {
+      const params = new URLSearchParams();
+      if (serviceId) params.append("service", serviceId);
+      params.append("limit", limit.toString());
+
+      return adminFetch(`/admin/services/logs?${params.toString()}`);
+    },
+
+    // Restart
+    async restart(serviceId: string) {
+      return adminFetch(`/admin/services/restart/${serviceId}`, {
+        method: "POST",
+      });
+    },
+
+    // Export
+    async exportLogs(serviceId: string) {
+      return adminFetch(`/admin/services/export/${serviceId}`);
+    },
+
+    // Clear
+    async clearLogs(serviceId: string) {
+      return adminFetch(`/admin/services/logs/clear/${serviceId}`, {
+        method: "POST",
+      });
+    },
   },
 
   /**

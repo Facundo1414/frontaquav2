@@ -28,6 +28,9 @@ export function RequiresPlan({
   const { isPro, isBase, isLoading } = useSubscription();
   const [showUpgradeDialog, setShowUpgradeDialog] = useState(false);
 
+  // Debug log
+  console.log('🔒 RequiresPlan - plan:', plan, 'isPro:', isPro, 'isBase:', isBase, 'isLoading:', isLoading);
+
   if (isLoading) {
     return <div className="opacity-50">{children}</div>;
   }

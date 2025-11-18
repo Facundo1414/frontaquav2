@@ -188,8 +188,25 @@ export const WhatsappSessionProvider: React.FC<{ children: React.ReactNode }> = 
       } else {
         updateFromStatus({ state: 'launching' });
       }
-    } catch (error) {
-      console.error('❌ Error al reconectar WhatsApp:', error);
+    } catch (error: any) {
+      const status = error?.response?.status;
+      const message = error?.response?.data?.message || error?.message;
+      
+      // Error 500: No hay sesión o baileys worker no disponible
+      if (status === 500) {
+        console.log('📦 No hay sesión de WhatsApp guardada - Usuario debe escanear QR');
+        // Estado limpio, esperando que el usuario inicie sesión
+        updateFromStatus({ state: 'none' });
+        return;
+      }
+      
+      // Error 429: Rate limiting
+      if (status === 429) {
+        console.warn('⚠️ Rate limit alcanzado - reduciendo frecuencia de polling');
+        return;
+      }
+      
+      console.error('❌ Error al reconectar WhatsApp:', message);
       // No mostrar toast de error para no molestar al usuario
     }
   }, [updateFromStatus]);
@@ -244,14 +261,30 @@ export const WhatsappSessionProvider: React.FC<{ children: React.ReactNode }> = 
           await reconnect();
         }
       } catch (error: any) {
-        console.error('❌ Error verificando estado WhatsApp:', error?.response?.status || error?.message);
+        const status = error?.response?.status;
+        const message = error?.response?.data?.message || error?.message;
         
-        // Si es error 500 o error de red, probablemente el baileys-worker no está corriendo
-        // No es un error crítico para usuarios BASE, simplemente no mostrar WhatsApp
-        if (error?.response?.status === 500 || error?.code === 'ERR_NETWORK') {
-          console.warn('⚠️ Baileys worker no disponible - WhatsApp features deshabilitados');
-          // No hacer nada, el usuario puede seguir usando la app
+        // Error 500: Baileys worker no disponible o no hay sesión
+        if (status === 500) {
+          console.log('📦 Baileys worker no disponible o sin sesión - WhatsApp deshabilitado');
+          updateFromStatus({ state: 'none' });
+          return;
         }
+        
+        // Error 429: Rate limiting - dejar de hacer polling temporalmente
+        if (status === 429) {
+          console.warn('⚠️ Rate limit alcanzado en checkAndReconnect');
+          // El interval se encargará de reintentar después
+          return;
+        }
+        
+        // Error de red
+        if (error?.code === 'ERR_NETWORK') {
+          console.warn('⚠️ Error de red - Baileys worker no accesible');
+          return;
+        }
+        
+        console.error('❌ Error verificando estado WhatsApp:', message);
       }
     };
     
@@ -260,12 +293,12 @@ export const WhatsappSessionProvider: React.FC<{ children: React.ReactNode }> = 
       checkAndReconnect();
     }
     
-    // Verificar cada 15 segundos (aumentado de 10 a 15) si no estamos ready ni waiting_qr
+    // Verificar cada 30 segundos (aumentado para evitar rate limiting) si no estamos ready ni waiting_qr
     const interval = setInterval(() => {
       if (!snapshot?.ready && snapshot?.state !== 'waiting_qr') {
         checkAndReconnect();
       }
-    }, 15000);
+    }, 30000); // 30 segundos
     
     return () => clearInterval(interval);
   }, [userId, snapshot?.ready, snapshot?.state, reconnect, updateFromStatus, shouldEnableWhatsapp]);

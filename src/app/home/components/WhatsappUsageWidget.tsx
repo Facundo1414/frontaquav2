@@ -81,7 +81,7 @@ export function WhatsappUsageWidget({ userId }: { userId: string }) {
           Configura WhatsApp Cloud API para empezar a enviar mensajes y trackear tu uso.
         </p>
         <button
-          onClick={() => router.push('/admin/whatsapp/config')}
+          onClick={() => router.push('/whatsapp/config')}
           className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors"
         >
           Configurar ahora

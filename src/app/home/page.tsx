@@ -29,6 +29,9 @@ export default function HomePage() {
   const ADMIN_UID = process.env.NEXT_PUBLIC_ADMIN_UID || ''
   const isAdmin = userId === ADMIN_UID
   
+  // Debug: Log subscription status
+  console.log('🏠 HomePage - userId:', userId, 'isAdmin:', isAdmin)
+  
   // Debug: verificar comparación
   console.log('🔍 HomePage Admin Check:', {
     userId,
@@ -181,10 +184,7 @@ const handleClickFAQ = () => {
         </div>
       )}
 
-      {/* Widget de Uso de WhatsApp - SOLO USUARIOS PRO (no admin, no BASE) */}
-      {/* Usuarios BASE no necesitan ver WhatsApp */}
-
-      {/* Estado WhatsApp - Banner Superior - SOLO ADMIN */}
+      {/* Estado WhatsApp - Banner Superior - SOLO ADMIN (conectado) */}
       {isAdmin && isReady && (
         <div className="mb-6 rounded-lg border-2 border-green-300 bg-gradient-to-r from-green-50 to-emerald-50 p-4 shadow-sm">
           <div className="flex items-center gap-3">
@@ -204,6 +204,11 @@ const handleClickFAQ = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Widget de Uso de WhatsApp - SOLO USUARIOS PRO (no admin) */}
+      {!isAdmin && (
+        <WhatsappUsageWidget />
       )}
 
       {/* Banner NUEVO: Sistema de Filtrado PYSE */}
@@ -294,14 +299,15 @@ const handleClickFAQ = () => {
           onClick={handleClickFiltrarClientes}
           color="bg-green-600"
         />
-        <ServiceCard
-          icon={<FileText className="w-6 h-6 text-white" />}
-          title="Generar Reportes de Deuda"
-          description="Crea y envía aviso o notificación de deuda"
-          onClick={handleClickGenerarDocumentosWhatsApp}
-          color="bg-indigo-500"
-          badge="EN DESARROLLO"
-        />
+        <RequiresPlan plan="PRO">
+          <ServiceCard
+            icon={<FileText className="w-6 h-6 text-white" />}
+            title="Generar Reportes de Deuda"
+            description="Genera PDFs individuales de intimación e instrucciones de pago"
+            onClick={() => router.push('/generar-reportes')}
+            color="bg-indigo-500"
+          />
+        </RequiresPlan>
         <ServiceCard
           icon={<FileArchive className="w-6 h-6 text-white" />}
           title="Recuperar Archivos"

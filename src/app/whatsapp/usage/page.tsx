@@ -121,7 +121,7 @@ export default function WhatsappUsagePage() {
                   Configure sus credenciales para comenzar a enviar mensajes
                 </p>
               </div>
-              <Button onClick={() => router.push('/admin/whatsapp/config')}>
+              <Button onClick={() => router.push('/whatsapp/config')}>
                 Configurar Ahora
               </Button>
             </div>

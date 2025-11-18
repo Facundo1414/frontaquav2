@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Upload, Map, Search, Download, CheckCircle2, Info, ChevronDown, ChevronUp, Users, Loader2 } from "lucide-react"
 import { getUniverseInfo, getNeighborhoodsWithCount } from '@/lib/api'
+import { PyseUsageBar } from '@/components/PyseUsageBar'
 import type { FiltrosBarrios } from './components/StepSeleccionarBarrios'
 
 // 🚀 Lazy load de componentes pesados
@@ -150,6 +151,11 @@ export default function FiltrarClientesPage() {
         <p className="text-gray-600 text-lg">
           Procesa clientes directamente desde tu base de datos
         </p>
+      </div>
+
+      {/* PYSE Usage Bar */}
+      <div className="mb-6">
+        <PyseUsageBar />
       </div>
 
       {/* Explicación del Nuevo Flujo - COLAPSABLE */}
