@@ -24,7 +24,7 @@ export function PyseUsageWidget({ refreshTrigger }: { refreshTrigger?: number })
 
     useEffect(() => {
         fetchQuotaStatus()
-    }, [refreshTrigger]) // Solo actualiza cuando refreshTrigger cambia
+    }, [refreshTrigger]) // Solo actualiza cuando refreshTrigger cambia o al montar
 
     const fetchQuotaStatus = async () => {
         try {
@@ -129,7 +129,7 @@ export function PyseUsageWidget({ refreshTrigger }: { refreshTrigger?: number })
                         <div className="text-xs text-gray-600">Consultas Restantes</div>
                     </div>
                     <div className="bg-white rounded-lg p-3 border border-purple-100">
-                        <div className="text-3xl font-bold text-purple-600">600</div>
+                        <div className="text-3xl font-bold text-purple-600">{status.limit_hourly || 600}</div>
                         <div className="text-xs text-gray-600">Límite por Hora</div>
                     </div>
                 </div>
@@ -176,7 +176,7 @@ export function PyseUsageWidget({ refreshTrigger }: { refreshTrigger?: number })
                         <span>Límite diario: 1000 consultas | Límite horario: 600 consultas/hora</span>
                     </div>
                     <div className="text-xs text-purple-700 italic mt-2">
-                        💡 Este widget se actualiza automáticamente después de cada consulta PYSE
+                        💡 Este widget se actualiza al entrar a la página y después de procesar clientes
                     </div>
                 </div>
             </CardContent>

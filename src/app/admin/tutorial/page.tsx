@@ -460,25 +460,302 @@ export default function AdminTutorialPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <BookOpen className="h-6 w-6 text-indigo-600" />
-                Guía de Uso General
+                Guía de Uso General del Sistema
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
-              <Alert className="bg-gray-50 border-gray-200">
-                <AlertDescription className="text-gray-900">
-                  Esta sección está actualmente vacía. Se completará con la documentación de uso general del sistema.
-                </AlertDescription>
-              </Alert>
-
+              {/* Arquitectura del sistema */}
               <div>
-                <h3 className="text-xl font-semibold mb-3">Temas a incluir:</h3>
-                <ul className="list-disc ml-5 space-y-2 text-gray-700">
-                  <li>Gestión de usuarios y planes de suscripción</li>
-                  <li>Configuración de límites y cuotas</li>
-                  <li>Integración con sistemas externos</li>
-                  <li>Backup y recuperación de datos</li>
-                  <li>Resolución de problemas comunes</li>
-                </ul>
+                <h3 className="text-xl font-semibold mb-3 flex items-center gap-2">
+                  <Settings className="h-5 w-5 text-blue-600" />
+                  Arquitectura del Sistema
+                </h3>
+                <p className="text-gray-700 mb-3">
+                  AQUA V2 está compuesto por 4 servicios independientes que se comunican entre sí:
+                </p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                    <p className="font-semibold mb-2">🔧 Backend API (Puerto 3000)</p>
+                    <ul className="text-sm space-y-1 text-gray-700">
+                      <li>• Autenticación de usuarios (Supabase Auth)</li>
+                      <li>• Gestión de clientes y deudas</li>
+                      <li>• Endpoints REST para frontend</li>
+                      <li>• Integración con PYSE (Aguas Cordobesas)</li>
+                    </ul>
+                  </div>
+                  <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+                    <p className="font-semibold mb-2">🌐 Frontend (Puerto 3001)</p>
+                    <ul className="text-sm space-y-1 text-gray-700">
+                      <li>• Interfaz de usuario (Next.js + React)</li>
+                      <li>• Dashboard de admin y usuarios</li>
+                      <li>• Visualización de métricas en tiempo real</li>
+                      <li>• Gestión de configuración</li>
+                    </ul>
+                  </div>
+                  <div className="bg-purple-50 p-4 rounded-lg border border-purple-200">
+                    <p className="font-semibold mb-2">📄 Comprobante Worker (Puerto 3010)</p>
+                    <ul className="text-sm space-y-1 text-gray-700">
+                      <li>• Generación de PDFs de comprobantes</li>
+                      <li>• Consultas al sistema PYSE</li>
+                      <li>• Procesamiento paralelo de deudas</li>
+                      <li>• Detección de planes de pago vencidos</li>
+                    </ul>
+                  </div>
+                  <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
+                    <p className="font-semibold mb-2">💬 WhatsApp Worker (Puerto 3020)</p>
+                    <ul className="text-sm space-y-1 text-gray-700">
+                      <li>• Gestión de sesiones Baileys (Admin)</li>
+                      <li>• Envío de mensajes masivos</li>
+                      <li>• Verificación de números válidos</li>
+                      <li>• Tracking de envíos</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+
+              {/* Gestión de usuarios */}
+              <div>
+                <h3 className="text-xl font-semibold mb-3">👥 Gestión de Usuarios y Planes</h3>
+                <div className="space-y-4">
+                  <div>
+                    <p className="font-semibold mb-2">📊 Planes disponibles:</p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div className="bg-gray-50 p-3 rounded-lg border border-gray-200">
+                        <p className="font-semibold text-sm mb-2">🆓 Plan BASE (Gratis)</p>
+                        <ul className="text-xs space-y-1 text-gray-700">
+                          <li>• 1000 consultas PYSE/día</li>
+                          <li>• 600 consultas PYSE/hora</li>
+                          <li>• Acceso a todas las funcionalidades</li>
+                        </ul>
+                      </div>
+                      <div className="bg-indigo-50 p-3 rounded-lg border border-indigo-200">
+                        <p className="font-semibold text-sm mb-2">⭐ Plan PRO ($50 USD/mes)</p>
+                        <ul className="text-xs space-y-1 text-gray-700">
+                          <li>• 1000 consultas PYSE/día</li>
+                          <li>• 600 consultas PYSE/hora</li>
+                          <li>• WhatsApp Cloud API oficial</li>
+                          <li>• Sin tracking de envíos</li>
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+
+                  <Alert className="bg-yellow-50 border-yellow-200">
+                    <AlertTriangle className="h-4 w-4 text-yellow-600" />
+                    <AlertDescription className="text-yellow-900 text-sm">
+                      <strong>⚠️ Límites PYSE:</strong> Ambos planes (BASE y PRO) tienen los mismos límites de consultas PYSE: 1000/día y 600/hora. La diferencia principal del plan PRO es el acceso a WhatsApp Cloud API oficial.
+                      <br />
+                      <strong>Admin:</strong> Como administrador, tu cuenta no tiene límites de consultas PYSE y usas el sistema Baileys (no Cloud API) para envíos de WhatsApp sin costo.
+                    </AlertDescription>
+                  </Alert>
+
+                  <div>
+                    <p className="font-semibold mb-2">🔧 Cómo cambiar el plan de un usuario:</p>
+                    <ol className="list-decimal ml-5 space-y-1 text-sm text-gray-700">
+                      <li>Accede a la base de datos en Supabase</li>
+                      <li>Tabla <code className="bg-gray-200 px-1 rounded">auth.users</code></li>
+                      <li>Busca el usuario por email</li>
+                      <li>En <code className="bg-gray-200 px-1 rounded">raw_user_meta_data</code>, cambia <code className="bg-gray-200 px-1 rounded">planType</code> a "BASE" o "PRO"</li>
+                      <li>El cambio es inmediato (no requiere reiniciar servicios)</li>
+                    </ol>
+                  </div>
+                </div>
+              </div>
+
+              {/* Flujos de trabajo */}
+              <div>
+                <h3 className="text-xl font-semibold mb-3">🔄 Flujos de Trabajo Principales</h3>
+                <div className="space-y-4">
+                  <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                    <p className="font-semibold mb-2">1️⃣ Filtrar Clientes PYSE</p>
+                    <ol className="list-decimal ml-5 space-y-1 text-sm text-gray-700">
+                      <li>Usuario sube archivo Excel con cuentas</li>
+                      <li>Sistema verifica deudas en PYSE (Aguas Cordobesas)</li>
+                      <li>Genera 2 archivos:
+                        <ul className="list-disc ml-5 mt-1">
+                          <li>✅ Aptos: Clientes CON deuda</li>
+                          <li>❌ Descartados: Clientes SIN deuda</li>
+                        </ul>
+                      </li>
+                      <li>Usuario descarga los archivos filtrados</li>
+                    </ol>
+                  </div>
+
+                  <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+                    <p className="font-semibold mb-2">2️⃣ Envío de Deudas (Send Debts)</p>
+                    <ol className="list-decimal ml-5 space-y-1 text-sm text-gray-700">
+                      <li>Usuario sube archivo Excel con clientes</li>
+                      <li>Selecciona opciones (INTIMACIÓN, Tipo comprobante, etc.)</li>
+                      <li>Sistema verifica números de WhatsApp válidos</li>
+                      <li>Genera PDF de comprobante (1-3 páginas según deuda)</li>
+                      <li>Envía mensaje + PDF por WhatsApp</li>
+                      <li>Usuario ve progreso en tiempo real y descarga reporte</li>
+                    </ol>
+                  </div>
+
+                  <div className="bg-purple-50 p-4 rounded-lg border border-purple-200">
+                    <p className="font-semibold mb-2">3️⃣ Próximos a Vencer</p>
+                    <ol className="list-decimal ml-5 space-y-1 text-sm text-gray-700">
+                      <li>Usuario sube archivo Excel con clientes</li>
+                      <li>Sistema detecta planes de pago próximos a vencer</li>
+                      <li>Genera comprobante con cuota + consumo (si aplica)</li>
+                      <li>Envía recordatorio preventivo por WhatsApp</li>
+                      <li>Usuario descarga reporte con resultados</li>
+                    </ol>
+                  </div>
+
+                  <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
+                    <p className="font-semibold mb-2">4️⃣ Gestión de Base de Datos de Clientes</p>
+                    <ol className="list-decimal ml-5 space-y-1 text-sm text-gray-700">
+                      <li>Importar clientes desde Excel (22 columnas)</li>
+                      <li>Buscar clientes por cuenta, nombre, teléfono</li>
+                      <li>Filtrar por tipo de conexión (B/M/SOT/SC)</li>
+                      <li>Exportar clientes seleccionados a Excel</li>
+                      <li>Editar/eliminar clientes individualmente</li>
+                    </ol>
+                  </div>
+                </div>
+              </div>
+
+              {/* Resolución de problemas */}
+              <div>
+                <h3 className="text-xl font-semibold mb-3">🔧 Resolución de Problemas Comunes</h3>
+                <div className="space-y-3">
+                  <div className="bg-red-50 p-4 rounded-lg border border-red-200">
+                    <p className="font-semibold mb-2 text-red-900">❌ WhatsApp desconectado</p>
+                    <ol className="list-decimal ml-5 space-y-1 text-sm text-gray-700">
+                      <li>Ve a <code className="bg-red-100 px-1 rounded">/admin/services</code></li>
+                      <li>Verifica que "Baileys Worker" esté activo</li>
+                      <li>Si está detenido, reinicia manualmente</li>
+                      <li>Escanea el QR code en el widget de WhatsApp</li>
+                      <li>Espera 10-15 segundos a que conecte</li>
+                    </ol>
+                  </div>
+
+                  <div className="bg-orange-50 p-4 rounded-lg border border-orange-200">
+                    <p className="font-semibold mb-2 text-orange-900">⚠️ PYSE no responde / Errores 500</p>
+                    <ol className="list-decimal ml-5 space-y-1 text-sm text-gray-700">
+                      <li>Verifica horario: PYSE funciona de 9:00 a 16:00 hs (L-V)</li>
+                      <li>Si estás fuera de horario, espera a que abra</li>
+                      <li>Revisa límites de cuota en el widget PYSE</li>
+                      <li>Si superaste el límite diario, espera al día siguiente</li>
+                      <li>Verifica en <code className="bg-orange-100 px-1 rounded">/admin/pyse-usage</code> si hay abuso</li>
+                    </ol>
+                  </div>
+
+                  <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
+                    <p className="font-semibold mb-2 text-yellow-900">⚠️ PDFs no se generan</p>
+                    <ol className="list-decimal ml-5 space-y-1 text-sm text-gray-700">
+                      <li>Ve a <code className="bg-yellow-100 px-1 rounded">/admin/services</code></li>
+                      <li>Verifica que "Comprobante Worker" esté activo</li>
+                      <li>Revisa logs del servicio (buscar errores en rojo)</li>
+                      <li>Si ves "comprobante debe ser seleccionado", el sistema reintenta automáticamente (hasta 3 veces)</li>
+                      <li>Si persiste, puede ser problema de PYSE (ver punto anterior)</li>
+                    </ol>
+                  </div>
+
+                  <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                    <p className="font-semibold mb-2 text-blue-900">🔄 Servicios lentos / Alto uso de CPU</p>
+                    <ol className="list-decimal ml-5 space-y-1 text-sm text-gray-700">
+                      <li>Ve a <code className="bg-blue-100 px-1 rounded">/admin/railway</code> (si token válido)</li>
+                      <li>Verifica uso de CPU/Memory de cada servicio</li>
+                      <li>Si un servicio supera 80% CPU constantemente:
+                        <ul className="list-disc ml-5 mt-1">
+                          <li>Reinicia el servicio desde <code className="bg-blue-100 px-1 rounded">/admin/services</code></li>
+                          <li>Revisa logs para identificar problema</li>
+                        </ul>
+                      </li>
+                      <li>Considera reducir concurrencia si hay muchos procesos paralelos</li>
+                    </ol>
+                  </div>
+                </div>
+              </div>
+
+              {/* Backup y recuperación */}
+              <div>
+                <h3 className="text-xl font-semibold mb-3">💾 Backup y Recuperación</h3>
+                <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                  <p className="font-semibold mb-3">📁 Archivos temporales importantes:</p>
+                  <ul className="space-y-2 text-sm text-gray-700">
+                    <li>
+                      <strong>Sesiones WhatsApp Baileys:</strong>
+                      <br />
+                      <code className="text-xs bg-gray-200 px-2 py-1 rounded">API WHATSAPP/baileys-worker/sessions/</code>
+                      <br />
+                      <span className="text-xs text-gray-600">Contiene carpetas con UUID de sesión. Backup periódico recomendado.</span>
+                    </li>
+                    <li>
+                      <strong>PDFs temporales:</strong>
+                      <br />
+                      <code className="text-xs bg-gray-200 px-2 py-1 rounded">API WHATSAPP/whatsapp-worker/pdfTemporales/</code>
+                      <br />
+                      <span className="text-xs text-gray-600">Se limpian automáticamente después de enviar. No requiere backup.</span>
+                    </li>
+                    <li>
+                      <strong>Base de datos (Supabase):</strong>
+                      <br />
+                      <span className="text-xs text-gray-600">Backup automático diario de Supabase. Descarga manual desde Dashboard → Database → Backups.</span>
+                    </li>
+                  </ul>
+                </div>
+
+                <Alert className="mt-3 bg-blue-50 border-blue-200">
+                  <AlertDescription className="text-blue-900 text-sm">
+                    <strong>💡 Tip:</strong> Para restaurar sesión WhatsApp, copia la carpeta de sesión guardada a <code className="bg-blue-100 px-1 rounded">sessions/</code> y reinicia el Baileys Worker.
+                  </AlertDescription>
+                </Alert>
+              </div>
+
+              {/* Buenas prácticas */}
+              <div>
+                <h3 className="text-xl font-semibold mb-3">✅ Buenas Prácticas</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div className="bg-green-50 p-3 rounded-lg border border-green-200">
+                    <p className="font-semibold text-sm mb-2">✅ Hacer</p>
+                    <ul className="text-xs space-y-1 text-gray-700">
+                      <li>• Revisar logs periódicamente en <code className="bg-green-100 px-1 rounded">/admin/services</code></li>
+                      <li>• Monitorear uso PYSE en <code className="bg-green-100 px-1 rounded">/admin/pyse-usage</code></li>
+                      <li>• Backup semanal de sesiones WhatsApp</li>
+                      <li>• Validar Excel antes de procesar (usar plantilla)</li>
+                      <li>• Enviar mensajes en lotes pequeños (100-200)</li>
+                    </ul>
+                  </div>
+                  <div className="bg-red-50 p-3 rounded-lg border border-red-200">
+                    <p className="font-semibold text-sm mb-2">❌ Evitar</p>
+                    <ul className="text-xs space-y-1 text-gray-700">
+                      <li>• Procesar archivos fuera de horario PYSE</li>
+                      <li>• Enviar más de 500 WhatsApp simultáneos</li>
+                      <li>• Compartir credenciales WhatsApp Cloud API</li>
+                      <li>• Exceder límites de cuota PYSE</li>
+                      <li>• Reiniciar servicios durante procesamiento</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+
+              {/* Enlaces rápidos */}
+              <div>
+                <h3 className="text-xl font-semibold mb-3">🔗 Enlaces Rápidos</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
+                    <p className="font-semibold text-sm mb-2">🔧 Administración</p>
+                    <ul className="text-xs space-y-1">
+                      <li>• <code className="bg-blue-100 px-1 rounded">/admin/services</code> - Gestión de servicios</li>
+                      <li>• <code className="bg-blue-100 px-1 rounded">/admin/pyse-usage</code> - Monitoreo PYSE</li>
+                      <li>• <code className="bg-blue-100 px-1 rounded">/admin/railway</code> - Métricas Railway</li>
+                      <li>• <code className="bg-blue-100 px-1 rounded">/admin/tutorial</code> - Esta guía</li>
+                    </ul>
+                  </div>
+                  <div className="bg-green-50 p-3 rounded-lg border border-green-200">
+                    <p className="font-semibold text-sm mb-2">💼 Operaciones</p>
+                    <ul className="text-xs space-y-1">
+                      <li>• <code className="bg-green-100 px-1 rounded">/filtro</code> - Filtrar clientes PYSE</li>
+                      <li>• <code className="bg-green-100 px-1 rounded">/senddebts</code> - Envío de deudas</li>
+                      <li>• <code className="bg-green-100 px-1 rounded">/proximos-vencer</code> - Envío preventivo</li>
+                      <li>• <code className="bg-green-100 px-1 rounded">/clientes-database</code> - Base de datos</li>
+                    </ul>
+                  </div>
+                </div>
               </div>
             </CardContent>
           </Card>
