@@ -15,6 +15,7 @@ import {
   Shield,
 } from 'lucide-react'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Button } from '@/components/ui/button'
 
 const ADMIN_UID = process.env.NEXT_PUBLIC_ADMIN_UID || ''
 
