@@ -64,15 +64,29 @@ export default function RailwayAdminPage() {
       setRefreshing(true);
       setError(null);
 
+      console.log('🔄 [Railway] Fetching metrics...');
+
       const [metricsRes, healthRes] = await Promise.all([
         api.get('/admin/metrics/railway'),
         api.get('/admin/metrics/railway/health'),
       ]);
 
+      console.log('📊 [Railway] Metrics response:', metricsRes.data);
+      console.log('🏥 [Railway] Health response:', healthRes.data);
+
       setMetrics(metricsRes.data);
       setHealth(healthRes.data);
+      
+      console.log('✅ [Railway] Data loaded successfully');
     } catch (err: any) {
-      setError(err.response?.data?.message || err.message || 'Error desconocido');
+      const errorMsg = err.response?.data?.message || err.message || 'Error desconocido';
+      console.error('❌ [Railway] Error fetching metrics:', err);
+      console.error('❌ [Railway] Error details:', {
+        status: err.response?.status,
+        data: err.response?.data,
+        message: errorMsg
+      });
+      setError(errorMsg);
     } finally {
       setLoading(false);
       setRefreshing(false);

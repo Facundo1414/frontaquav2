@@ -267,7 +267,7 @@ export default function WhatsappUsagePage() {
 
         {/* Gráficos de Historial */}
         {chartData.length > 0 && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
             {/* Gráfico de Mensajes */}
             <div className="bg-white rounded-lg shadow-md p-6 border border-gray-200">
               <h3 className="font-semibold text-gray-900 mb-4">Mensajes por Mes</h3>
@@ -297,6 +297,180 @@ export default function WhatsappUsagePage() {
             </div>
           </div>
         )}
+
+        {/* Consejos para Optimizar Costos */}
+        <div className="bg-white rounded-lg shadow-md p-6 mb-8 border border-gray-200">
+          <h3 className="font-semibold text-gray-900 mb-4 text-lg">💡 Consejos para Ahorrar</h3>
+          <div className="space-y-4 text-sm text-gray-700">
+            <div>
+              <h4 className="font-semibold mb-2">1. Agrupa mensajes al mismo contacto</h4>
+              <ul className="list-disc ml-6 space-y-1">
+                <li>Si envías comprobante + recordatorio + link de pago en el mismo día = <strong>1 conversación</strong></li>
+                <li>Si los envías en días diferentes = <strong>3 conversaciones</strong></li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="font-semibold mb-2">2. Planifica envíos masivos</h4>
+              <ul className="list-disc ml-6 space-y-1">
+                <li>Envía todos los comprobantes del mes en 1 día</li>
+                <li>Envía todos los recordatorios en 1 día</li>
+                <li>Esto maximiza el uso de las ventanas de 24 horas</li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="font-semibold mb-2">3. Usa el free tier estratégicamente</h4>
+              <ul className="list-disc ml-6 space-y-1">
+                <li>1,000 conversaciones gratuitas = ~33 clientes con 30 mensajes cada uno</li>
+                <li>Prioriza los clientes más importantes o morosos</li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="font-semibold mb-2">4. Monitorea en tiempo real</h4>
+              <ul className="list-disc ml-6 space-y-1">
+                <li>El badge en la navbar te avisa cuando te acercas al límite</li>
+                <li>Revisa el dashboard semanalmente</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        {/* Preguntas Frecuentes */}
+        <div className="bg-white rounded-lg shadow-md p-6 mb-8 border border-gray-200">
+          <h3 className="font-semibold text-gray-900 mb-4 text-lg">❓ Preguntas Frecuentes</h3>
+          <div className="space-y-4 text-sm">
+            <div>
+              <h4 className="font-semibold text-gray-900 mb-1">¿Qué pasa si supero las 1,000 conversaciones gratuitas?</h4>
+              <p className="text-gray-700">
+                Se te cobrará <strong>$0.095 USD por conversación adicional</strong> (precio para Argentina). 
+                El costo se debita de tu método de pago configurado en Meta Business Suite.
+              </p>
+            </div>
+            <div>
+              <h4 className="font-semibold text-gray-900 mb-1">¿Puedo cambiar el número de teléfono después?</h4>
+              <p className="text-gray-700 mb-2">Sí, simplemente:</p>
+              <ol className="list-decimal ml-6 text-gray-700 space-y-1">
+                <li>Agrega un nuevo número en Meta Business Suite</li>
+                <li>Obtén su nuevo <strong>Phone Number ID</strong></li>
+                <li>Actualiza la configuración en Aqua</li>
+              </ol>
+            </div>
+            <div>
+              <h4 className="font-semibold text-gray-900 mb-1">¿Mi access token expira?</h4>
+              <p className="text-gray-700 mb-2">
+                Los <strong>tokens permanentes</strong> no expiran, pero pueden ser revocados por:
+              </p>
+              <ul className="list-disc ml-6 text-gray-700 space-y-1">
+                <li>Cambio de contraseña de Facebook</li>
+                <li>Cambios en permisos de la app</li>
+                <li>Seguridad de Meta</li>
+              </ul>
+              <p className="text-gray-700 mt-2">
+                Si eso ocurre, genera un nuevo token y actualízalo en Aqua.
+              </p>
+            </div>
+            <div>
+              <h4 className="font-semibold text-gray-900 mb-1">¿Es seguro guardar mi access token en Aqua?</h4>
+              <p className="text-gray-700">
+                Sí. Tu access token se guarda <strong>encriptado con AES-256-GCM</strong> en la base de datos. 
+                Ni siquiera los administradores de Aqua pueden verlo en texto plano.
+              </p>
+            </div>
+            <div>
+              <h4 className="font-semibold text-gray-900 mb-1">¿Qué es "Quality Rating"?</h4>
+              <p className="text-gray-700 mb-2">Meta califica tu cuenta según:</p>
+              <ul className="list-disc ml-6 text-gray-700 space-y-1">
+                <li><strong>GREEN</strong>: Excelente calidad, sin restricciones</li>
+                <li><strong>YELLOW</strong>: Calidad media, puede haber límites de envío</li>
+                <li><strong>RED</strong>: Baja calidad, restricciones severas o riesgo de suspensión</li>
+              </ul>
+              <p className="text-gray-700 mt-2">Para mantener GREEN:</p>
+              <ul className="list-disc ml-6 text-gray-700 space-y-1">
+                <li>No envíes spam</li>
+                <li>Responde rápido a tus clientes</li>
+                <li>No uses templates agresivos</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        {/* Solución de Problemas */}
+        <div className="bg-white rounded-lg shadow-md p-6 mb-8 border border-gray-200">
+          <h3 className="font-semibold text-gray-900 mb-4 text-lg">🆘 Solución de Problemas</h3>
+          <div className="space-y-4 text-sm">
+            <div>
+              <h4 className="font-semibold text-gray-900 mb-1">"Credenciales inválidas: Access token inválido o sin permisos"</h4>
+              <p className="text-gray-700 font-semibold">Causa:</p>
+              <p className="text-gray-700 mb-2">El token no tiene los permisos correctos o expiró.</p>
+              <p className="text-gray-700 font-semibold">Solución:</p>
+              <ol className="list-decimal ml-6 text-gray-700 space-y-1">
+                <li>Ve a Meta Business Suite</li>
+                <li>Genera un nuevo token permanente</li>
+                <li>Asegúrate de seleccionar los permisos:
+                  <ul className="list-disc ml-6 mt-1">
+                    <li><code className="bg-gray-100 px-1 py-0.5 rounded">whatsapp_business_messaging</code></li>
+                    <li><code className="bg-gray-100 px-1 py-0.5 rounded">whatsapp_business_management</code></li>
+                  </ul>
+                </li>
+              </ol>
+            </div>
+            <div>
+              <h4 className="font-semibold text-gray-900 mb-1">"phone_number_id no encontrado"</h4>
+              <p className="text-gray-700 font-semibold">Causa:</p>
+              <p className="text-gray-700 mb-2">El ID del número no coincide o el número no está verificado.</p>
+              <p className="text-gray-700 font-semibold">Solución:</p>
+              <ol className="list-decimal ml-6 text-gray-700 space-y-1">
+                <li>Verifica que el número esté <strong>verificado</strong> en Meta Business Suite</li>
+                <li>Copia nuevamente el <strong>Phone Number ID</strong> exacto (sin espacios)</li>
+              </ol>
+            </div>
+            <div>
+              <h4 className="font-semibold text-gray-900 mb-1">"Business Account ID inválido"</h4>
+              <p className="text-gray-700 font-semibold">Causa:</p>
+              <p className="text-gray-700 mb-2">Copiaste el ID de la app en lugar del ID de la cuenta de negocio.</p>
+              <p className="text-gray-700 font-semibold">Solución:</p>
+              <ol className="list-decimal ml-6 text-gray-700 space-y-1">
+                <li>Ve a <strong>Configuración de Business Manager</strong> (no de la app)</li>
+                <li>Busca <strong>"Información comercial"</strong></li>
+                <li>Copia el <strong>Business Manager ID</strong></li>
+              </ol>
+            </div>
+          </div>
+        </div>
+
+        {/* Soporte */}
+        <div className="bg-gray-50 border border-gray-200 rounded-lg p-6">
+          <h3 className="font-semibold text-gray-900 mb-3">📞 Soporte</h3>
+          <p className="text-sm text-gray-700 mb-3">
+            Si tienes problemas que no se resuelven con esta guía:
+          </p>
+          <ul className="space-y-2 text-sm text-gray-700">
+            <li>
+              <strong>Documentación oficial de Meta</strong>:{' '}
+              <a 
+                href="https://developers.facebook.com/docs/whatsapp" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-blue-600 hover:underline"
+              >
+                developers.facebook.com/docs/whatsapp
+              </a>
+            </li>
+            <li>
+              <strong>Soporte de Aqua</strong>: facu.allende14@gmail.com
+            </li>
+            <li>
+              <strong>FAQ de Meta Business</strong>:{' '}
+              <a 
+                href="https://www.facebook.com/business/help" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-blue-600 hover:underline"
+              >
+                facebook.com/business/help
+              </a>
+            </li>
+          </ul>
+        </div>
       </main>
     </div>
   )

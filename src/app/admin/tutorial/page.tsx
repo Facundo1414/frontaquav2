@@ -1,16 +1,29 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { BookOpen, Settings, MessageCircle, BarChart, AlertTriangle, CheckCircle, Clock, Zap } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { BookOpen, Settings, MessageCircle, BarChart, AlertTriangle, CheckCircle, Clock, Zap, ArrowLeft } from 'lucide-react'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 
 export default function AdminTutorialPage() {
+  const router = useRouter()
+
   return (
     <div className="container mx-auto p-6 max-w-7xl">
       {/* Header */}
       <div className="mb-8">
+        <Button 
+          variant="ghost" 
+          className="mb-4"
+          onClick={() => router.back()}
+        >
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Volver al Panel
+        </Button>
+        
         <div className="flex items-center gap-3 mb-3">
           <BookOpen className="h-8 w-8 text-blue-600" />
           <h1 className="text-4xl font-bold text-gray-900">Tutorial de Administración</h1>

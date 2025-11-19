@@ -112,12 +112,14 @@ export default function AdminWhatsappUsagePage() {
         <div className="container max-w-6xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <button
+              <Button
+                variant="ghost"
                 onClick={() => router.push('/admin')}
-                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                className="p-2"
               >
-                <ArrowLeft className="w-5 h-5" />
-              </button>
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Volver al Panel
+              </Button>
               <div>
                 <div className="flex items-center gap-2">
                   <h1 className="text-2xl font-bold text-gray-900">Uso de WhatsApp - Todos los Usuarios</h1>

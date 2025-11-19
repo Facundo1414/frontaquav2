@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -45,6 +46,7 @@ import {
   Unlock,
   CreditCard,
   Loader2,
+  ArrowLeft,
 } from 'lucide-react';
 
 interface UserWithSubscription {
@@ -78,6 +80,7 @@ interface SubscriptionMetrics {
 }
 
 export default function AdminSubscriptionsPage() {
+  const router = useRouter();
   const [users, setUsers] = useState<UserWithSubscription[]>([]);
   const [metrics, setMetrics] = useState<SubscriptionMetrics | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -270,6 +273,16 @@ export default function AdminSubscriptionsPage() {
 
   return (
     <div className="container mx-auto p-6 space-y-6">
+      {/* Back Button */}
+      <Button
+        variant="ghost"
+        onClick={() => router.back()}
+        className="mb-4"
+      >
+        <ArrowLeft className="mr-2 h-4 w-4" />
+        Volver al Panel
+      </Button>
+
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>

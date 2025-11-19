@@ -41,7 +41,7 @@ export function ServiceStatus() {
   const [logsLoading, setLogsLoading] = useState(false)
   const [restartDialog, setRestartDialog] = useState<string | null>(null)
   const [restarting, setRestarting] = useState(false)
-  const [autoRefresh, setAutoRefresh] = useState(true)
+  const [autoRefresh, setAutoRefresh] = useState(false) // ❌ Desactivado por defecto para evitar throttling
   const [logFilter, setLogFilter] = useState<string>('all')
   
   const logsEndRef = useRef<HTMLDivElement>(null)
@@ -52,7 +52,7 @@ export function ServiceStatus() {
     loadServicesInfo()
 
     if (autoRefresh) {
-      const interval = setInterval(loadServicesInfo, 20000) // Cada 20 segundos (3 veces por minuto)
+      const interval = setInterval(loadServicesInfo, 60000) // ✅ Cada 60 segundos (1 vez por minuto)
       return () => clearInterval(interval)
     }
   }, [autoRefresh])

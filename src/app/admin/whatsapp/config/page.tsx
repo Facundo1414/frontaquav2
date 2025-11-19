@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, CheckCircle2, XCircle, ExternalLink, Copy, Eye, EyeOff, AlertCircle, Shield } from "lucide-react";
+import { Loader2, CheckCircle2, XCircle, ExternalLink, Copy, Eye, EyeOff, AlertCircle, Shield, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import api from "@/lib/api/axiosInstance";
 
@@ -155,6 +155,16 @@ export default function WhatsappConfigPage() {
 
   return (
     <div className="container max-w-6xl mx-auto py-8 px-4 space-y-6">
+      {/* Back Button */}
+      <Button
+        variant="ghost"
+        onClick={() => router.back()}
+        className="mb-4"
+      >
+        <ArrowLeft className="mr-2 h-4 w-4" />
+        Volver al Panel
+      </Button>
+
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
