@@ -66,7 +66,7 @@ export function useWhatsappStatus(userId: string | null, enabled = true) {
       socket.off("whatsapp:status", handleStatus);
       setIsSubscribed(false);
     };
-  }, [socket, connected, userId]);
+  }, [socket, connected, userId, enabled]);
 
   return {
     status,

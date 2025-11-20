@@ -55,7 +55,8 @@ export const WhatsappSessionProvider: React.FC<{ children: React.ReactNode }> = 
   const { status: wsStatus, isSubscribed, connected } = useWhatsappStatus(userId, shouldEnableWhatsapp);
   
   console.log('📱 WhatsappSessionContext state:', {
-    userId: !!userId,
+    userId,
+    ADMIN_UID,
     isAdmin,
     shouldEnableWhatsapp,
     connected,
@@ -78,6 +79,49 @@ export const WhatsappSessionProvider: React.FC<{ children: React.ReactNode }> = 
       }
     } catch { /* ignore */ }
   }, []);
+
+  // 🆕 Verificar estado real del backend cuando se habilita WhatsApp (admin detectado)
+  useEffect(() => {
+    if (!shouldEnableWhatsapp || !userId) return;
+
+    const verifyBackendState = async () => {
+      console.log('🔍 Admin detectado - Verificando estado real en Baileys Worker...');
+      
+      try {
+        const state = await simpleWaState();
+        console.log('📊 Estado en backend:', state);
+        
+        // Si el sessionStorage dice 'ready' pero el backend dice que no hay sesión
+        if (snapshot?.state === 'ready' && !state.ready && !state.authenticated) {
+          console.warn('⚠️ Estado inconsistente detectado: sessionStorage dice "ready" pero backend no tiene sesión');
+          console.log('🧹 Limpiando estado obsoleto del sessionStorage');
+          sessionStorage.removeItem('whatsapp_v2_snapshot');
+          updateFromStatus({ state: 'none' });
+        }
+        // Si el backend tiene sesión pero nosotros no lo sabemos
+        else if (state.ready && snapshot?.state !== 'ready') {
+          console.log('✅ Sesión activa encontrada en backend, actualizando contexto');
+          updateFromStatus({ state: 'ready' });
+        }
+        // Si está sincronizando
+        else if (state.authenticated && !state.ready) {
+          console.log('🔄 Sesión sincronizando en backend');
+          updateFromStatus({ state: 'syncing' });
+        }
+      } catch (error: any) {
+        console.error('❌ Error verificando estado del backend:', error);
+        // Si hay error 500, probablemente no hay sesión
+        if (error?.response?.status === 500) {
+          console.log('🧹 Baileys Worker indica no hay sesión (500), limpiando estado');
+          sessionStorage.removeItem('whatsapp_v2_snapshot');
+          updateFromStatus({ state: 'none' });
+        }
+      }
+    };
+
+    // Verificar inmediatamente al montar
+    verifyBackendState();
+  }, [shouldEnableWhatsapp, userId]);
 
   const updateFromStatus = useCallback((payload: any) => {
     if (!payload) return;
@@ -227,9 +271,6 @@ export const WhatsappSessionProvider: React.FC<{ children: React.ReactNode }> = 
       // 2. No hay snapshot o el estado es 'none'
       // 3. No estamos ya conectados vía WebSocket
       if (!userId) return;
-      
-      // Si ya tenemos sesión ready, no hacer nada
-      if (snapshot?.ready) return;
       
       // 🔧 FIX: NO VERIFICAR SI ESTAMOS ESPERANDO QR
       // Esto evita que el polling sobrescriba el estado mientras el usuario escanea
