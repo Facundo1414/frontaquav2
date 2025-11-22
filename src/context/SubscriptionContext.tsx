@@ -260,7 +260,6 @@ const proFeatures = [
   'send_proximos_vencer',
   'generate_reports',
   'send_sin_plan',
-  'whatsapp_cloud_api',
 ];
 
 const baseFeatures = [
@@ -279,7 +278,6 @@ export const getFeatureLabel = (feature: string): string => {
     send_proximos_vencer: 'Notificar Próximos a Vencer',
     generate_reports: 'Generar Reportes de Deuda',
     send_sin_plan: 'Enviar a Clientes sin Plan (+3 vencidos)',
-    whatsapp_cloud_api: 'WhatsApp Cloud API',
     filter_clients: 'Filtrar Clientes PYSE',
     recover_files: 'Recuperar Archivos',
     client_database: 'Base de Clientes',

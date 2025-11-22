@@ -65,7 +65,7 @@ const handleClick = async () => {
       router.push('/senddebts');
     }
   } else {
-    // Usuarios regulares: ir directo (usan Cloud API)
+    // Usuarios regulares: usar sistema centralizado
     router.push('/senddebts');
   }
 }
@@ -93,7 +93,7 @@ const handleClickProximosVencer = async () => {
       router.push('/proximos-vencer');
     }
   } else {
-    // Usuarios regulares: ir directo (usan Cloud API)
+    // Usuarios regulares: usar sistema centralizado
     router.push('/proximos-vencer');
   }
 }
@@ -171,7 +171,7 @@ const handleClickFAQ = () => {
             <div className="flex items-start gap-3">
               <MessageCircle className="w-5 h-5 mt-0.5" />
               <div>
-                <p className="font-semibold">Tu sesión de WhatsApp (Baileys) no está lista</p>
+                <p className="font-semibold">Tu sesión de WhatsApp no está lista</p>
                 <p className="text-sm opacity-90">Iniciá sesión para poder enviar las deudas a tus clientes.</p>
               </div>
             </div>
@@ -195,7 +195,7 @@ const handleClickFAQ = () => {
               </div>
             </div>
             <div className="flex-1">
-              <p className="font-semibold text-green-900">WhatsApp conectado (Baileys)</p>
+              <p className="font-semibold text-green-900">WhatsApp conectado</p>
               <p className="text-sm text-green-700">Tu sesión está activa y lista para enviar mensajes</p>
             </div>
             <div className="flex-shrink-0">
@@ -207,9 +207,9 @@ const handleClickFAQ = () => {
         </div>
       )}
 
-      {/* Widget de Uso de WhatsApp - SOLO USUARIOS PRO (no admin) */}
-      {!isAdmin && userId && (
-        <WhatsappUsageWidget userId={userId} />
+      {/* Widget de Estado del Sistema WhatsApp - Todos los usuarios */}
+      {userId && (
+        <WhatsappUsageWidget />
       )}
 
       {/* Banner NUEVO: Sistema de Filtrado PYSE */}

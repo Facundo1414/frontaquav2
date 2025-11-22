@@ -8,6 +8,8 @@ import { Loader2, Info } from 'lucide-react'
 import { ProgressCard } from './ProgressCard'
 import { useProgressWebSocket } from '@/hooks/useProgressWebSocket'
 import { useGlobalContext } from '@/app/providers/context/GlobalContext'
+import { useSendWithWhatsAppCheck } from '@/hooks/useSendWithWhatsAppCheck'
+import { SendButton } from '@/components/whatsapp/SendButton'
 
 const MAX_MESSAGE_LENGTH = 500
 
@@ -56,6 +58,9 @@ Por favor, realiza el pago antes del vencimiento.
     failed: 0,
     pending: 0,
   })
+
+  // 🚀 Hook para verificación y feedback de envío
+  const sendControl = useSendWithWhatsAppCheck()
 
   // Auto-fetch phone number on mount
   useEffect(() => {
@@ -200,57 +205,56 @@ Por favor, realiza el pago antes del vencimiento.
       return
     }
 
-    setLoading(true)
-    setStatus(null)
+    // Ejecutar con verificación de WhatsApp
+    await sendControl.execute({
+      onSend: async () => {
+        setLoading(true)
+        setStatus(null)
 
-    try {
-      // Siempre enviar TODOS (plan + consumo) - el sistema maneja automáticamente cada tipo de plan
-      const result = await sendAndScrape(
-        fileNameFiltered, 
-        message, 
-        'TODOS',
-        incluirIntimacion,
-        telefonoUsuario || undefined
-      )
-      
-      // 🎯 Backend siempre devuelve jobId para tracking en tiempo real
-      if (result.jobId) {
-        console.log('📊 JobId recibido:', result.jobId)
-        setJobId(result.jobId)
-      } else {
-        console.warn('⚠️ Backend no retornó jobId, no habrá progreso en tiempo real')
+        // Siempre enviar TODOS (plan + consumo) - el sistema maneja automáticamente cada tipo de plan
+        const result = await sendAndScrape(
+          fileNameFiltered, 
+          message, 
+          'TODOS',
+          incluirIntimacion,
+          telefonoUsuario || undefined
+        )
+        
+        // 🎯 Backend siempre devuelve jobId para tracking en tiempo real
+        if (result.jobId) {
+          console.log('📊 JobId recibido:', result.jobId)
+          setJobId(result.jobId)
+        } else {
+          console.warn('⚠️ Backend no retornó jobId, no habrá progreso en tiempo real')
+        }
+        
+        setStatus(result.message || '✅ Mensajes enviados correctamente')
+        if (result.file) {
+          setProcessedFile(result.file) 
+          setBackupFiles([])
+        }
+        
+        // Si hay jobId, mantener loading=true y esperar WebSocket
+        if (result.jobId) {
+          console.log('🔌 Job iniciado, esperando progreso via WebSocket...')
+          setStatus('⏳ Generando PDFs y verificando deudas...')
+          setPollingAttempts(0)
+          // NO hacer setLoading(false) aquí, lo hace cuando llega el archivo
+        } else {
+          // Sin WebSocket, avanzar manualmente
+          console.log('🚀 Avanzando al paso 2 (sin WebSocket)')
+          setTimeout(() => {
+            setActiveStep(2) // Ir a descargar (ahora es paso 2)
+          }, 1500)
+          setLoading(false)
+        }
       }
-      
-      setStatus(result.message || '✅ Mensajes enviados correctamente')
-      if (result.file) {
-        setProcessedFile(result.file) 
-        setBackupFiles([])
-      }
-      
-      // Si hay jobId, mantener loading=true y esperar WebSocket
-      if (result.jobId) {
-        console.log('🔌 Job iniciado, esperando progreso via WebSocket...')
-        setStatus('⏳ Generando PDFs y verificando deudas...')
-        setPollingAttempts(0)
-        // NO hacer setLoading(false) aquí, lo hace cuando llega el archivo
-      } else {
-        // Sin WebSocket, avanzar manualmente
-        console.log('🚀 Avanzando al paso 2 (sin WebSocket)')
-        setTimeout(() => {
-          setActiveStep(2) // Ir a descargar (ahora es paso 2)
-        }, 1500)
-        setLoading(false)
-      }
-    } catch (error) {
+    }).catch((error) => {
       console.error('❌ Error en envío:', error)
       setStatus("Error al enviar las deudas. Intenta de nuevo.")
-      setLoading(false) // Solo aquí si hay error
-      try {
-        // Intentar listar respaldos disponibles
-        const files = await listResultBackups()
-        setBackupFiles(files)
-      } catch {}
-    }
+      setLoading(false)
+      listResultBackups().then(files => setBackupFiles(files)).catch(() => {})
+    })
   }
 
   const handleCancel = () => {
@@ -472,18 +476,17 @@ Por favor, realiza el pago antes del vencimiento.
             <Button
               variant="outline"
               onClick={handleCancel}
-              disabled={loading}
+              disabled={loading || sendControl.isChecking || sendControl.isSending}
               className='bg-red-50 hover:bg-red-100'
             >
               Cancelar todo
             </Button>
-            <Button
+            <SendButton
+              state={sendControl.state}
               onClick={handleSend}
               disabled={loading}
-              className=""
-            >
-              {loading ? 'Enviando...' : 'Enviar mensajes →'}
-            </Button>
+              label="Enviar mensajes →"
+            />
           </div>
         </div>
       </div>

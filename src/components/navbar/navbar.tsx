@@ -149,26 +149,8 @@ export default function Navbar() {
         </div>
       )}
 
-      {/* Derecha: Badge WhatsApp + Avatar */}
+      {/* Derecha: Avatar */}
       <div className="flex items-center gap-3">
-        {/* WhatsApp Usage Badge - Solo para usuarios PRO (no admin, no BASE) */}
-        {!isAdmin && isPro && whatsappUsage && (
-          <Link href="/whatsapp/usage">
-            <Badge
-              variant="outline"
-              className={`cursor-pointer transition-colors ${whatsappUsage.free_tier_used < 800
-                  ? 'bg-green-100 text-green-700 border-green-300 hover:bg-green-200'
-                  : whatsappUsage.free_tier_used < 950
-                    ? 'bg-yellow-100 text-yellow-700 border-yellow-300 hover:bg-yellow-200'
-                    : 'bg-red-100 text-red-700 border-red-300 hover:bg-red-200'
-                }`}
-            >
-              <MessageCircle className="w-3 h-3 mr-1" />
-              {1000 - whatsappUsage.free_tier_used} gratis restantes
-            </Badge>
-          </Link>
-        )}
-
         <Sheet open={open} onOpenChange={setOpen}>
           <SheetTrigger asChild>
             <div className="relative">
@@ -177,7 +159,7 @@ export default function Navbar() {
                   {usernameGlobal?.charAt(0).toUpperCase() || 'U'}
                 </AvatarFallback>
               </Avatar>
-              {/* Indicador de estado Baileys - Solo para admin */}
+              {/* Indicador de estado WhatsApp - Solo para admin */}
               {isAdmin && (
                 <span
                   className={

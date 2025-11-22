@@ -46,8 +46,8 @@ export const WhatsappSessionProvider: React.FC<{ children: React.ReactNode }> = 
   const userId = getUserIdFromToken();
   
   // Solo habilitar WhatsApp status para Admin
-  // Usuarios PRO usan WhatsApp Cloud API directamente desde los endpoints, no necesitan WebSocket
-  // Usuarios BASE no usan WhatsApp en absoluto
+  // El sistema ahora es centralizado: todos usan el mismo worker de WhatsApp
+  // Solo el admin necesita ver el estado de la sesión
   const ADMIN_UID = process.env.NEXT_PUBLIC_ADMIN_UID || '';
   const isAdmin = userId === ADMIN_UID;
   const shouldEnableWhatsapp = isAdmin; // Solo admin necesita el WebSocket de WhatsApp

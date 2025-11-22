@@ -1,6 +1,7 @@
 // src/lib/apiClient.ts
 import axios from "axios";
 import { tokenManager } from "../tokenManager";
+import { generateCorrelationId } from "@/utils/correlationId";
 
 // Normalizamos la base URL para garantizar que termine en /api
 let rawBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
@@ -20,6 +21,11 @@ const api = axios.create({
 // Interceptor para añadir token automáticamente
 api.interceptors.request.use(
   async (config) => {
+    // 🔍 Generar correlation ID para trazabilidad
+    if (!config.headers["x-correlation-id"]) {
+      config.headers["x-correlation-id"] = generateCorrelationId();
+    }
+
     // Intentar refrescar el token si es necesario
     try {
       if (tokenManager.needsRefreshSoon()) {
