@@ -28,6 +28,9 @@ interface SendDebtsContextType {
     pending: number
   }
   setProgressStats: (stats: { total: number; completed: number; failed: number; pending: number }) => void
+  // 💰 Sobrecargo de cuota WhatsApp
+  overQuotaCount: number
+  setOverQuotaCount: (count: number) => void
 }
 
 const SendDebtsContext = createContext<SendDebtsContextType | undefined>(undefined)
@@ -56,6 +59,9 @@ export const SendDebtsProvider = ({ children }: { children: ReactNode }) => {
     failed: 0,
     pending: 0,
   })
+
+  // 💰 Sobrecargo de cuota WhatsApp
+  const [overQuotaCount, setOverQuotaCount] = useState(0)
 
   const setFilteredData = (data: any[]) => {
     setFilteredDataState(data)
@@ -112,6 +118,8 @@ export const SendDebtsProvider = ({ children }: { children: ReactNode }) => {
       setStepStatus,
       progressStats,
       setProgressStats,
+      overQuotaCount,
+      setOverQuotaCount,
     }}>
       {children}
     </SendDebtsContext.Provider>

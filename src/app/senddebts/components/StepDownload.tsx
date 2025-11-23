@@ -3,10 +3,10 @@ import { useSendDebtsContext } from '@/app/providers/context/SendDebtsContext'
 import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { Button } from '@/components/ui/button'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { getFileByName, listResultBackups } from '@/lib/api'
-import { Loader2 } from 'lucide-react'
+import { Loader2, Home, AlertTriangle } from 'lucide-react'
 import { useRouter } from 'next/navigation'
-import { Home } from 'lucide-react'
 
 export function StepDownload() {
   const router = useRouter()
@@ -20,6 +20,7 @@ export function StepDownload() {
     setFileNameFiltered,
     setProcessedFile,
     setNotWhatsappData,
+    overQuotaCount,
   } = useSendDebtsContext()  
 
   const [loadingResults, setLoadingResults] = useState(false)
@@ -110,10 +111,25 @@ export function StepDownload() {
       animate={{ opacity: 1, y: 0 }}
       className="w-full h-full flex justify-center items-center"
     >
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-10 max-w-3xl w-full px-4">
+      <div className="max-w-5xl w-full px-4 space-y-6">
         
-        {/* Bloque Resultados */}
-        <div className="flex flex-col justify-between h-fullrounded-lg">
+        {/* 💰 Alerta de sobrecargo si excedió cuota */}
+        {overQuotaCount > 0 && (
+          <Alert variant="destructive" className="border-amber-500 bg-amber-50">
+            <AlertTriangle className="h-4 w-4 text-amber-600" />
+            <AlertTitle className="text-amber-800 font-semibold">
+              Sobrecargo detectado
+            </AlertTitle>
+            <AlertDescription className="text-amber-700">
+              Enviaste <strong>{overQuotaCount} mensajes</strong> por encima de tu cuota diaria (300).
+              Se aplicará un cargo adicional de <strong>${overQuotaCount * 30}</strong> en tu próxima factura.
+            </AlertDescription>
+          </Alert>
+        )}
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-10">
+          {/* Bloque Resultados */}
+          <div className="flex flex-col justify-between h-full rounded-lg">
         <div className="space-y-3">
             <h3 className="text-lg font-semibold">Resultados del proceso</h3>
             <p className="text-sm text-muted-foreground">
@@ -198,12 +214,15 @@ export function StepDownload() {
         </Button>
         </div>
       </div>
-              {/* 🔹 Botón Volver a Home */}
-      <div className="flex flex-col justify-top h-full  rounded-lg">
+
+      {/* 🔹 Botón Volver a Home */}
+      <div className="flex justify-center mt-6">
         <Button variant="outline" onClick={handleResetAndGoHome} className='bg-green-400'>
-          <Home className="w-4 h-4" />
+          <Home className="w-4 h-4 mr-2" />
+          Volver al inicio
         </Button>
       </div>
+    </div>
     </motion.div>
   )
 }

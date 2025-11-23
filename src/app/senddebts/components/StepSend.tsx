@@ -32,6 +32,7 @@ export function StepSend() {
     setFileNameFiltered,
     setNotWhatsappData,
     filteredData,
+    setOverQuotaCount,
   } = useSendDebtsContext()
   const { userId } = useGlobalContext()
 
@@ -211,11 +212,10 @@ Por favor, realiza el pago antes del vencimiento.
         setLoading(true)
         setStatus(null)
 
-        // Siempre enviar TODOS (plan + consumo) - el sistema maneja automáticamente cada tipo de plan
+        // Sistema maneja automáticamente detección de tipo de plan (PCB1/ATC2)
         const result = await sendAndScrape(
           fileNameFiltered, 
           message, 
-          'TODOS',
           incluirIntimacion,
           telefonoUsuario || undefined
         )
@@ -232,6 +232,11 @@ Por favor, realiza el pago antes del vencimiento.
         if (result.file) {
           setProcessedFile(result.file) 
           setBackupFiles([])
+        }
+        
+        // 💰 Actualizar sobrecargo de cuota si viene en response
+        if (result.overQuotaCount !== undefined) {
+          setOverQuotaCount(result.overQuotaCount)
         }
         
         // Si hay jobId, mantener loading=true y esperar WebSocket

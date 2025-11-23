@@ -6,10 +6,14 @@ import { getFileByName } from "./uploadApi";
 export const sendAndScrape = async (
   fileName: string,
   caption: string,
-  tipoComprobante: "TODOS" | "PCB1" | "ATC2" = "TODOS",
   incluirIntimacion?: boolean,
   telefonoUsuario?: string
-): Promise<{ message: string; file?: Blob; jobId?: string }> => {
+): Promise<{
+  message: string;
+  file?: Blob;
+  jobId?: string;
+  overQuotaCount?: number;
+}> => {
   const token = getAccessToken();
 
   try {
@@ -19,7 +23,6 @@ export const sendAndScrape = async (
         filename: fileName,
         message: caption,
         expiration: 1,
-        tipoComprobante,
         incluirIntimacion,
         telefonoUsuario,
       },
@@ -32,9 +35,13 @@ export const sendAndScrape = async (
     const contentType = response.headers["content-type"];
     // Axios normaliza headers a minúsculas en respuestas blob
     const jobId = response.headers["x-job-id"] || response.headers["X-Job-Id"];
+    const overQuotaCount = response.headers["x-overquota-count"]
+      ? parseInt(response.headers["x-overquota-count"])
+      : undefined;
 
     console.log("📊 Headers recibidos:", response.headers);
     console.log("📊 JobId extraído:", jobId);
+    console.log("💰 OverQuota extraído:", overQuotaCount);
 
     if (contentType && contentType.includes("application/json")) {
       // Si vino un JSON de error o mensaje
@@ -43,6 +50,7 @@ export const sendAndScrape = async (
       return {
         message: json.message || "⚠️ Error inesperado",
         jobId: json.jobId || jobId,
+        overQuotaCount: json.overQuotaCount || overQuotaCount,
       };
     }
 
@@ -51,6 +59,7 @@ export const sendAndScrape = async (
       message: "✅ Procesamiento finalizado",
       file: response.data,
       jobId, // Incluir jobId para tracking
+      overQuotaCount, // Incluir sobrecargo
     };
   } catch (error: any) {
     const errorMessage =

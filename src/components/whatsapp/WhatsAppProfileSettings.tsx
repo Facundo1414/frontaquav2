@@ -8,9 +8,10 @@ import { Phone, Save, AlertCircle, CheckCircle } from 'lucide-react';
 interface UserWhatsAppProfile {
   id: string;
   name: string;
-  whatsapp_phone: string | null;
   whatsapp_enabled: boolean;
-  business_name: string | null;
+  asesor_nombre: string | null;
+  asesor_telefono: string | null;
+  asesor_email: string | null;
 }
 
 export function WhatsAppProfileSettings() {
@@ -22,9 +23,10 @@ export function WhatsAppProfileSettings() {
   const [success, setSuccess] = useState(false);
   
   const [formData, setFormData] = useState({
-    whatsapp_phone: '',
     whatsapp_enabled: false,
-    business_name: '',
+    asesor_nombre: '',
+    asesor_telefono: '',
+    asesor_email: '',
   });
 
   useEffect(() => {
@@ -39,9 +41,10 @@ export function WhatsAppProfileSettings() {
       if (response.data) {
         setProfile(response.data);
         setFormData({
-          whatsapp_phone: response.data.whatsapp_phone || '',
           whatsapp_enabled: response.data.whatsapp_enabled || false,
-          business_name: response.data.business_name || '',
+          asesor_nombre: response.data.asesor_nombre || '',
+          asesor_telefono: response.data.asesor_telefono || '',
+          asesor_email: response.data.asesor_email || '',
         });
       }
     } catch (err: any) {
@@ -112,52 +115,77 @@ export function WhatsAppProfileSettings() {
           <div className="flex gap-3">
             <AlertCircle className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
             <div className="text-sm text-blue-900">
-              <p className="font-medium mb-1">Sistema de Mensajería Híbrido</p>
+              <p className="font-medium mb-1">Configuración de Contacto</p>
               <p className="text-blue-700">
-                • Los comprobantes se envían desde un número centralizado del sistema<br />
-                • Tus clientes pueden contactarte directamente a tu WhatsApp personal<br />
-                • Configurá tu número para que aparezca en los comprobantes
+                Configurá tus datos personales para que aparezcan en los PDFs y los clientes puedan contactarte directamente por WhatsApp.
               </p>
             </div>
           </div>
         </div>
 
-        {/* Nombre del negocio */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Nombre de tu negocio
-          </label>
-          <input
-            type="text"
-            value={formData.business_name}
-            onChange={(e) => setFormData({ ...formData, business_name: e.target.value })}
-            placeholder="Ej: Ferretería López"
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-          />
-          <p className="mt-1 text-xs text-gray-500">
-            Aparecerá en los mensajes que reciban tus clientes
+        {/* SECCIÓN: DATOS PERSONALES */}
+        <div className="border-t border-gray-200 pt-6">
+          <h3 className="text-base font-semibold text-gray-900 mb-2">
+            👤 Tus Datos de Contacto
+          </h3>
+          <p className="text-sm text-gray-600 mb-4">
+            Estos datos aparecerán en el footer de los PDFs y en el botón "Contactar asesor"
           </p>
-        </div>
 
-        {/* Número de WhatsApp */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Tu número de WhatsApp
-          </label>
-          <input
-            type="tel"
-            value={formData.whatsapp_phone}
-            onChange={(e) => setFormData({ ...formData, whatsapp_phone: e.target.value })}
-            placeholder="+54 9 11 1234-5678"
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-          />
-          <p className="mt-1 text-xs text-gray-500">
-            Formato internacional (incluí código de país y área)
-          </p>
+          {/* Nombre del asesor */}
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Tu nombre completo
+            </label>
+            <input
+              type="text"
+              value={formData.asesor_nombre}
+              onChange={(e) => setFormData({ ...formData, asesor_nombre: e.target.value })}
+              placeholder="Ej: Juan Pérez"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+            />
+            <p className="mt-1 text-xs text-gray-500">
+              Aparecerá como contacto del asesor en PDFs y botones de WhatsApp
+            </p>
+          </div>
+
+          {/* Teléfono personal del asesor */}
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Tu teléfono personal (WhatsApp)
+            </label>
+            <input
+              type="tel"
+              value={formData.asesor_telefono}
+              onChange={(e) => setFormData({ ...formData, asesor_telefono: e.target.value })}
+              placeholder="+54 9 11 9876-5432"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+            />
+            <p className="mt-1 text-xs text-gray-500">
+              Los clientes te contactarán a este número cuando hagan click en "Contactar asesor"
+            </p>
+          </div>
+
+          {/* Email del asesor */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Tu email (opcional)
+            </label>
+            <input
+              type="email"
+              value={formData.asesor_email}
+              onChange={(e) => setFormData({ ...formData, asesor_email: e.target.value })}
+              placeholder="juan.perez@ejemplo.com"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+            />
+            <p className="mt-1 text-xs text-gray-500">
+              Opcional: aparecerá en el footer de los PDFs
+            </p>
+          </div>
         </div>
 
         {/* Habilitar contacto */}
-        <div className="flex items-start gap-3">
+        <div className="flex items-start gap-3 border-t border-gray-200 pt-6">
           <input
             type="checkbox"
             id="whatsapp_enabled"
@@ -168,19 +196,19 @@ export function WhatsAppProfileSettings() {
           <label htmlFor="whatsapp_enabled" className="text-sm text-gray-700">
             <span className="font-medium">Permitir que los clientes me contacten</span>
             <p className="text-gray-500 mt-1">
-              Los comprobantes incluirán un botón "Contactar asesor" con tu WhatsApp
+              Los comprobantes incluirán tus datos de contacto y un botón "Contactar asesor"
             </p>
           </label>
         </div>
 
         {/* Vista previa */}
-        {formData.whatsapp_enabled && formData.whatsapp_phone && (
+        {formData.whatsapp_enabled && formData.asesor_telefono && formData.asesor_nombre && (
           <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
             <p className="text-xs text-gray-600 mb-3 font-medium">VISTA PREVIA</p>
             <div className="bg-white rounded-lg border border-gray-200 p-4">
               <p className="text-sm text-gray-600 mb-3">
                 <strong>¿Tenés consultas?</strong><br />
-                Nuestro asesor <strong>{profile?.name || 'Asesor'}</strong> de <strong>{formData.business_name || 'tu negocio'}</strong> está disponible para ayudarte.
+                {formData.asesor_nombre} está disponible para ayudarte.
               </p>
               <button
                 disabled
@@ -189,6 +217,11 @@ export function WhatsAppProfileSettings() {
                 <Phone className="h-4 w-4" />
                 Contactar por WhatsApp
               </button>
+              {formData.asesor_email && (
+                <p className="text-xs text-gray-500 mt-3">
+                  📧 Email: {formData.asesor_email}
+                </p>
+              )}
             </div>
           </div>
         )}

@@ -15,7 +15,7 @@ export function WhatsAppSystemBanner() {
       const isFirstRender = sessionStorage.getItem('whatsapp-toast-shown') === null;
       if (!isFirstRender) {
         toast.success('✅ Sistema WhatsApp conectado', {
-          description: mode === 'admin-baileys' ? 'Modo Admin' : 'Sistema centralizado',
+          description: mode === 'admin-personal' ? 'Cuenta Personal' : 'Sistema centralizado',
         });
       }
       sessionStorage.setItem('whatsapp-toast-shown', 'true');

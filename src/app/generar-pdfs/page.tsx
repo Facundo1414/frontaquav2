@@ -1,109 +1,104 @@
 'use client'
 
-import { useState } from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { useState, useEffect } from 'react'
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { FileText, Download, Loader2, ArrowLeft, Upload } from 'lucide-react'
+import { Input } from '@/components/ui/input'
+import { FileText, Download, Loader2, ArrowLeft, Search, FileSpreadsheet } from 'lucide-react'
 import { useRouter } from 'next/navigation'
+import { getClients } from '@/lib/api'
 
-type TipoPDF = 'AVISO' | 'NOTIFICACION' | 'INTIMACION'
+type TipoPDF = 'instructivo' | 'intimacion' | 'ambos'
 
-interface Cuenta {
+interface Cliente {
+  id: string
   uf: string
   titular: string
-  domicilio: string
-  deudaTotal: number
-  comprobantes: {
-    numero: string
-    monto: number
-    vencimiento: string
-  }[]
+  cliente?: string
+  calle_inm?: string
+  barrio_inm?: string
+  phone?: string
 }
+
 
 export default function GenerarPDFsPage() {
   const router = useRouter()
-  const [tipoPDF, setTipoPDF] = useState<TipoPDF>('AVISO')
+  const [tipoPDF, setTipoPDF] = useState<TipoPDF>('instructivo')
   const [loading, setLoading] = useState(false)
-  const [cuentas, setCuentas] = useState<Cuenta[]>([])
-  const [selectedCuentas, setSelectedCuentas] = useState<Set<string>>(new Set())
+  const [searchTerm, setSearchTerm] = useState('')
+  const [clientes, setClientes] = useState<Cliente[]>([])
+  const [loadingClientes, setLoadingClientes] = useState(false)
+  const [selectedClientes, setSelectedClientes] = useState<Set<string>>(new Set())
 
-  const handleUploadExcel = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
+  // Buscar clientes en la BD
+  useEffect(() => {
+    const buscarClientes = async () => {
+      if (searchTerm.length < 2) {
+        setClientes([])
+        return
+      }
 
-    setLoading(true)
-    try {
-      // TODO: Implementar lectura y parseo del Excel
-      // Por ahora datos de ejemplo
-      const ejemploCuentas: Cuenta[] = [
-        {
-          uf: '123456',
-          titular: 'Juan Pérez',
-          domicilio: 'Av. Colón 123',
-          deudaTotal: 15000,
-          comprobantes: [
-            { numero: 'FCPP001', monto: 5000, vencimiento: '2025-10-15' },
-            { numero: 'FCPP002', monto: 10000, vencimiento: '2025-10-25' },
-          ],
-        },
-        {
-          uf: '789012',
-          titular: 'María García',
-          domicilio: 'Bv. Illia 456',
-          deudaTotal: 8500,
-          comprobantes: [
-            { numero: 'FCPP003', monto: 8500, vencimiento: '2025-10-20' },
-          ],
-        },
-      ]
-      setCuentas(ejemploCuentas)
-    } catch (error) {
-      alert('Error al procesar el archivo')
-    } finally {
-      setLoading(false)
+      setLoadingClientes(true)
+      try {
+        const response = await getClients({ search: searchTerm, limit: 50 })
+        setClientes(response.clients)
+      } catch (error) {
+        console.error('Error buscando clientes:', error)
+      } finally {
+        setLoadingClientes(false)
+      }
     }
+
+    const timeoutId = setTimeout(buscarClientes, 500) // Debounce
+    return () => clearTimeout(timeoutId)
+  }, [searchTerm])
+
+  const handleToggleCliente = (id: string) => {
+    const newSelected = new Set(selectedClientes)
+    if (newSelected.has(id)) {
+      newSelected.delete(id)
+    } else {
+      newSelected.add(id)
+    }
+    setSelectedClientes(newSelected)
   }
 
   const handleSelectAll = () => {
-    if (selectedCuentas.size === cuentas.length) {
-      setSelectedCuentas(new Set())
+    if (selectedClientes.size === clientes.length) {
+      setSelectedClientes(new Set())
     } else {
-      setSelectedCuentas(new Set(cuentas.map((c) => c.uf)))
+      setSelectedClientes(new Set(clientes.map((c) => c.id)))
     }
   }
 
-  const handleToggleCuenta = (uf: string) => {
-    const newSelected = new Set(selectedCuentas)
-    if (newSelected.has(uf)) {
-      newSelected.delete(uf)
-    } else {
-      newSelected.add(uf)
-    }
-    setSelectedCuentas(newSelected)
-  }
-
-  const handleGenerarPDFs = async () => {
-    if (selectedCuentas.size === 0) {
-      alert('Selecciona al menos una cuenta')
+  const handleDescargarPDFs = async () => {
+    if (selectedClientes.size === 0) {
+      alert('Selecciona al menos un cliente')
       return
     }
 
     setLoading(true)
     try {
-      const cuentasSeleccionadas = cuentas.filter((c) =>
-        selectedCuentas.has(c.uf)
+      const clientesSeleccionados = clientes.filter((c) =>
+        selectedClientes.has(c.id)
       )
 
       const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'
-      const response = await fetch(`${baseUrl}/api/pdf-generator/generate-bulk`, {
+      const token = localStorage.getItem('accessToken')
+
+      // TODO: Implementar endpoint en el backend
+      const response = await fetch(`${baseUrl}/process/generate-pdfs-only`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           tipoPDF,
-          cuentas: cuentasSeleccionadas,
+          ufs: clientesSeleccionados.map(c => ({
+            uf: c.uf,
+            titular: c.titular || c.cliente || 'Cliente',
+          })),
         }),
       })
 
@@ -112,18 +107,21 @@ export default function GenerarPDFsPage() {
         const url = window.URL.createObjectURL(blob)
         const a = document.createElement('a')
         a.href = url
-        a.download = `${tipoPDF}_${new Date().toISOString().split('T')[0]}.zip`
+        a.download = `PDFs_${tipoPDF}_${new Date().toISOString().split('T')[0]}.xlsx`
         a.click()
-        alert(`✅ ${selectedCuentas.size} PDFs generados exitosamente`)
+        alert(`✅ ${selectedClientes.size} PDFs generados exitosamente`)
+        setSelectedClientes(new Set())
       } else {
-        throw new Error('Error generando PDFs')
+        const errorData = await response.json()
+        throw new Error(errorData.message || 'Error generando PDFs')
       }
-    } catch (error) {
-      alert('❌ Error al generar PDFs')
+    } catch (error: any) {
+      alert(`❌ Error: ${error.message}`)
     } finally {
       setLoading(false)
     }
   }
+
 
   return (
     <div className="container mx-auto p-6 max-w-7xl">
@@ -140,12 +138,12 @@ export default function GenerarPDFsPage() {
 
         <div className="flex items-center gap-4 mb-2">
           <div className="w-12 h-12 bg-purple-500 rounded-full flex items-center justify-center">
-            <FileText className="w-6 h-6 text-white" />
+            <FileSpreadsheet className="w-6 h-6 text-white" />
           </div>
           <div>
-            <h1 className="text-3xl font-bold">Sistema de Generación de PDFs</h1>
+            <h1 className="text-3xl font-bold">Generar PDFs sin Enviar</h1>
             <p className="text-muted-foreground">
-              Genera avisos, notificaciones e intimaciones de deuda en PDF
+              Busca clientes y genera PDFs de instructivos e intimaciones sin enviar por WhatsApp
             </p>
           </div>
         </div>
@@ -154,57 +152,60 @@ export default function GenerarPDFsPage() {
       {/* Selección de tipo de PDF */}
       <Card className="mb-6">
         <CardHeader>
-          <CardTitle>Tipo de Documento</CardTitle>
+          <CardTitle>Tipo de Documento PDF</CardTitle>
+          <CardDescription>
+            Selecciona qué archivos deseas generar para los clientes seleccionados
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <button
-              onClick={() => setTipoPDF('AVISO')}
+              onClick={() => setTipoPDF('instructivo')}
               className={`p-4 rounded-lg border-2 transition-all ${
-                tipoPDF === 'AVISO'
+                tipoPDF === 'instructivo'
                   ? 'border-blue-500 bg-blue-50'
                   : 'border-gray-200 hover:border-blue-300'
               }`}
             >
               <div className="text-center">
                 <FileText className="w-8 h-8 mx-auto mb-2 text-blue-600" />
-                <h3 className="font-semibold">AVISO</h3>
+                <h3 className="font-semibold">Instructivo de Pago</h3>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Notificación inicial de deuda
+                  Opciones de pago y datos de contacto
                 </p>
               </div>
             </button>
 
             <button
-              onClick={() => setTipoPDF('NOTIFICACION')}
+              onClick={() => setTipoPDF('intimacion')}
               className={`p-4 rounded-lg border-2 transition-all ${
-                tipoPDF === 'NOTIFICACION'
-                  ? 'border-amber-500 bg-amber-50'
-                  : 'border-gray-200 hover:border-amber-300'
-              }`}
-            >
-              <div className="text-center">
-                <FileText className="w-8 h-8 mx-auto mb-2 text-amber-600" />
-                <h3 className="font-semibold">NOTIFICACIÓN</h3>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Recordatorio formal (10 días)
-                </p>
-              </div>
-            </button>
-
-            <button
-              onClick={() => setTipoPDF('INTIMACION')}
-              className={`p-4 rounded-lg border-2 transition-all ${
-                tipoPDF === 'INTIMACION'
+                tipoPDF === 'intimacion'
                   ? 'border-red-500 bg-red-50'
                   : 'border-gray-200 hover:border-red-300'
               }`}
             >
               <div className="text-center">
                 <FileText className="w-8 h-8 mx-auto mb-2 text-red-600" />
-                <h3 className="font-semibold">INTIMACIÓN</h3>
+                <h3 className="font-semibold">Intimación de Pago</h3>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Última notificación (5 días)
+                  Documento formal de intimación (48hs)
+                </p>
+              </div>
+            </button>
+
+            <button
+              onClick={() => setTipoPDF('ambos')}
+              className={`p-4 rounded-lg border-2 transition-all ${
+                tipoPDF === 'ambos'
+                  ? 'border-purple-500 bg-purple-50'
+                  : 'border-gray-200 hover:border-purple-300'
+              }`}
+            >
+              <div className="text-center">
+                <FileText className="w-8 h-8 mx-auto mb-2 text-purple-600" />
+                <h3 className="font-semibold">Ambos Documentos</h3>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Instructivo + Intimación juntos
                 </p>
               </div>
             </button>
@@ -212,62 +213,52 @@ export default function GenerarPDFsPage() {
         </CardContent>
       </Card>
 
-      {/* Carga de archivo */}
+      {/* Buscador de clientes */}
       <Card className="mb-6">
         <CardHeader>
-          <CardTitle>Cargar Datos</CardTitle>
+          <CardTitle>Buscar Clientes</CardTitle>
+          <CardDescription>
+            Busca por UF, nombre del titular, dirección o barrio
+          </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex flex-col items-center justify-center border-2 border-dashed rounded-lg p-8">
-            <Upload className="w-12 h-12 text-gray-400 mb-4" />
-            <p className="text-sm text-muted-foreground mb-4">
-              Sube un archivo Excel con las cuentas y sus deudas
-            </p>
-            <label className="cursor-pointer">
-              <input
-                type="file"
-                accept=".xlsx,.xls"
-                onChange={handleUploadExcel}
-                className="hidden"
-                disabled={loading}
-              />
-              <Button disabled={loading} asChild>
-                <span>
-                  {loading ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Procesando...
-                    </>
-                  ) : (
-                    <>
-                      <Upload className="w-4 h-4 mr-2" />
-                      Seleccionar archivo
-                    </>
-                  )}
-                </span>
-              </Button>
-            </label>
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <Input
+              type="text"
+              placeholder="Buscar por UF, titular, dirección..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10"
+            />
           </div>
+          
+          {loadingClientes && (
+            <div className="flex items-center justify-center py-4">
+              <Loader2 className="w-6 h-6 animate-spin text-primary" />
+            </div>
+          )}
         </CardContent>
       </Card>
 
-      {/* Lista de cuentas */}
-      {cuentas.length > 0 && (
+      {/* Tabla de clientes */}
+      {clientes.length > 0 && (
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle>
-              Cuentas Cargadas ({cuentas.length})
+              Clientes Encontrados ({clientes.length})
             </CardTitle>
             <div className="flex gap-2">
-              <Button variant="outline" onClick={handleSelectAll}>
-                {selectedCuentas.size === cuentas.length
+              <Button variant="outline" onClick={handleSelectAll} size="sm">
+                {selectedClientes.size === clientes.length
                   ? 'Deseleccionar todo'
                   : 'Seleccionar todo'}
               </Button>
               <Button
-                onClick={handleGenerarPDFs}
-                disabled={loading || selectedCuentas.size === 0}
+                onClick={handleDescargarPDFs}
+                disabled={loading || selectedClientes.size === 0}
                 className="bg-purple-600 hover:bg-purple-700"
+                size="sm"
               >
                 {loading ? (
                   <>
@@ -277,7 +268,7 @@ export default function GenerarPDFsPage() {
                 ) : (
                   <>
                     <Download className="w-4 h-4 mr-2" />
-                    Generar {selectedCuentas.size} PDF(s)
+                    Descargar {selectedClientes.size} PDF(s)
                   </>
                 )}
               </Button>
@@ -285,49 +276,75 @@ export default function GenerarPDFsPage() {
           </CardHeader>
           <CardContent>
             <div className="overflow-x-auto">
-              <table className="w-full">
+              <table className="w-full min-w-max table-auto">
                 <thead>
-                  <tr className="border-b">
+                  <tr className="border-b bg-gray-50">
                     <th className="text-left p-3">
                       <input
                         type="checkbox"
-                        checked={selectedCuentas.size === cuentas.length}
+                        checked={selectedClientes.size === clientes.length && clientes.length > 0}
                         onChange={handleSelectAll}
                         className="w-4 h-4"
                       />
                     </th>
-                    <th className="text-left p-3">UF</th>
-                    <th className="text-left p-3">Titular</th>
-                    <th className="text-left p-3">Domicilio</th>
-                    <th className="text-right p-3">Deuda Total</th>
-                    <th className="text-center p-3">Comprobantes</th>
+                    <th className="text-left p-3 font-semibold">UF</th>
+                    <th className="text-left p-3 font-semibold">Titular</th>
+                    <th className="text-left p-3 font-semibold">Dirección</th>
+                    <th className="text-left p-3 font-semibold">Barrio</th>
+                    <th className="text-left p-3 font-semibold">Teléfono</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {cuentas.map((cuenta) => (
-                    <tr key={cuenta.uf} className="border-b hover:bg-gray-50">
+                  {clientes.map((cliente) => (
+                    <tr key={cliente.id} className="border-b hover:bg-gray-50">
                       <td className="p-3">
                         <input
                           type="checkbox"
-                          checked={selectedCuentas.has(cuenta.uf)}
-                          onChange={() => handleToggleCuenta(cuenta.uf)}
+                          checked={selectedClientes.has(cliente.id)}
+                          onChange={() => handleToggleCliente(cliente.id)}
                           className="w-4 h-4"
                         />
                       </td>
-                      <td className="p-3 font-mono">{cuenta.uf}</td>
-                      <td className="p-3">{cuenta.titular}</td>
-                      <td className="p-3">{cuenta.domicilio}</td>
-                      <td className="p-3 text-right font-semibold">
-                        ${cuenta.deudaTotal.toLocaleString()}
-                      </td>
-                      <td className="p-3 text-center">
-                        {cuenta.comprobantes.length}
-                      </td>
+                      <td className="p-3 font-mono text-sm">{cliente.uf}</td>
+                      <td className="p-3">{cliente.titular || cliente.cliente || 'N/A'}</td>
+                      <td className="p-3 text-sm text-gray-600">{cliente.calle_inm || 'N/A'}</td>
+                      <td className="p-3 text-sm text-gray-600">{cliente.barrio_inm || 'N/A'}</td>
+                      <td className="p-3 text-sm text-gray-600">{cliente.phone || 'Sin teléfono'}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
+
+            {selectedClientes.size > 0 && (
+              <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                <p className="text-sm text-blue-800">
+                  <strong>{selectedClientes.size}</strong> cliente(s) seleccionado(s) • 
+                  Tipo: <strong>{tipoPDF === 'ambos' ? 'Instructivo + Intimación' : tipoPDF === 'instructivo' ? 'Instructivo de Pago' : 'Intimación de Pago'}</strong>
+                </p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Mensaje cuando no hay resultados */}
+      {searchTerm.length >= 2 && !loadingClientes && clientes.length === 0 && (
+        <Card>
+          <CardContent className="py-12 text-center">
+            <Search className="w-12 h-12 mx-auto mb-4 text-gray-400" />
+            <p className="text-gray-600">No se encontraron clientes con el término "{searchTerm}"</p>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Mensaje inicial */}
+      {searchTerm.length < 2 && clientes.length === 0 && (
+        <Card>
+          <CardContent className="py-12 text-center">
+            <Search className="w-12 h-12 mx-auto mb-4 text-gray-400" />
+            <p className="text-gray-600">Comienza a buscar clientes por UF, titular o dirección</p>
+            <p className="text-sm text-gray-500 mt-2">Escribe al menos 2 caracteres para buscar</p>
           </CardContent>
         </Card>
       )}
