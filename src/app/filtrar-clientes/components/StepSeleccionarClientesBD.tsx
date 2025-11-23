@@ -48,9 +48,17 @@ export function StepSeleccionarClientesBD({ onNext }: StepSeleccionarClientesBDP
   const [barrioRangeStart, setBarrioRangeStart] = useState<string>('') // Nuevo filtro de rango
   const [barrioRangeEnd, setBarrioRangeEnd] = useState<string>('') // Nuevo filtro de rango
   
+  // Filtros catastrales
+  const [selectedDistrito, setSelectedDistrito] = useState<string>('')
+  const [selectedZona, setSelectedZona] = useState<string>('')
+  const [selectedManzanas, setSelectedManzanas] = useState<string[]>([]) // Cambio a array
+  
   // UI
   const [showFilters, setShowFilters] = useState(true)
   const [availableBarrios, setAvailableBarrios] = useState<string[]>([])
+  const [availableDistritos, setAvailableDistritos] = useState<string[]>([])
+  const [availableZonas, setAvailableZonas] = useState<string[]>([])
+  const [availableManzanas, setAvailableManzanas] = useState<string[]>([])
 
   // Cargar clientes al montar
   useEffect(() => {
@@ -60,7 +68,7 @@ export function StepSeleccionarClientesBD({ onNext }: StepSeleccionarClientesBDP
   // Aplicar filtros cuando cambien
   useEffect(() => {
     applyFilters()
-  }, [clients, searchTerm, selectedBarrios, phoneFilter, statusFilter, maxClientsPerBarrio, barrioRangeStart, barrioRangeEnd])
+  }, [clients, searchTerm, selectedBarrios, phoneFilter, statusFilter, maxClientsPerBarrio, barrioRangeStart, barrioRangeEnd, selectedDistrito, selectedZona, selectedManzanas])
 
   const loadClients = async () => {
     try {
@@ -119,6 +127,49 @@ export function StepSeleccionarClientesBD({ onNext }: StepSeleccionarClientesBDP
     // Filtro de barrios
     if (selectedBarrios.length > 0) {
       filtered = filtered.filter(c => c.barrio_inm && selectedBarrios.includes(c.barrio_inm))
+      
+      // Actualizar opciones de distrito, zona, manzana basadas en los barrios seleccionados
+      const distritos = Array.from(new Set(
+        filtered.map(c => c.distrito).filter((d): d is string => Boolean(d))
+      )).sort()
+      setAvailableDistritos(distritos)
+      
+      // Si hay distrito seleccionado, filtrar zonas
+      if (selectedDistrito) {
+        const zonas = Array.from(new Set(
+          filtered.filter(c => c.distrito === selectedDistrito)
+            .map(c => c.zona).filter((z): z is string => Boolean(z))
+        )).sort()
+        setAvailableZonas(zonas)
+      } else {
+        setAvailableZonas([])
+      }
+      
+      // Si hay zona seleccionada, filtrar manzanas
+      if (selectedZona) {
+        const manzanas = Array.from(new Set(
+          filtered.filter(c => c.distrito === selectedDistrito && c.zona === selectedZona)
+            .map(c => c.manzana).filter((m): m is string => Boolean(m))
+        )).sort()
+        setAvailableManzanas(manzanas)
+      } else {
+        setAvailableManzanas([])
+      }
+    }
+
+    // Filtro catastral: Distrito
+    if (selectedDistrito) {
+      filtered = filtered.filter(c => c.distrito === selectedDistrito)
+    }
+
+    // Filtro catastral: Zona
+    if (selectedZona) {
+      filtered = filtered.filter(c => c.zona === selectedZona)
+    }
+
+    // Filtro catastral: Manzanas (múltiples)
+    if (selectedManzanas.length > 0) {
+      filtered = filtered.filter(c => c.manzana && selectedManzanas.includes(c.manzana))
     }
 
     // Filtro de teléfono
@@ -197,6 +248,14 @@ export function StepSeleccionarClientesBD({ onNext }: StepSeleccionarClientesBDP
       prev.includes(barrio)
         ? prev.filter(b => b !== barrio)
         : [...prev, barrio]
+    )
+  }
+
+  const toggleManzana = (manzana: string) => {
+    setSelectedManzanas(prev =>
+      prev.includes(manzana)
+        ? prev.filter(m => m !== manzana)
+        : [...prev, manzana]
     )
   }
 
@@ -412,6 +471,144 @@ export function StepSeleccionarClientesBD({ onNext }: StepSeleccionarClientesBDP
               </div>
             )}
 
+            {/* Filtro de Número Catastral - Solo visible si hay barrios seleccionados */}
+            {selectedBarrios.length > 0 && (
+              <div className="border-t pt-4">
+                <Label className="mb-3 block text-base font-semibold">
+                  🏘️ Filtro por Número Catastral
+                </Label>
+                <p className="text-xs text-gray-500 mb-3">
+                  Refina la selección por distrito, zona y manzana de los barrios seleccionados
+                </p>
+                
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {/* Distrito */}
+                  <div>
+                    <Label htmlFor="distrito" className="text-sm mb-2 block">Distrito</Label>
+                    <select
+                      id="distrito"
+                      value={selectedDistrito}
+                      onChange={(e) => {
+                        setSelectedDistrito(e.target.value)
+                        setSelectedZona('') // Reset zona
+                        setSelectedManzanas([]) // Reset manzanas
+                      }}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    >
+                      <option value="">Todos los distritos</option>
+                      {availableDistritos.map(distrito => (
+                        <option key={distrito} value={distrito}>
+                          Distrito {distrito}
+                        </option>
+                      ))}
+                    </select>
+                    {availableDistritos.length === 0 && (
+                      <p className="text-xs text-gray-400 mt-1">
+                        Selecciona barrios primero
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Zona */}
+                  <div>
+                    <Label htmlFor="zona" className="text-sm mb-2 block">Zona</Label>
+                    <select
+                      id="zona"
+                      value={selectedZona}
+                      onChange={(e) => {
+                        setSelectedZona(e.target.value)
+                        setSelectedManzanas([]) // Reset manzanas
+                      }}
+                      disabled={!selectedDistrito}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
+                    >
+                      <option value="">Todas las zonas</option>
+                      {availableZonas.map(zona => (
+                        <option key={zona} value={zona}>
+                          Zona {zona}
+                        </option>
+                      ))}
+                    </select>
+                    {!selectedDistrito && (
+                      <p className="text-xs text-gray-400 mt-1">
+                        Selecciona un distrito primero
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Manzana - Selección múltiple */}
+                  <div>
+                    <Label className="text-sm mb-2 block">
+                      Manzanas {selectedManzanas.length > 0 && `(${selectedManzanas.length} seleccionadas)`}
+                    </Label>
+                    {!selectedZona ? (
+                      <p className="text-xs text-gray-400">
+                        Selecciona una zona primero
+                      </p>
+                    ) : (
+                      <>
+                        <div className="grid grid-cols-6 gap-2 max-h-[200px] overflow-y-auto p-2 border border-gray-200 rounded-md">
+                          {availableManzanas.map(manzana => (
+                            <Button
+                              key={manzana}
+                              type="button"
+                              size="sm"
+                              variant={selectedManzanas.includes(manzana) ? "default" : "outline"}
+                              onClick={() => toggleManzana(manzana)}
+                              className="h-8 text-xs px-2"
+                            >
+                              {manzana}
+                            </Button>
+                          ))}
+                        </div>
+                        {availableManzanas.length === 0 && (
+                          <p className="text-xs text-gray-400 mt-2">
+                            No hay manzanas disponibles para esta zona
+                          </p>
+                        )}
+                        {availableManzanas.length > 0 && (
+                          <div className="flex gap-2 mt-2">
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => setSelectedManzanas(availableManzanas)}
+                              className="text-xs"
+                            >
+                              Seleccionar todas
+                            </Button>
+                            {selectedManzanas.length > 0 && (
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => setSelectedManzanas([])}
+                                className="text-xs"
+                              >
+                                Limpiar selección
+                              </Button>
+                            )}
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
+                </div>
+
+                {/* Resumen de filtro catastral */}
+                {(selectedDistrito || selectedZona || selectedManzanas.length > 0) && (
+                  <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-md">
+                    <p className="text-sm text-blue-900">
+                      <strong>📍 Filtrando por:</strong>{' '}
+                      {selectedDistrito && `Distrito ${selectedDistrito}`}
+                      {selectedZona && ` → Zona ${selectedZona}`}
+                      {selectedManzanas.length > 0 && ` → Manzanas ${selectedManzanas.join(', ')}`}
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Límite por barrio - DESHABILITADO (redundante con Rango) */}
             {selectedBarrios.length > 0 && false && (
               <div>
@@ -497,6 +694,9 @@ export function StepSeleccionarClientesBD({ onNext }: StepSeleccionarClientesBDP
                   setMaxClientsPerBarrio('')
                   setBarrioRangeStart('')
                   setBarrioRangeEnd('')
+                  setSelectedDistrito('')
+                  setSelectedZona('')
+                  setSelectedManzanas([])
                 }}
               >
                 Limpiar filtros

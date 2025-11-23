@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
-import { AlertCircle, CheckCircle, Clock, Zap } from 'lucide-react'
+import { AlertCircle, CheckCircle, Clock, Zap, ChevronDown, ChevronUp } from 'lucide-react'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import api from '@/lib/api/axiosInstance'
 
@@ -21,6 +21,7 @@ export function PyseUsageWidget({ refreshTrigger }: { refreshTrigger?: number })
     const [status, setStatus] = useState<PyseQuotaStatus | null>(null)
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
+    const [isExpanded, setIsExpanded] = useState(false) // Estado para controlar expansión
 
     useEffect(() => {
         fetchQuotaStatus()
@@ -82,26 +83,59 @@ export function PyseUsageWidget({ refreshTrigger }: { refreshTrigger?: number })
     return (
         <Card className="mb-6 border-purple-200 bg-gradient-to-r from-purple-50 to-violet-50 shadow-md">
             <CardHeader className="pb-3">
-                <div className="flex items-center justify-between">
-                    <CardTitle className="text-lg flex items-center gap-2">
+                <button
+                    onClick={() => setIsExpanded(!isExpanded)}
+                    className="w-full flex items-center justify-between hover:opacity-80 transition-opacity"
+                >
+                    <div className="flex items-center gap-2">
                         <Zap className="w-5 h-5 text-purple-600" />
-                        Cuota PYSE Diaria
-                    </CardTitle>
-                    {status.can_query ? (
-                        <span className="flex items-center gap-1 text-xs text-green-600 font-semibold">
-                            <CheckCircle className="w-4 h-4" />
-                            Disponible
-                        </span>
-                    ) : (
-                        <span className="flex items-center gap-1 text-xs text-red-600 font-semibold">
-                            <AlertCircle className="w-4 h-4" />
-                            Límite alcanzado
-                        </span>
-                    )}
-                </div>
+                        <CardTitle className="text-lg">Cuota PYSE Diaria</CardTitle>
+                    </div>
+                    <div className="flex items-center gap-3">
+                        {status.can_query ? (
+                            <span className="flex items-center gap-1 text-xs text-green-600 font-semibold">
+                                <CheckCircle className="w-4 h-4" />
+                                Disponible
+                            </span>
+                        ) : (
+                            <span className="flex items-center gap-1 text-xs text-red-600 font-semibold">
+                                <AlertCircle className="w-4 h-4" />
+                                Límite alcanzado
+                            </span>
+                        )}
+                        <div className="text-purple-600">
+                            {isExpanded ? (
+                                <ChevronUp className="h-5 w-5" />
+                            ) : (
+                                <ChevronDown className="h-5 w-5" />
+                            )}
+                        </div>
+                    </div>
+                </button>
+
+                {/* Vista resumida cuando está colapsado */}
+                {!isExpanded && (
+                    <div className="mt-3 space-y-2">
+                        <div className="flex justify-between text-sm">
+                            <span className="text-purple-700">Consultas hoy:</span>
+                            <span className={`${status.percentage_used >= 90 ? 'text-red-600' : 'text-purple-900'} font-bold`}>
+                                {status.used_today} / {status.limit_daily}
+                            </span>
+                        </div>
+                        <div className="relative">
+                            <div className="h-2 bg-purple-100 rounded-full overflow-hidden">
+                                <div
+                                    className={`h-full transition-all duration-500 ${getColorByUsage(status.percentage_used)}`}
+                                    style={{ width: `${Math.min(status.percentage_used, 100)}%` }}
+                                />
+                            </div>
+                        </div>
+                    </div>
+                )}
             </CardHeader>
-            <CardContent className="space-y-4">
-                {/* Barra de progreso */}
+
+            {isExpanded && (
+                <CardContent className="space-y-4">{/* Barra de progreso */}
                 <div className="space-y-2">
                     <div className="flex justify-between text-sm font-medium">
                         <span className="text-purple-700">Consultas realizadas hoy</span>
@@ -179,7 +213,8 @@ export function PyseUsageWidget({ refreshTrigger }: { refreshTrigger?: number })
                         💡 Este widget se actualiza al entrar a la página y después de procesar clientes
                     </div>
                 </div>
-            </CardContent>
+                </CardContent>
+            )}
         </Card>
     )
 }

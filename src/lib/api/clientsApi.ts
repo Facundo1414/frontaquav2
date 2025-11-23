@@ -134,6 +134,23 @@ export const importDeudasClients = async (
 };
 
 /**
+ * Importar solo teléfonos por UF desde Excel
+ */
+export const importPhones = async (file: File) => {
+  const token = getAccessToken();
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const { data } = await api.post("/clients/import/phones", formData, {
+    headers: {
+      "Content-Type": "multipart/form-data",
+      Authorization: `Bearer ${token}`,
+    },
+  });
+  return data;
+};
+
+/**
  * Obtener lista de clientes
  */
 export const getClients = async (params?: {

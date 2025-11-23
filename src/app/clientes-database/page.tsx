@@ -3,7 +3,7 @@ import dynamic from 'next/dynamic';
 import { useState, useEffect } from 'react';
 import { Upload, Database, FileSpreadsheet, Users, ArrowLeft, CheckCircle, XCircle, AlertCircle, Search, Filter, Phone, MapPin, DollarSign, Calendar, Edit2, Save, X, Eye, Check, MessageSquare, Loader2, Download } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { importPYSEClients, importDeudasClients, getClients, updateClient, previewPYSEImport, previewDeudasImport } from '@/lib/api';
+import { importPYSEClients, importDeudasClients, importPhones, getClients, updateClient, previewPYSEImport, previewDeudasImport } from '@/lib/api';
 import * as XLSX from 'xlsx';
 
 // 🚀 Lazy load del componente de vista paginada (pesado)
@@ -708,7 +708,7 @@ function ClientsView() {
 export default function ClientesDatabasePage() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<'import' | 'view'>('import');
-  const [importType, setImportType] = useState<'pyse' | 'deudas'>('pyse');
+  const [importType, setImportType] = useState<'pyse' | 'deudas' | 'phones'>('pyse');
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [result, setResult] = useState<any>(null);
@@ -743,6 +743,12 @@ export default function ClientesDatabasePage() {
       return;
     }
 
+    // Importación de teléfonos no tiene preview
+    if (importType === 'phones') {
+      await handleDirectImport();
+      return;
+    }
+
     setLoadingPreview(true);
     setError(null);
     setPreview(null);
@@ -764,6 +770,36 @@ export default function ClientesDatabasePage() {
       setError(err.response?.data?.message || err.message || 'Error al analizar el archivo');
     } finally {
       setLoadingPreview(false);
+    }
+  };
+
+  const handleDirectImport = async () => {
+    if (!file) return;
+
+    setUploading(true);
+    setError(null);
+    setResult(null);
+
+    try {
+      const startTime = Date.now();
+
+      const data = await importPhones(file);
+      console.log('📞 Respuesta del backend:', data);
+
+      const endTime = Date.now();
+      const duration = ((endTime - startTime) / 1000).toFixed(1);
+
+      setResult({ ...data, duration });
+      setFile(null);
+      
+      // Reset el input de archivo
+      const fileInput = document.getElementById('file-input') as HTMLInputElement;
+      if (fileInput) fileInput.value = '';
+    } catch (err: any) {
+      console.error('Error al importar:', err);
+      setError(err.response?.data?.message || err.message || 'Error al importar el archivo');
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -813,6 +849,27 @@ export default function ClientesDatabasePage() {
   };
 
   const handleDownloadTemplate = () => {
+    if (importType === 'phones') {
+      // Plantilla simple para teléfonos
+      const phoneTemplateData = [
+        // Headers
+        ['UF', 'Telefono'],
+        // Ejemplos
+        ['12345', '351234567'],
+        ['67890', '351987654'],
+        ['11111', '3511234567'],
+        ['22222', '+5493511111111'],
+      ];
+
+      const ws = XLSX.utils.aoa_to_sheet(phoneTemplateData);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Teléfonos');
+
+      // Descargar archivo
+      XLSX.writeFile(wb, 'plantilla_telefonos.xlsx');
+      return;
+    }
+
     // Crear plantilla de ejemplo con formato PYSE
     const templateData = [
       // Headers
@@ -1046,7 +1103,7 @@ export default function ClientesDatabasePage() {
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
                     Tipo de archivo a importar
                   </label>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <button
                       onClick={() => setImportType('pyse')}
                       className={`p-6 rounded-xl border-2 transition-all ${
@@ -1064,10 +1121,34 @@ export default function ClientesDatabasePage() {
                         PYSE - Universo de Cuentas
                       </h3>
                       <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-                        Importa el archivo completo de PYSE con todos los datos de clientes (UF, dirección, teléfonos, etc.)
+                        Importa el archivo completo de PYSE con todos los datos de clientes
                       </p>
                       <p className="text-xs text-teal-700 dark:text-teal-300 font-medium">
                         📅 Importar al inicio del mes
+                      </p>
+                    </button>
+
+                    <button
+                      onClick={() => setImportType('phones')}
+                      className={`p-6 rounded-xl border-2 transition-all ${
+                        importType === 'phones'
+                          ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/20'
+                          : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+                      }`}
+                    >
+                      <Phone className={`w-8 h-8 mb-3 ${
+                        importType === 'phones' ? 'text-purple-600 dark:text-purple-400' : 'text-gray-400'
+                      }`} />
+                      <h3 className={`font-semibold mb-2 ${
+                        importType === 'phones' ? 'text-purple-900 dark:text-purple-100' : 'text-gray-900 dark:text-white'
+                      }`}>
+                        📞 Solo Teléfonos
+                      </h3>
+                      <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                        Actualiza solo números telefónicos (formato: UF + Teléfono)
+                      </p>
+                      <p className="text-xs text-purple-700 dark:text-purple-300 font-medium">
+                        ⚡ Rápido y simple
                       </p>
                     </button>
 
@@ -1083,7 +1164,7 @@ export default function ClientesDatabasePage() {
                         Planes de pagos Incumplidos
                       </h3>
                       <p className="text-sm text-gray-500 dark:text-gray-500 mb-2">
-                        Actualiza deuda y marca clientes con planes de pago vigentes
+                        Actualiza deuda y marca clientes con planes de pago
                       </p>
                       <p className="text-xs text-gray-500 dark:text-gray-500 font-medium">
                         💳 Temporalmente no disponible
@@ -1224,26 +1305,72 @@ export default function ClientesDatabasePage() {
                     </div>
 
                     {/* Estadísticas */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl">
-                        <p className="text-sm text-blue-700 dark:text-blue-300 mb-1">Clientes creados</p>
-                        <p className="text-3xl font-bold text-blue-900 dark:text-blue-100">
-                          {result.created || 0}
-                        </p>
+                    {importType === 'phones' ? (
+                      // Estadísticas para importación de teléfonos
+                      <div className="space-y-4">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                          <div className="p-4 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-xl">
+                            <p className="text-sm text-purple-700 dark:text-purple-300 mb-1">Teléfonos actualizados</p>
+                            <p className="text-3xl font-bold text-purple-900 dark:text-purple-100">
+                              {result.updated || 0}
+                            </p>
+                          </div>
+                          <div className="p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl">
+                            <p className="text-sm text-amber-700 dark:text-amber-300 mb-1">No encontrados</p>
+                            <p className="text-3xl font-bold text-amber-900 dark:text-amber-100">
+                              {result.notFound || 0}
+                            </p>
+                          </div>
+                          <div className="p-4 bg-gray-50 dark:bg-gray-900/20 border border-gray-200 dark:border-gray-700 rounded-xl">
+                            <p className="text-sm text-gray-700 dark:text-gray-300 mb-1">Total registros</p>
+                            <p className="text-3xl font-bold text-gray-900 dark:text-gray-100">
+                              {result.totalRecords || 0}
+                            </p>
+                          </div>
+                        </div>
+                        
+                        {/* Lista de UFs no encontradas */}
+                        {result.notFoundUFs && result.notFoundUFs.length > 0 && (
+                          <div className="p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl">
+                            <p className="text-sm font-medium text-amber-700 dark:text-amber-300 mb-2">
+                              UFs no encontradas:
+                            </p>
+                            <div className="flex flex-wrap gap-2">
+                              {result.notFoundUFs.map((uf: string, idx: number) => (
+                                <span
+                                  key={idx}
+                                  className="px-2 py-1 bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-200 text-xs font-mono rounded"
+                                >
+                                  {uf}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
                       </div>
-                      <div className="p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl">
-                        <p className="text-sm text-amber-700 dark:text-amber-300 mb-1">Clientes actualizados</p>
-                        <p className="text-3xl font-bold text-amber-900 dark:text-amber-100">
-                          {result.updated || 0}
-                        </p>
+                    ) : (
+                      // Estadísticas para importación completa
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl">
+                          <p className="text-sm text-blue-700 dark:text-blue-300 mb-1">Clientes creados</p>
+                          <p className="text-3xl font-bold text-blue-900 dark:text-blue-100">
+                            {result.created || 0}
+                          </p>
+                        </div>
+                        <div className="p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl">
+                          <p className="text-sm text-amber-700 dark:text-amber-300 mb-1">Clientes actualizados</p>
+                          <p className="text-3xl font-bold text-amber-900 dark:text-amber-100">
+                            {result.updated || 0}
+                          </p>
+                        </div>
+                        <div className="p-4 bg-gray-50 dark:bg-gray-900/20 border border-gray-200 dark:border-gray-700 rounded-xl">
+                          <p className="text-sm text-gray-700 dark:text-gray-300 mb-1">Errores</p>
+                          <p className="text-3xl font-bold text-gray-900 dark:text-gray-100">
+                            {result.errors?.length || 0}
+                          </p>
+                        </div>
                       </div>
-                      <div className="p-4 bg-gray-50 dark:bg-gray-900/20 border border-gray-200 dark:border-gray-700 rounded-xl">
-                        <p className="text-sm text-gray-700 dark:text-gray-300 mb-1">Errores</p>
-                        <p className="text-3xl font-bold text-gray-900 dark:text-gray-100">
-                          {result.errors?.length || 0}
-                        </p>
-                      </div>
-                    </div>
+                    )}
 
                     {/* Detalles del archivo */}
                     <div className="p-4 bg-gray-50 dark:bg-gray-900/50 rounded-xl space-y-1">
@@ -1299,6 +1426,10 @@ export default function ClientesDatabasePage() {
                         <span className="font-bold text-teal-600 dark:text-teal-400 min-w-[120px]">DÍA 3+:</span>
                         <span>Visitar clientes, gestionar teléfonos y actualizar estados manualmente</span>
                       </div>
+                      <div className="flex items-start gap-3">
+                        <span className="font-bold text-purple-600 dark:text-purple-400 min-w-[120px]">📞 RÁPIDO:</span>
+                        <span>Actualiza solo teléfonos con <strong>Importación de Teléfonos</strong> (UF + Número)</span>
+                      </div>
                     </div>
                   </div>
 
@@ -1314,8 +1445,16 @@ export default function ClientesDatabasePage() {
                         <span>El archivo <strong>Universo De Cuentas</strong> contiene todos los datos de clientes (UF, dirección, titular, teléfonos)</span>
                       </li>
                       <li className="flex items-start gap-2">
+                        <span className="text-purple-500 mt-0.5">•</span>
+                        <span>La <strong>Importación de Teléfonos</strong> solo requiere 2 columnas: UF y Teléfono (ideal para actualizar muchos números rápidamente)</span>
+                      </li>
+                      <li className="flex items-start gap-2">
                         <span className="text-blue-500 mt-0.5">•</span>
-                        <span>Los teléfonos editados manualmente <strong>nunca se sobrescriben</strong> en nuevas importaciones</span>
+                        <span>Los teléfonos editados manualmente <strong>nunca se sobrescriben</strong> en importaciones PYSE/Deudas</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-purple-500 mt-0.5">•</span>
+                        <span>Los teléfonos importados con <strong>Importación de Teléfonos</strong> se marcan como manuales y tienen prioridad</span>
                       </li>
                       <li className="flex items-start gap-2">
                         <span className="text-blue-500 mt-0.5">•</span>

@@ -83,23 +83,38 @@ export default function GenerarPDFsPage() {
         selectedClientes.has(c.id)
       )
 
-      const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'
+      // Crear FormData con los datos necesarios
+      const formData = new FormData()
+      
+      // Crear un Excel simple con las UFs y titulares
+      const XLSX = (await import('xlsx')).default
+      const ws = XLSX.utils.json_to_sheet(
+        clientesSeleccionados.map(c => ({
+          uf: c.uf,
+          Cliente_01: c.titular || c.cliente || 'Cliente',
+        }))
+      )
+      const wb = XLSX.utils.book_new()
+      XLSX.utils.book_append_sheet(wb, ws, 'UFs')
+      const excelBuffer = XLSX.write(wb, { type: 'array', bookType: 'xlsx' })
+      const excelBlob = new Blob([excelBuffer], { 
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+      })
+      
+      formData.append('file', excelBlob, 'ufs.xlsx')
+      formData.append('message', 'PDFs generados desde sistema')
+      
+      const incluirIntimacion = tipoPDF === 'intimacion' || tipoPDF === 'ambos'
+
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api'
       const token = localStorage.getItem('accessToken')
 
-      // TODO: Implementar endpoint en el backend
       const response = await fetch(`${baseUrl}/process/generate-pdfs-only`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({
-          tipoPDF,
-          ufs: clientesSeleccionados.map(c => ({
-            uf: c.uf,
-            titular: c.titular || c.cliente || 'Cliente',
-          })),
-        }),
+        body: formData,
       })
 
       if (response.ok) {
@@ -112,10 +127,11 @@ export default function GenerarPDFsPage() {
         alert(`✅ ${selectedClientes.size} PDFs generados exitosamente`)
         setSelectedClientes(new Set())
       } else {
-        const errorData = await response.json()
-        throw new Error(errorData.message || 'Error generando PDFs')
+        const errorText = await response.text()
+        throw new Error(errorText || 'Error generando PDFs')
       }
     } catch (error: any) {
+      console.error('Error generando PDFs:', error)
       alert(`❌ Error: ${error.message}`)
     } finally {
       setLoading(false)
