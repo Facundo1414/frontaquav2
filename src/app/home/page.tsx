@@ -8,6 +8,7 @@ import { ServiceCard } from './components/ServiceCard'
 import { ModalEnDesarrollo } from './components/modal-en-desarrollo'
 import { WhatsappSessionModal } from './components/WhatsappSessionModal'
 import { WhatsappUsageWidget } from './components/WhatsappUsageWidget'
+import { WhatsappModeSelector } from './components/WhatsappModeSelector'
 import { useWhatsappSessionContext } from '@/app/providers/context/whatsapp/WhatsappSessionContext'
 import { useGlobalContext } from '@/app/providers/context/GlobalContext'
 import { simpleWaState } from '@/lib/api/simpleWaApi'
@@ -210,6 +211,13 @@ const handleClickFAQ = () => {
       {/* Widget de Estado del Sistema WhatsApp - Todos los usuarios */}
       {userId && (
         <WhatsappUsageWidget />
+      )}
+
+      {/* Selector de Modo WhatsApp - Todos los usuarios */}
+      {userId && (
+        <div className="mb-6">
+          <WhatsappModeSelector />
+        </div>
       )}
 
       {/* Banner NUEVO: Sistema de Filtrado PYSE */}
