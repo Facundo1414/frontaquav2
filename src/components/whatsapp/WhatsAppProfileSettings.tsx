@@ -63,7 +63,7 @@ export function WhatsAppProfileSettings() {
 
       // Validar formato de teléfono
       const phoneRegex = /^\+?[1-9]\d{1,14}$/;
-      if (formData.whatsapp_phone && !phoneRegex.test(formData.whatsapp_phone.replace(/\s/g, ''))) {
+      if (formData.asesor_telefono && !phoneRegex.test(formData.asesor_telefono.replace(/\s/g, ''))) {
         setError('Formato de teléfono inválido. Use formato internacional (+54911...)');
         return;
       }
