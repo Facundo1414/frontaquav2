@@ -1,0 +1,274 @@
+name: 🎨 Frontend (Next.js) - CI/CD
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  NODE_VERSION: "20"
+  RAILWAY_SERVICE_NAME: "frontaquav2"
+
+jobs:
+  # ============================================
+  # 🔍 Lint & Code Quality
+  # ============================================
+  lint:
+    name: 🔍 Lint & Format Check
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: 📦 Install dependencies
+        run: npm ci
+
+      - name: 🎨 Run Linter
+        run: npm run lint || echo "⚠️ Lint warnings found"
+
+      - name: 🔧 Check TypeScript
+        run: npx tsc --noEmit
+
+  # ============================================
+  # 🏗️ Build Verification
+  # ============================================
+  build:
+    name: 🏗️ Build Next.js App
+    runs-on: ubuntu-latest
+    needs: lint
+    
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: 📦 Install dependencies
+        run: npm ci
+
+      - name: 🏗️ Build Next.js
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          NEXT_PUBLIC_BACKEND_URL: ${{ secrets.NEXT_PUBLIC_BACKEND_URL }}
+        run: npm run build
+
+      - name: 📦 Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: nextjs-build
+          path: .next/
+          retention-days: 7
+
+  # ============================================
+  # 🧪 Tests
+  # ============================================
+  test:
+    name: 🧪 Run Tests
+    runs-on: ubuntu-latest
+    needs: lint
+    
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: 📦 Install dependencies
+        run: npm ci
+
+      - name: 🧪 Run unit tests
+        run: npm run test:coverage
+
+      - name: 📊 Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./coverage/lcov.info
+          flags: frontend
+          name: frontend-coverage
+          fail_ci_if_error: false
+
+  # ============================================
+  # 🎭 E2E Tests (Playwright)
+  # ============================================
+  e2e:
+    name: 🎭 E2E Tests
+    runs-on: ubuntu-latest
+    needs: build
+    
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: 📦 Install dependencies
+        run: npm ci
+
+      - name: 🎭 Install Playwright
+        run: npx playwright install --with-deps chromium
+
+      - name: 📥 Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: nextjs-build
+          path: .next/
+
+      - name: 🚀 Start Next.js server
+        run: npm run start &
+        env:
+          PORT: 3001
+
+      - name: ⏳ Wait for server
+        run: npx wait-on http://localhost:3001 --timeout 60000
+
+      - name: 🎭 Run E2E tests
+        env:
+          PLAYWRIGHT_BASE_URL: http://localhost:3001
+          TEST_USER_EMAIL: ${{ secrets.TEST_USER_EMAIL }}
+          TEST_USER_PASSWORD: ${{ secrets.TEST_USER_PASSWORD }}
+        run: npm run test:e2e
+
+      - name: 📤 Upload Playwright Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 30
+
+  # ============================================
+  # 🔒 Security Audit
+  # ============================================
+  security:
+    name: 🔒 Security Audit
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: 🔍 Run npm audit
+        run: npm audit --audit-level=moderate || true
+
+      - name: 🔐 Check for secrets
+        uses: trufflesecurity/trufflehog@main
+        with:
+          path: ./
+          base: ${{ github.event.repository.default_branch }}
+          head: HEAD
+
+  # ============================================
+  # 🚀 Deploy to Railway (Production)
+  # ============================================
+  deploy:
+    name: 🚀 Deploy to Railway
+    runs-on: ubuntu-latest
+    needs: [build, test, e2e]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    environment:
+      name: production
+      url: https://frontaquav2-production.up.railway.app
+    
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🚂 Install Railway CLI
+        run: npm install -g @railway/cli
+
+      - name: 🚀 Deploy to Railway
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: |
+          railway link ${{ env.RAILWAY_SERVICE_NAME }}
+          railway up --detach
+
+      - name: ⏳ Wait for deployment
+        run: sleep 45
+
+      - name: 🏥 Health Check
+        run: |
+          curl -f https://frontaquav2-production.up.railway.app || exit 1
+
+      - name: ✅ Deployment Success
+        if: success()
+        run: |
+          echo "✅ Frontend deployed successfully!"
+          echo "🔗 URL: https://frontaquav2-production.up.railway.app"
+
+      - name: ❌ Deployment Failed
+        if: failure()
+        run: |
+          echo "❌ Deployment failed. Check Railway logs."
+          railway logs
+
+  # ============================================
+  # 🌐 Lighthouse Performance Audit
+  # ============================================
+  lighthouse:
+    name: 🌐 Lighthouse Audit
+    runs-on: ubuntu-latest
+    needs: deploy
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🌐 Run Lighthouse
+        uses: treosh/lighthouse-ci-action@v10
+        with:
+          urls: |
+            https://frontaquav2-production.up.railway.app
+          uploadArtifacts: true
+          temporaryPublicStorage: true
+
+  # ============================================
+  # 📢 Notifications
+  # ============================================
+  notify:
+    name: 📢 Send Notifications
+    runs-on: ubuntu-latest
+    needs: [deploy]
+    if: always() && github.ref == 'refs/heads/main'
+    
+    steps:
+      - name: 📢 Notify Success
+        if: needs.deploy.result == 'success'
+        run: |
+          echo "✅ Pipeline completed successfully"
+          # Agregar notificación (Discord, Slack, etc.)
+
+      - name: ⚠️ Notify Failure
+        if: needs.deploy.result == 'failure'
+        run: |
+          echo "❌ Pipeline failed"
+          # Agregar notificación de error

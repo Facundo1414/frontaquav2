@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState, useRef } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import Image from 'next/image'
 import { Loader2, RefreshCw } from 'lucide-react'
 import { toast } from 'sonner'
 import { generateQRCode } from '@/lib/qrcode'
@@ -263,7 +262,7 @@ export const WhatsappSessionModal: React.FC<WhatsappSessionModalProps> = ({ open
 
               {showQr && (
                 <>
-                  <Image
+                  <img
                     src={qrImage!}
                     alt="QR Code"
                     width={260}
