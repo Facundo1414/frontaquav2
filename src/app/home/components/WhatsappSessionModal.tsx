@@ -52,6 +52,16 @@ export const WhatsappSessionModal: React.FC<WhatsappSessionModalProps> = ({ open
   const qr = snapshot?.qr || (state === 'waiting_qr' ? lastValidQr.current : null)
   const isAuthenticated = snapshot?.ready || false
   
+  // 🐛 DEBUG: Log del estado actual
+  console.log('📱 WhatsappSessionModal render:', {
+    state,
+    hasQr: !!qr,
+    qrLength: qr?.length || 0,
+    hasQrImage: !!qrImage,
+    qrImageLength: qrImage?.length || 0,
+    snapshotQrLength: snapshot?.qr?.length || 0
+  })
+  
   // WebSocket está listo cuando está conectado y suscrito
   const wsReady = connected && isSubscribed
   
