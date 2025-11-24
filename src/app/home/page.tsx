@@ -20,6 +20,7 @@ export default function HomePage() {
   // Eliminamos flags duplicados; se deriva de status global (navbar) o se muestra modal
   const [modalVisible, setModalVisible] = useState(false)
   const [modalDevVisible, setModalDevVisible] = useState(false) // nuevo modal
+  const [userMode, setUserMode] = useState<'system' | 'personal'>('system')
   // Consumimos el snapshot global (estado único)
   const { snapshot, updateFromStatus } = useWhatsappSessionContext() as any
   const { userId } = useGlobalContext()
@@ -30,6 +31,9 @@ export default function HomePage() {
   // Admin check
   const ADMIN_UID = process.env.NEXT_PUBLIC_ADMIN_UID || ''
   const isAdmin = userId === ADMIN_UID
+  
+  // Determinar si el usuario necesita el modal de WhatsApp (admin o modo personal)
+  const needsWhatsAppModal = isAdmin || userMode === 'personal'
   
   // Debug: Log subscription status
   console.log('🏠 HomePage - userId:', userId, 'isAdmin:', isAdmin)
@@ -43,10 +47,17 @@ export default function HomePage() {
   })
 
 
+const handleWhatsAppModeChange = (mode: 'system' | 'personal') => {
+  setUserMode(mode)
+}
+
+const handleConnectWhatsApp = () => {
+  setModalVisible(true)
+}
+
 const handleClick = async () => {
-  // Solo admin necesita verificar sesión de Baileys
-  if (isAdmin) {
-    // Admin: verificar Baileys Worker
+  // Usuarios con modo personal o admin necesitan verificar sesión
+  if (needsWhatsAppModal) {
     try {
       const st = await simpleWaState(); // { worker, authenticated, ready, hasQR, qr? }
       const mappedState = st.ready
@@ -66,15 +77,14 @@ const handleClick = async () => {
       router.push('/senddebts');
     }
   } else {
-    // Usuarios regulares: usar sistema centralizado
+    // Modo sistema: usar WhatsApp centralizado
     router.push('/senddebts');
   }
 }
 
 const handleClickProximosVencer = async () => {
-  // Solo admin necesita verificar sesión de Baileys
-  if (isAdmin) {
-    // Admin: verificar Baileys Worker
+  // Usuarios con modo personal o admin necesitan verificar sesión
+  if (needsWhatsAppModal) {
     try {
       const st = await simpleWaState();
       const mappedState = st.ready
@@ -94,7 +104,7 @@ const handleClickProximosVencer = async () => {
       router.push('/proximos-vencer');
     }
   } else {
-    // Usuarios regulares: usar sistema centralizado
+    // Modo sistema: usar WhatsApp centralizado
     router.push('/proximos-vencer');
   }
 }
@@ -186,8 +196,8 @@ const handleClickFAQ = () => {
         </div>
       )}
 
-      {/* Estado WhatsApp - Banner Superior - SOLO ADMIN (conectado) */}
-      {isAdmin && isReady && (
+      {/* Estado WhatsApp - Banner Superior - Admin o modo personal (conectado) */}
+      {needsWhatsAppModal && isReady && (
         <div className="mb-6 rounded-lg border-2 border-green-300 bg-gradient-to-r from-green-50 to-emerald-50 p-4 shadow-sm">
           <div className="flex items-center gap-3">
             <div className="flex-shrink-0">
@@ -216,7 +226,10 @@ const handleClickFAQ = () => {
       {/* Selector de Modo WhatsApp - Todos los usuarios */}
       {userId && (
         <div className="mb-6">
-          <WhatsappModeSelector />
+          <WhatsappModeSelector 
+            onModeChange={handleWhatsAppModeChange}
+            onConnectClick={handleConnectWhatsApp}
+          />
         </div>
       )}
 
@@ -357,8 +370,8 @@ const handleClickFAQ = () => {
       {/* Modal en desarrollo (otros features) */}
       <ModalEnDesarrollo open={modalDevVisible} onOpenChange={setModalDevVisible} />
 
-      {/* Modal WhatsApp unificado (usa SSE + regeneraciones) - SOLO ADMIN */}
-      {isAdmin && (
+      {/* Modal WhatsApp unificado (usa SSE + regeneraciones) - Admin o modo personal */}
+      {needsWhatsAppModal && (
         <WhatsappSessionModal
           open={modalVisible}
           onOpenChange={setModalVisible}

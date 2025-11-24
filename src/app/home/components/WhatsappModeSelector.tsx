@@ -12,7 +12,12 @@ interface UserPreference {
   whatsapp_mode: WhatsAppMode
 }
 
-export function WhatsappModeSelector() {
+interface WhatsappModeSelectorProps {
+  onModeChange?: (mode: WhatsAppMode) => void
+  onConnectClick?: () => void
+}
+
+export function WhatsappModeSelector({ onModeChange, onConnectClick }: WhatsappModeSelectorProps) {
   const { userId } = useGlobalContext()
   const [mode, setMode] = useState<WhatsAppMode>('system')
   const [loading, setLoading] = useState(true)
@@ -48,6 +53,14 @@ export function WhatsappModeSelector() {
           ? '✅ Ahora usarás el WhatsApp del sistema (prepago)'
           : '✅ Ahora usarás tu WhatsApp personal'
       )
+      
+      // Notificar al componente padre
+      onModeChange?.(newMode)
+      
+      // Si cambia a personal, abrir automáticamente el modal de conexión
+      if (newMode === 'personal' && onConnectClick) {
+        setTimeout(() => onConnectClick(), 500)
+      }
     } catch (error: any) {
       console.error('Error saving WhatsApp mode:', error)
       toast.error(error.response?.data?.message || 'Error al guardar preferencia')
@@ -185,7 +198,7 @@ export function WhatsappModeSelector() {
       {/* Info banner */}
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 flex items-start gap-2">
         <Info className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
-        <div className="text-xs text-blue-900">
+        <div className="text-xs text-blue-900 flex-1">
           {mode === 'system' ? (
             <p>
               <strong>Modo automático:</strong> Los mensajes se envían desde el número del sistema.
@@ -198,6 +211,14 @@ export function WhatsappModeSelector() {
             </p>
           )}
         </div>
+        {mode === 'personal' && onConnectClick && (
+          <button
+            onClick={onConnectClick}
+            className="ml-2 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded transition-colors whitespace-nowrap"
+          >
+            Conectar sesión
+          </button>
+        )}
       </div>
     </div>
   )
