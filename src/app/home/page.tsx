@@ -20,7 +20,14 @@ export default function HomePage() {
   // Eliminamos flags duplicados; se deriva de status global (navbar) o se muestra modal
   const [modalVisible, setModalVisible] = useState(false)
   const [modalDevVisible, setModalDevVisible] = useState(false) // nuevo modal
-  const [userMode, setUserMode] = useState<'system' | 'personal'>('system')
+  // Inicializar userMode desde localStorage
+  const [userMode, setUserMode] = useState<'system' | 'personal'>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('whatsapp_mode')
+      return (saved as 'system' | 'personal') || 'system'
+    }
+    return 'system'
+  })
   // Consumimos el snapshot global (estado único)
   const { snapshot, updateFromStatus } = useWhatsappSessionContext() as any
   const { userId } = useGlobalContext()

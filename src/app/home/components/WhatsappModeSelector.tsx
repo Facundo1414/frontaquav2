@@ -30,12 +30,34 @@ export function WhatsappModeSelector({ onModeChange, onConnectClick }: WhatsappM
   const loadPreference = async () => {
     try {
       setLoading(true)
+      
+      // Primero intentar cargar desde localStorage (más rápido)
+      const cachedMode = localStorage.getItem('whatsapp_mode') as WhatsAppMode | null
+      if (cachedMode) {
+        setMode(cachedMode)
+        // Notificar inmediatamente al padre con el valor cacheado
+        onModeChange?.(cachedMode)
+      }
+      
+      // Luego cargar desde el backend para sincronizar
       const response = await api.get<UserPreference>('/users/whatsapp-mode')
-      setMode(response.data.whatsapp_mode || 'system')
+      const serverMode = response.data.whatsapp_mode || 'system'
+      
+      // Guardar en localStorage
+      localStorage.setItem('whatsapp_mode', serverMode)
+      
+      // Actualizar estado si cambió
+      if (serverMode !== cachedMode) {
+        setMode(serverMode)
+        onModeChange?.(serverMode)
+      }
     } catch (error) {
       console.error('Error loading WhatsApp mode preference:', error)
-      // Si no existe, usar 'system' por defecto
-      setMode('system')
+      // Si falla, intentar usar localStorage
+      const cachedMode = localStorage.getItem('whatsapp_mode') as WhatsAppMode | null
+      const fallbackMode = cachedMode || 'system'
+      setMode(fallbackMode)
+      onModeChange?.(fallbackMode)
     } finally {
       setLoading(false)
     }
@@ -46,16 +68,22 @@ export function WhatsappModeSelector({ onModeChange, onConnectClick }: WhatsappM
 
     try {
       setSaving(true)
-      await api.post('/users/whatsapp-mode', { whatsapp_mode: newMode })
+      
+      // Guardar inmediatamente en localStorage
+      localStorage.setItem('whatsapp_mode', newMode)
       setMode(newMode)
+      
+      // Notificar al componente padre inmediatamente
+      onModeChange?.(newMode)
+      
+      // Luego guardar en el backend
+      await api.post('/users/whatsapp-mode', { whatsapp_mode: newMode })
+      
       toast.success(
         newMode === 'system'
           ? '✅ Ahora usarás el WhatsApp del sistema (prepago)'
           : '✅ Ahora usarás tu WhatsApp personal'
       )
-      
-      // Notificar al componente padre
-      onModeChange?.(newMode)
       
       // Si cambia a personal, abrir automáticamente el modal de conexión
       if (newMode === 'personal' && onConnectClick) {
