@@ -5,12 +5,12 @@ const withAuth = () => ({ Authorization: `Bearer ${getAccessToken()}` });
 
 // Ahora todo pasa por el orquestador /api/wa/*
 export const simpleWaInit = async () => {
-  const { data } = await api.get("/api/wa/init", { headers: withAuth() });
+  const { data } = await api.get("/wa/init", { headers: withAuth() });
   return data; // { worker, userId, authenticated, ready, hasQR }
 };
 
 export const simpleWaQR = async () => {
-  const { data } = await api.get("/api/wa/state", { headers: withAuth() });
+  const { data } = await api.get("/wa/state", { headers: withAuth() });
   // state devuelve { worker, ...snapshot } -> si necesitamos qr directo podemos depender de events SSE
   return { qr: (data && data.qr) || null };
 };
@@ -20,14 +20,14 @@ export const simpleWaSendPdf = async (payload: {
   pdfBase64: string; // vía orquestador siempre se envía base64 y él genera pdfKey
   caption?: string;
 }) => {
-  const { data } = await api.post("/api/wa/send-pdf", payload, {
+  const { data } = await api.post("/wa/send-pdf", payload, {
     headers: withAuth(),
   });
   return data; // { worker, key, result }
 };
 
 export const simpleWaVerify = async (phone: string) => {
-  const { data } = await api.get("/api/wa/verify", {
+  const { data } = await api.get("/wa/verify", {
     headers: withAuth(),
     params: { phone },
   });
@@ -36,7 +36,7 @@ export const simpleWaVerify = async (phone: string) => {
 
 export const simpleWaBulkVerify = async (phones: string[]) => {
   const { data } = await api.post(
-    "/api/wa/verify/bulk",
+    "/wa/verify/bulk",
     { phones },
     { headers: withAuth() }
   );
@@ -47,16 +47,12 @@ export const simpleWaBulkVerify = async (phones: string[]) => {
 };
 
 export const simpleWaLogout = async () => {
-  const { data } = await api.post(
-    "/api/wa/logout",
-    {},
-    { headers: withAuth() }
-  );
+  const { data } = await api.post("/wa/logout", {}, { headers: withAuth() });
   return data; // { worker, success }
 };
 
 export const simpleWaState = async () => {
-  const { data } = await api.get("/api/wa/state", { headers: withAuth() });
+  const { data } = await api.get("/wa/state", { headers: withAuth() });
   return data; // { worker, snapshot }
 };
 
@@ -66,7 +62,10 @@ export function openWaEventsStream(
 ) {
   const token = getAccessToken();
   if (!token) throw new Error("No auth token");
-  const url = new URL("/api/wa/events/stream", window.location.origin);
+  // Construimos la URL base completa: NEXT_PUBLIC_API_URL ya incluye /api
+  const baseUrl =
+    process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000/api";
+  const url = new URL("/wa/events/stream", baseUrl);
   const es = new EventSource(url.toString(), { withCredentials: false });
   // No podemos mandar header Authorization con EventSource estándar; opción: bearer via query param temporal (menos seguro) o usar fetch+readable. Aquí placeholder para evolución.
   // Alternativa real: backend aceptar ?token= ; implementarlo si se decide.
