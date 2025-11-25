@@ -78,6 +78,19 @@ export const WhatsappSessionModal: React.FC<WhatsappSessionModalProps> = ({ open
     initAttempted: initAttempted.current 
   })
 
+  // 🔧 FIX: Sincronizar wsStatus → Context cuando llega via WebSocket
+  useEffect(() => {
+    if (wsStatus && (wsStatus.qr || wsStatus.state || wsStatus.ready !== undefined)) {
+      console.log('🔄 Actualizando context desde WebSocket:', wsStatus)
+      updateFromStatus({
+        state: wsStatus.ready ? 'ready' : wsStatus.state || 'none',
+        qr: wsStatus.qr || null,
+        ready: wsStatus.ready || false,
+        authenticated: wsStatus.authenticated || false,
+      })
+    }
+  }, [wsStatus, updateFromStatus])
+
   // Función para iniciar sesión
   const handleStart = async () => {
     console.log('🚀 WhatsappSessionModal: Iniciando sesión...')

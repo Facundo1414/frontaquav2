@@ -68,16 +68,20 @@ export default function Navbar() {
   // Load WhatsApp usage on mount
   useEffect(() => {
     const loadWhatsappUsage = async () => {
-      try {
-        const response = await api.get('/whatsapp/usage')
-        setWhatsappUsage({
-          free_tier_used: response.data.free_tier_used,
-          total_conversations: response.data.total_conversations,
-        })
-      } catch (error) {
-        // Silently fail if not configured
-        setWhatsappUsage(null)
-      }
+      // TODO: Endpoint /whatsapp/usage no existe aún
+      // Por ahora solo configurar null para evitar 404
+      setWhatsappUsage(null)
+      
+      // Descomentar cuando el endpoint esté implementado:
+      // try {
+      //   const response = await api.get('/whatsapp/usage')
+      //   setWhatsappUsage({
+      //     free_tier_used: response.data.free_tier_used,
+      //     total_conversations: response.data.total_conversations,
+      //   })
+      // } catch (error) {
+      //   setWhatsappUsage(null)
+      // }
     }
     loadWhatsappUsage()
   }, [])

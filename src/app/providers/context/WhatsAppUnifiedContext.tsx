@@ -10,7 +10,7 @@
  * **Ahora:** Un solo polling interval compartido por toda la aplicación
  */
 
-import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, useRef, ReactNode } from 'react';
 import { useGlobalContext } from './GlobalContext';
 import { useWhatsappStatus } from '@/hooks/useWhatsappStatus';
 import api from '@/lib/api/axiosInstance';
@@ -50,6 +50,13 @@ export function WhatsAppUnifiedProvider({ children }: { children: ReactNode }) {
   const ADMIN_UID = process.env.NEXT_PUBLIC_ADMIN_UID || '';
   const isAdmin = userId === ADMIN_UID;
 
+  // Log para debug - solo en dev
+  useEffect(() => {
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🚀 WhatsAppUnifiedProvider montado - userId:', userId, 'isAdmin:', isAdmin);
+    }
+  }, [userId, isAdmin]);
+
   // Estados
   const [status, setStatus] = useState<UnifiedWhatsAppStatus>({
     connected: false,
@@ -63,8 +70,9 @@ export function WhatsAppUnifiedProvider({ children }: { children: ReactNode }) {
 
   // Retry con exponential backoff
   const [retryCount, setRetryCount] = useState(0);
-  const [retryDelay, setRetryDelay] = useState(1000);
+  const [retryDelay, setRetryDelay] = useState(15000); // Empezar con 15s para evitar rate limit
   const MAX_RETRIES = 5;
+  const BASE_POLLING_INTERVAL = 15000; // 15 segundos base (4 req/min = 240 req/hr bajo el límite)
 
   // Admin: WebSocket en tiempo real
   const {
@@ -121,7 +129,7 @@ export function WhatsAppUnifiedProvider({ children }: { children: ReactNode }) {
 
         // Reset retry en éxito
         setRetryCount(0);
-        setRetryDelay(1000);
+        setRetryDelay(BASE_POLLING_INTERVAL);
       }
     } catch (err: any) {
       console.error('Error fetching WhatsApp system status:', err);
@@ -145,8 +153,10 @@ export function WhatsAppUnifiedProvider({ children }: { children: ReactNode }) {
       }
 
       const nextRetry = retryCount + 1;
-      const baseDelay = is429 ? 60000 : Math.min(retryDelay * 2, 16000);
-      const nextDelay = is429 ? Math.max(baseDelay, 60000) : baseDelay;
+      // Para 429: esperar más tiempo (2-5 minutos dependiendo del retry)
+      // Para otros errores: exponential backoff normal
+      const baseDelay = is429 ? 120000 : Math.min(retryDelay * 2, 32000);
+      const nextDelay = is429 ? Math.min(baseDelay * nextRetry, 300000) : baseDelay; // Max 5 min para 429
 
       console.warn(
         `⚠️ ${is429 ? 'Rate limit (429)' : 'Error'} - Retry ${nextRetry}/${MAX_RETRIES} en ${nextDelay / 1000}s...`
@@ -187,15 +197,46 @@ export function WhatsAppUnifiedProvider({ children }: { children: ReactNode }) {
   }, [isAdmin, adminStatus, adminConnected]);
 
   // Sistema: Polling con delay progresivo
+  const fetchRef = useRef(fetchSystemStatus);
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // Actualizar ref cuando cambia la función
+  useEffect(() => {
+    fetchRef.current = fetchSystemStatus;
+  }, [fetchSystemStatus]);
+
   useEffect(() => {
     if (isAdmin) return;
 
-    fetchSystemStatus();
+    // 🔥 CRITICAL: Limpiar intervalo anterior si existe
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
 
-    const interval = setInterval(fetchSystemStatus, retryCount > 0 ? retryDelay : 30000);
+    // Llamada inicial
+    fetchRef.current();
 
-    return () => clearInterval(interval);
-  }, [isAdmin, fetchSystemStatus, retryCount, retryDelay]);
+    // Usar intervalo base de 15s, o el delay de retry si hay errores
+    const pollInterval = retryCount > 0 ? retryDelay : BASE_POLLING_INTERVAL;
+    intervalRef.current = setInterval(() => {
+      fetchRef.current();
+    }, pollInterval);
+
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`⏱️ Polling iniciado con intervalo de ${pollInterval / 1000}s`);
+    }
+
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+      if (process.env.NODE_ENV === 'development') {
+        console.log('⏹️ Polling detenido');
+      }
+    };
+  }, [isAdmin, retryCount, retryDelay, BASE_POLLING_INTERVAL]);
 
   const refresh = useCallback(() => {
     if (!isAdmin) {
