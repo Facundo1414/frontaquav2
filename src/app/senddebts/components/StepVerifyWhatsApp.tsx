@@ -48,6 +48,7 @@ export function StepVerifyWhatsApp() {
     // Simular verificación (en producción esto llamaría al backend)
     const startTime = Date.now()
     const totalTime = totalRecords * 100 // ~100ms por registro
+    const verificationResults: VerificationResult[] = []
 
     for (let i = 0; i < totalRecords; i++) {
       await new Promise(resolve => setTimeout(resolve, 100))
@@ -55,15 +56,15 @@ export function StepVerifyWhatsApp() {
       const record = rawData[i]
       const hasWhatsApp = Math.random() > 0.3 // 70% tienen WhatsApp
 
-      setResults(prev => [
-        ...prev,
-        {
-          telefono: record.telefono || 'Sin teléfono',
-          nombre: record.nombre || 'Sin nombre',
-          hasWhatsApp,
-          verified: true,
-        },
-      ])
+      const result: VerificationResult = {
+        telefono: record.telefono || 'Sin teléfono',
+        nombre: record.nombre || 'Sin nombre',
+        hasWhatsApp,
+        verified: true,
+      }
+
+      verificationResults.push(result)
+      setResults([...verificationResults])
 
       const currentProgress = ((i + 1) / totalRecords) * 100
       setProgress(currentProgress)
@@ -77,8 +78,8 @@ export function StepVerifyWhatsApp() {
       setEstimatedTime(`${minutes}m ${seconds}s`)
     }
 
-    // Filtrar solo los que tienen WhatsApp
-    const withWhatsApp = rawData.filter((_, index) => results[index]?.hasWhatsApp)
+    // Filtrar solo los que tienen WhatsApp usando verificationResults completo
+    const withWhatsApp = rawData.filter((_, index) => verificationResults[index]?.hasWhatsApp)
     setFilteredData(withWhatsApp)
     setVerifying(false)
   }

@@ -24,7 +24,7 @@ import { userLogout } from '@/lib/api'
 // Replaced legacy polling hook with context snapshot
 import { useWhatsappSessionContext } from '@/app/providers/context/whatsapp/WhatsappSessionContext'
 import { Badge } from '@/components/ui/badge'
-import { MessageCircle, Clock, X } from 'lucide-react'
+import { MessageCircle, Clock } from 'lucide-react'
 import api from '@/lib/api/axiosInstance'
 import PlanBadge from '@/components/subscription/PlanBadge'
 import { useSubscription } from '@/context/SubscriptionContext'
@@ -49,9 +49,6 @@ export default function Navbar() {
   // Admin check
   const ADMIN_UID = process.env.NEXT_PUBLIC_ADMIN_UID || ''
   const isAdmin = userId === ADMIN_UID
-
-  // Service hours banner state
-  const [showServiceHours, setShowServiceHours] = useState(true)
 
   // WhatsApp Business API usage tracking
   const [whatsappUsage, setWhatsappUsage] = useState<{
@@ -136,25 +133,16 @@ export default function Navbar() {
         </Link>
       </div>
 
-      {/* Centro: Aviso de horario */}
-      {showServiceHours && (
+      {/* Derecha: Aviso de horario + Avatar */}
+      <div className="flex items-center gap-3">
+        {/* Aviso de horario */}
         <div className="flex items-center gap-2 text-xs text-white/90 bg-blue-800/50 px-3 py-1.5 rounded-md">
           <Clock className="h-3.5 w-3.5" />
           <span>
             📅 <strong>Horario:</strong> Lun-Vie 9:00-16:00 hs
           </span>
-          <button
-            onClick={() => setShowServiceHours(false)}
-            className="ml-2 text-white/70 hover:text-white transition-colors"
-            aria-label="Cerrar"
-          >
-            <X className="h-3.5 w-3.5" />
-          </button>
         </div>
-      )}
 
-      {/* Derecha: Avatar */}
-      <div className="flex items-center gap-3">
         <Sheet open={open} onOpenChange={setOpen}>
           <SheetTrigger asChild>
             <div className="relative">

@@ -227,7 +227,9 @@ const handleClickFAQ = () => {
 
       {/* Widget de Estado del Sistema WhatsApp - Todos los usuarios */}
       {userId && (
-        <WhatsappUsageWidget />
+        <div className="mb-6">
+          <WhatsappUsageWidget />
+        </div>
       )}
 
       {/* Selector de Modo WhatsApp - Todos los usuarios */}
@@ -239,58 +241,6 @@ const handleClickFAQ = () => {
           />
         </div>
       )}
-
-      {/* Banner NUEVO: Sistema de Filtrado PYSE */}
-      <div className="mb-8 mt-6 rounded-lg border-2 border-green-300 bg-gradient-to-r from-green-50 to-emerald-50 p-6 shadow-lg">
-        <div className="flex flex-col lg:flex-row items-start lg:items-center gap-4">
-          <div className="flex-shrink-0">
-            <div className="w-16 h-16 bg-green-600 rounded-full flex items-center justify-center shadow-md">
-              <Filter className="w-8 h-8 text-white" />
-            </div>
-          </div>
-          <div className="flex-1">
-            <div className="flex items-center gap-3 mb-2">
-              <h3 className="text-2xl font-bold text-green-900">
-                ✨ Nuevo Sistema de Filtrado para PYSE
-              </h3>
-              <span className="px-3 py-1 bg-green-600 text-white text-xs font-bold rounded-full uppercase tracking-wide">
-                Nuevo
-              </span>
-            </div>
-            <p className="text-green-800 mb-3 text-lg">
-              <strong>Sube tu universo de cuentas UNA SOLA VEZ</strong> y procesa diferentes barrios cada día. 
-              Ideal para verificar deudas de forma controlada (~300 cuentas/día).
-            </p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-sm text-green-700">
-              <div className="flex items-center gap-2">
-                <Check className="w-4 h-4 text-green-600" />
-                <span>Archivo guardado permanentemente</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Check className="w-4 h-4 text-green-600" />
-                <span>Selección por barrios</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Check className="w-4 h-4 text-green-600" />
-                <span>Clasificación automática</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Check className="w-4 h-4 text-green-600" />
-                <span>2 Excel: APTOS y NO APTOS</span>
-              </div>
-            </div>
-          </div>
-          <div className="flex-shrink-0">
-            <button
-              onClick={() => router.push('/filtrar-clientes')}
-              className="inline-flex items-center justify-center gap-2 rounded-lg bg-green-600 px-6 py-3 text-white text-lg font-bold hover:bg-green-700 transition-all shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
-            >
-              <Filter className="w-5 h-5" />
-              Probar Ahora
-            </button>
-          </div>
-        </div>
-      </div>
 
       {/* Servicios Header */}
       <div className="text-center mb-10">

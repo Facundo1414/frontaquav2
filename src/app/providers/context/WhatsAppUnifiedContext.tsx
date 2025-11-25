@@ -57,22 +57,37 @@ export function WhatsAppUnifiedProvider({ children }: { children: ReactNode }) {
     }
   }, [userId, isAdmin]);
 
-  // Estados
-  const [status, setStatus] = useState<UnifiedWhatsAppStatus>({
-    connected: false,
-    ready: false,
-    authenticated: false,
-    mode: 'system',
-    loading: true,
-    error: null,
-    canSendMessage: false,
+  // Estados - inicializar según tipo de usuario
+  const [status, setStatus] = useState<UnifiedWhatsAppStatus>(() => {
+    // Usuarios normales: no necesitan estado del sistema WhatsApp
+    if (!isAdmin) {
+      return {
+        connected: true, // Asumimos que pueden usar su propio WhatsApp personal
+        ready: true,
+        authenticated: false,
+        mode: 'system',
+        loading: false, // No cargar, no necesitan polling
+        error: null,
+        canSendMessage: true, // Pueden enviar si tienen su sesión personal
+      };
+    }
+    // Admins: necesitan cargar estado del sistema
+    return {
+      connected: false,
+      ready: false,
+      authenticated: false,
+      mode: 'system',
+      loading: true,
+      error: null,
+      canSendMessage: false,
+    };
   });
 
   // Retry con exponential backoff
   const [retryCount, setRetryCount] = useState(0);
-  const [retryDelay, setRetryDelay] = useState(15000); // Empezar con 15s para evitar rate limit
+  const [retryDelay, setRetryDelay] = useState(60000); // Empezar con 60s para evitar rate limit
   const MAX_RETRIES = 5;
-  const BASE_POLLING_INTERVAL = 15000; // 15 segundos base (4 req/min = 240 req/hr bajo el límite)
+  const BASE_POLLING_INTERVAL = 60000; // 60 segundos base (1 req/min = 60 req/hr, muy conservador)
 
   // Admin: WebSocket en tiempo real
   const {
@@ -206,7 +221,9 @@ export function WhatsAppUnifiedProvider({ children }: { children: ReactNode }) {
   }, [fetchSystemStatus]);
 
   useEffect(() => {
-    if (isAdmin) return;
+    // 🔥 CRITICAL: Solo hacer polling para admins (sistema WhatsApp)
+    // Los usuarios normales NO necesitan saber el estado del sistema
+    if (!isAdmin) return;
 
     // 🔥 CRITICAL: Limpiar intervalo anterior si existe
     if (intervalRef.current) {
