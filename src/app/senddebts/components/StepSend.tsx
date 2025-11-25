@@ -81,7 +81,13 @@ Por favor, realiza el pago antes del vencimiento.
 
   useEffect(() => {
     // Inicializar stats cuando se monta el componente
+    console.log('🔍 StepSend montado - filteredData:', filteredData)
+    console.log('🔍 StepSend montado - filteredData.length:', filteredData?.length)
+    console.log('🔍 StepSend montado - fileNameFiltered:', fileNameFiltered)
+    
     const total = filteredData?.length || 0
+    console.log('📊 Total calculado para stats:', total)
+    
     setSendStats({
       total,
       completed: 0,
@@ -160,7 +166,7 @@ Por favor, realiza el pago antes del vencimiento.
           setWaitingForResults(false)
           setStatus('✅ Proceso completado. Pasando a descarga...')
           setTimeout(() => {
-            setActiveStep(2)
+            setActiveStep(3)
           }, 1000)
         } else if (pollingAttempts >= 20) {
           // Después de 20 intentos, avanzar de todas formas
@@ -169,7 +175,7 @@ Por favor, realiza el pago antes del vencimiento.
           setWaitingForResults(false)
           setStatus('⚠️ Mensajes enviados. Descargá el archivo desde respaldos.')
           setTimeout(() => {
-            setActiveStep(2)
+            setActiveStep(3)
           }, 1000)
         } else {
           setPollingAttempts(prev => prev + 1)
@@ -247,9 +253,9 @@ Por favor, realiza el pago antes del vencimiento.
           // NO hacer setLoading(false) aquí, lo hace cuando llega el archivo
         } else {
           // Sin WebSocket, avanzar manualmente
-          console.log('🚀 Avanzando al paso 2 (sin WebSocket)')
+          console.log('🚀 Avanzando al paso 3 (sin WebSocket)')
           setTimeout(() => {
-            setActiveStep(2) // Ir a descargar (ahora es paso 2)
+            setActiveStep(3) // Ir a descargar (ahora es paso 3)
           }, 1500)
           setLoading(false)
         }
@@ -269,11 +275,11 @@ Por favor, realiza el pago antes del vencimiento.
     setFileNameFiltered("")
     setProcessedFile(null)
     setNotWhatsappData("")
-    setActiveStep(0) // Volver al inicio
+    setActiveStep(1) // Volver a verificar
   }
   
   const handleBack = () => {
-    setActiveStep(0) // Volver a cargar archivo
+    setActiveStep(1) // Volver a verificar
   }
 
   return (

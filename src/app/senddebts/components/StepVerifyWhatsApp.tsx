@@ -7,6 +7,8 @@ import { CheckCircle2, XCircle, AlertTriangle, Phone } from 'lucide-react'
 import { useSendDebtsContext } from '@/app/providers/context/SendDebtsContext'
 import { ProgressCard } from './ProgressCard'
 import { Badge } from '@/components/ui/badge'
+import { simpleWaBulkVerify, getPhonesByUFs } from '@/lib/api'
+import { toast } from 'sonner'
 
 interface VerificationResult {
   telefono: string
@@ -16,7 +18,7 @@ interface VerificationResult {
 }
 
 export function StepVerifyWhatsApp() {
-  const { rawData, setFilteredData, setActiveStep, progressStats, setProgressStats } = useSendDebtsContext()
+  const { rawData, setFilteredData, setActiveStep, progressStats, setProgressStats, setFileNameFiltered } = useSendDebtsContext()
 
   const [verifying, setVerifying] = useState(false)
   const [progress, setProgress] = useState(0)
@@ -40,48 +42,184 @@ export function StepVerifyWhatsApp() {
     })
   }, [totalRecords, hasWhatsAppCount, noWhatsAppCount, pendingCount, setProgressStats])
 
+  /**
+   * Normalizar y formatear número de teléfono
+   * Acepta: 3513479404, +543513479404, 543513479404
+   * Retorna: +543513479404 (formato internacional Argentina)
+   */
+  const normalizePhone = (phone: string): string | null => {
+    if (!phone) return null
+    
+    // Limpiar espacios, guiones, paréntesis
+    const cleaned = phone.replace(/[\s\-()]/g, '')
+    
+    // Solo dígitos
+    const digits = cleaned.replace(/\D/g, '')
+    
+    // Validar longitud (mínimo 8 dígitos)
+    if (digits.length < 8) return null
+    
+    // Si ya tiene + al inicio, retornar
+    if (cleaned.startsWith('+')) return cleaned
+    
+    // Si tiene 10 dígitos (ej: 3513479404), agregar código país Argentina
+    if (digits.length === 10) {
+      return `+54${digits}`
+    }
+    
+    // Si tiene 12 dígitos y empieza con 54 (ej: 543513479404)
+    if (digits.length === 12 && digits.startsWith('54')) {
+      return `+${digits}`
+    }
+    
+    // Si tiene 13 dígitos y empieza con 549 (formato móvil con 9)
+    if (digits.length === 13 && digits.startsWith('549')) {
+      return `+${digits}`
+    }
+    
+    // Otros casos: retornar con + si tiene más de 10 dígitos
+    if (digits.length > 10) {
+      return `+${digits}`
+    }
+    
+    return `+54${digits}`
+  }
+
   const handleVerify = async () => {
     setVerifying(true)
     setProgress(0)
     setResults([])
 
-    // Simular verificación (en producción esto llamaría al backend)
-    const startTime = Date.now()
-    const totalTime = totalRecords * 100 // ~100ms por registro
-    const verificationResults: VerificationResult[] = []
+    try {
+      const startTime = Date.now()
+      
+      console.log('📋 rawData completo:', rawData)
+      
+      // 0. Verificar que la sesión de WhatsApp esté lista
+      toast.info('Verificando sesión de WhatsApp...')
+      const { simpleWaState } = await import('@/lib/api')
+      const sessionState = await simpleWaState()
+      
+      console.log('📊 Estado de sesión:', sessionState)
+      
+      // El orquestador wrapea la respuesta en { worker, type, data }
+      const session = sessionState.data || sessionState
+      
+      if (!session.authenticated || !session.ready) {
+        toast.error('La sesión de WhatsApp no está lista. Por favor, inicia sesión primero.')
+        setVerifying(false)
+        return
+      }
+      
+      toast.success('Sesión de WhatsApp lista ✅')
+      
+      // 1. Extraer UFs para buscar teléfonos actualizados en BD
+      const ufs = rawData
+        .map((record: any) => record.unidad)
+        .filter((uf: any) => uf && !isNaN(uf))
+      
+      console.log(`📞 Consultando BD para ${ufs.length} UFs...`)
+      toast.info(`Consultando base de datos para ${ufs.length} clientes...`)
+      
+      // 2. Obtener teléfonos actualizados desde la base de datos
+      const dbPhones = await getPhonesByUFs(ufs)
+      console.log(`📊 Teléfonos encontrados en BD:`, dbPhones)
+      console.log(`✅ ${Object.keys(dbPhones).length} teléfonos actualizados encontrados en BD`)
+      
+      // 3. Extraer y normalizar teléfonos del rawData (con prioridad de BD)
+      const phonesData = rawData.map((record: any) => {
+        const uf = record.unidad
+        
+        // Prioridad 1: Teléfono de BD (siempre más actualizado)
+        let rawPhone = dbPhones[uf]
+        let source = rawPhone ? 'database' : 'excel'
+        
+        // Prioridad 2: Teléfono del Excel
+        if (!rawPhone) {
+          rawPhone = record.tel_clien || record.tel_uni || record.telefono
+        }
+        
+        console.log(`Registro UF ${uf} (${record.Cliente_01}):`)
+        console.log(`  - BD: ${dbPhones[uf] || 'N/A'}`)
+        console.log(`  - Excel tel_clien: ${record.tel_clien}`)
+        console.log(`  - Excel tel_uni: ${record.tel_uni}`)
+        console.log(`  - Fuente elegida: ${source}`)
+        
+        const normalized = normalizePhone(rawPhone)
+        console.log(`  -> Normalizado: ${normalized}`)
+        
+        return {
+          original: record,
+          phone: normalized,
+          nombre: record.Cliente_01 || record.nombre || 'Sin nombre',
+          source, // Para tracking
+        }
+      })
 
-    for (let i = 0; i < totalRecords; i++) {
-      await new Promise(resolve => setTimeout(resolve, 100))
-
-      const record = rawData[i]
-      const hasWhatsApp = Math.random() > 0.3 // 70% tienen WhatsApp
-
-      const result: VerificationResult = {
-        telefono: record.telefono || 'Sin teléfono',
-        nombre: record.nombre || 'Sin nombre',
-        hasWhatsApp,
-        verified: true,
+      // 2. Filtrar solo los que tienen teléfono válido
+      const validPhones = phonesData.filter(item => item.phone !== null)
+      
+      if (validPhones.length === 0) {
+        toast.error('No se encontraron teléfonos válidos en el archivo')
+        setVerifying(false)
+        return
       }
 
-      verificationResults.push(result)
-      setResults([...verificationResults])
+      toast.info(`Verificando ${validPhones.length} números de WhatsApp...`)
 
-      const currentProgress = ((i + 1) / totalRecords) * 100
-      setProgress(currentProgress)
+      // 3. Llamar al API de verificación bulk
+      const phoneNumbers = validPhones.map(item => item.phone!)
+      console.log('📞 Números a verificar:', phoneNumbers)
+      
+      const response = await simpleWaBulkVerify(phoneNumbers)
+      console.log('📡 Respuesta del API:', response)
 
-      // Calcular tiempo estimado restante
+      // 4. Mapear resultados
+      const verificationResults: VerificationResult[] = validPhones.map((item, index) => {
+        const apiResult = response.results.find((r: any) => r.phone === item.phone)
+        console.log(`Buscando ${item.phone} en resultados:`, apiResult)
+        const hasWhatsApp = apiResult?.isWhatsApp || false
+
+        return {
+          telefono: item.phone!,
+          nombre: item.nombre,
+          hasWhatsApp,
+          verified: true,
+        }
+      })
+
+      setResults(verificationResults)
+      setProgress(100)
+
+      // 5. Filtrar datos originales solo con los que tienen WhatsApp
+      const phoneToHasWhatsApp = new Map(
+        verificationResults.map(r => [r.telefono, r.hasWhatsApp])
+      )
+
+      const filteredRecords = phonesData
+        .filter(item => item.phone && phoneToHasWhatsApp.get(item.phone))
+        .map(item => item.original)
+
+      setFilteredData(filteredRecords)
+
+      // ✅ El archivo filtrado ya fue generado por el backend en el paso anterior
+      // No es necesario generarlo de nuevo aquí
+
       const elapsed = Date.now() - startTime
-      const avgTimePerRecord = elapsed / (i + 1)
-      const remaining = (totalRecords - (i + 1)) * avgTimePerRecord
-      const minutes = Math.floor(remaining / 60000)
-      const seconds = Math.floor((remaining % 60000) / 1000)
-      setEstimatedTime(`${minutes}m ${seconds}s`)
+      const seconds = Math.floor(elapsed / 1000)
+      
+      const dbCount = phonesData.filter(p => p.source === 'database').length
+      const excelCount = phonesData.filter(p => p.source === 'excel').length
+      
+      toast.success(
+        `✅ Verificación completada en ${seconds}s. ${filteredRecords.length} números tienen WhatsApp (${dbCount} desde BD, ${excelCount} desde Excel)`
+      )
+    } catch (error: any) {
+      console.error('Error en verificación:', error)
+      toast.error('Error al verificar números de WhatsApp')
+    } finally {
+      setVerifying(false)
     }
-
-    // Filtrar solo los que tienen WhatsApp usando verificationResults completo
-    const withWhatsApp = rawData.filter((_, index) => verificationResults[index]?.hasWhatsApp)
-    setFilteredData(withWhatsApp)
-    setVerifying(false)
   }
 
   const handleSkip = () => {

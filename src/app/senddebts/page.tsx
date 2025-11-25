@@ -56,16 +56,16 @@ function LoadingTable() {
   )
 }
 
-// Definicion de 3 pasos (la verificacion de WhatsApp se hace automaticamente en el paso 1)
+// Definicion de 3 pasos: Upload → Send → Download
 const SEND_DEBTS_STEPS: Step[] = [
   {
-    title: 'Cargar y Filtrar',
-    description: 'Sube Excel y verifica WhatsApp automáticamente',
+    title: 'Cargar Archivo',
+    description: 'Sube el Excel con datos de clientes',
     status: 'pending',
   },
   {
     title: 'Enviar Mensajes',
-    description: 'Envío masivo a clientes con WhatsApp',
+    description: 'Envío masivo con verificación automática',
     status: 'pending',
   },
   {

@@ -218,6 +218,42 @@ export const getClientById = async (id: string) => {
 };
 
 /**
+ * Obtener teléfonos enriquecidos desde la base de datos por UFs
+ * Retorna mapa de UF → teléfono actualizado
+ */
+export const getPhonesByUFs = async (
+  ufs: number[]
+): Promise<Record<number, string>> => {
+  const token = getAccessToken();
+
+  // Buscar clientes por UFs en lotes de 100
+  const phoneMap: Record<number, string> = {};
+  const batchSize = 100;
+
+  for (let i = 0; i < ufs.length; i += batchSize) {
+    const batch = ufs.slice(i, i + batchSize);
+
+    try {
+      const { data } = await api.post(
+        "/clients/phones/by-ufs",
+        { ufs: batch },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      // Merge results
+      Object.assign(phoneMap, data);
+    } catch (error) {
+      console.warn(
+        `Error obteniendo teléfonos para lote ${i}-${i + batch.length}:`,
+        error
+      );
+    }
+  }
+
+  return phoneMap;
+};
+
+/**
  * Actualizar un cliente
  */
 export const updateClient = async (id: string, updates: any) => {

@@ -104,7 +104,7 @@ export default function StepUploadFile() {
   const handleUpload = async () => {
     if (!file) return toast.error('Seleccioná un archivo primero')
 
-    // 🛡️ Re-validar antes de enviar al backend
+    // 🛡️ Re-validar antes de procesar
     const isValid = validateFile(file, validateExcelFile)
     if (!isValid) {
       toast.error(fileError || 'Archivo inválido')
@@ -113,41 +113,81 @@ export default function StepUploadFile() {
 
     try {
       setUploading(true)
+
+      // 🔥 PASO 1: Parsear archivo localmente para tener los datos
+      const fileData = await file.arrayBuffer()
+      const blob = new Blob([fileData], { type: file.type })
+      const parsedData = await parseExcelBlob(blob)
+
+      // 🛡️ Validar datos parseados
+      const validation = debtsDataSchema.safeParse(parsedData)
+      
+      if (!validation.success) {
+        console.error('Error de validación:', validation.error)
+        toast.error('El archivo contiene datos inválidos. Verifica el formato.')
+        setFile(null)
+        if (fileInputRef.current) fileInputRef.current.value = ''
+        return
+      }
+
+      // 🛡️ Sanitizar datos antes de guardarlos
+      const sanitizedData = validation.data.map((row: any) => sanitizeObject(row))
+      
+      // Guardar datos parseados para usar en los siguientes pasos
+      setRawData(sanitizedData)
+
+      // 🔥 PASO 2: Subir archivo al backend para que lo procese y genere archivos filtrados
+      toast.info('Subiendo archivo al servidor...')
       const formData = new FormData()
       formData.append('file', file)
-
-      toast.info('Archivo subido. Procesando...')
-
+      
       const response = await uploadExcelFile(formData)
+      console.log('✅ Archivo subido al backend:', response)
       
-      // 🎯 Backend siempre devuelve jobId para tracking en tiempo real
-      if (response.jobId) {
-        console.log('📊 JobId recibido:', response.jobId)
-        setJobId(response.jobId)
-      } else {
-        console.warn('⚠️ Backend no retornó jobId, no habrá progreso en tiempo real')
-      }
-      
+      // El backend retorna savedFileNames con los archivos generados:
+      // [0]: "not-whatsapp-xxx.xlsx", [1]: "clients-with-whatsapp-xxx.xlsx"
       const fileWithNoWsp = response.savedFileNames?.[0]
       const savedFile = response.savedFileNames?.[1]
 
-      if (!savedFile) throw new Error('No se recibió el nombre del archivo procesado')
+      if (!savedFile) {
+        throw new Error('No se recibió el nombre del archivo procesado')
+      }
 
+      // 🔥 PASO 3: Guardar nombres de archivos en contexto
       setFileNameFiltered(savedFile)
       setNotWhatsappData(fileWithNoWsp)
-      const blob = await getFileByName(savedFile)
-      const parsedData = await parseExcelBlobWithIndexMapping(blob)
-
-      setFilteredData(parsedData)
-      toast.success(`✅ Archivo procesado. ${parsedData.length} clientes con WhatsApp`)
-      // Ir directo a paso 1 (enviar) - la verificación de WhatsApp ya se hizo
+      
+      // 🔥 PASO 4: Descargar el archivo filtrado del backend y parsearlo
+      // Esto es CRÍTICO: necesitamos los datos filtrados, no los originales
+      console.log('📥 Descargando archivo filtrado:', savedFile)
+      const filteredBlob = await getFileByName(savedFile)
+      console.log('📄 Blob recibido:', filteredBlob.size, 'bytes')
+      
+      const parsedFilteredData = await parseExcelBlobWithIndexMapping(filteredBlob)
+      console.log('📊 Datos filtrados parseados:', parsedFilteredData.length, 'filas')
+      console.log('🔍 Primeras 3 filas:', parsedFilteredData.slice(0, 3))
+      
+      // Guardar los datos FILTRADOS (solo clientes con WhatsApp)
+      setFilteredData(parsedFilteredData)
+      console.log('✅ filteredData guardado en contexto')
+      
+      // Guardar jobId si existe para tracking
+      if (response.jobId) {
+        setJobId(response.jobId)
+      }
+      
+      toast.success('Archivo procesado correctamente')
+      
+      // Ir al paso 1 (Enviar Mensajes)
+      console.log('🚀 Navegando a paso 1 (Enviar)')
       setActiveStep(1)
-    } catch (err) {
-      console.error(err)
-      toast.error('Error al procesar el archivo')
+    } catch (err: any) {
+      console.error('Error al subir archivo:', err)
+      toast.error(err?.response?.data?.message || 'Error al procesar el archivo')
+      setFile(null)
+      if (fileInputRef.current) fileInputRef.current.value = ''
     } finally {
       setUploading(false)
-      setJobId(null)
     }
   }
 

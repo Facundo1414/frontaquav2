@@ -296,10 +296,13 @@ export const WhatsappSessionProvider: React.FC<{ children: React.ReactNode }> = 
           console.log('🔄 Sesión sincronizando');
           updateFromStatus({ state: 'syncing' });
         }
-        // Si no hay sesión Y no estamos en ningún proceso, intentar reconectar
-        else if (!state.ready && !state.authenticated && !snapshot?.state) {
-          console.log('🔌 No hay sesión activa, intentando reconectar...');
+        // ⚠️ SOLO reconectar si NO hay sesión Y el contexto está completamente vacío
+        // Evitar reconectar si ya hay una sesión inicializándose o trabajando
+        else if (!state.ready && !state.authenticated && !snapshot) {
+          console.log('🔌 No hay sesión activa ni contexto, intentando reconectar...');
           await reconnect();
+        } else {
+          console.log('⏸️ Sesión en proceso o ya existe, no reconectar');
         }
       } catch (error: any) {
         const status = error?.response?.status;
