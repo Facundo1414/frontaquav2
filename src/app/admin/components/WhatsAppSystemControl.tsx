@@ -14,7 +14,8 @@ import {
   AlertCircle,
   Loader2,
   Phone,
-  LogOut
+  LogOut,
+  Save
 } from 'lucide-react'
 import { adminAPI } from '@/utils/admin-api'
 import { toast } from 'sonner'
@@ -38,6 +39,7 @@ export function WhatsAppSystemControl() {
   const [loading, setLoading] = useState(true)
   const [initiating, setInitiating] = useState(false)
   const [loggingOut, setLoggingOut] = useState(false)
+  const [savingSession, setSavingSession] = useState(false)
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null)
   const [autoRefresh, setAutoRefresh] = useState(true)
 
@@ -46,20 +48,45 @@ export function WhatsAppSystemControl() {
     loadStatus()
   }, [])
 
-  // Auto-refresh cada 10 segundos cuando hay QR o está iniciando
+  // SSE streaming para actualizaciones en tiempo real (reemplaza polling)
   useEffect(() => {
     if (!autoRefresh) return
+    if (!status?.qr && !initiating && status?.ready) return // Solo SSE si hay QR o está iniciando
 
-    const needsRefresh = status?.qr || initiating
+    const WHATSAPP_WORKER_URL = process.env.NEXT_PUBLIC_WHATSAPP_WORKER_URL || "http://localhost:3010"
+    const eventSource = new EventSource(`${WHATSAPP_WORKER_URL}/api/whatsapp/qr/stream`)
 
-    if (needsRefresh) {
-      const interval = setInterval(() => {
-        loadStatus()
-      }, 10000) // 10 segundos
+    eventSource.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data)
+        setStatus({
+          ready: data.ready,
+          authenticated: data.authenticated,
+          qr: data.qr,
+          phone: data.phone || undefined
+        })
 
-      return () => clearInterval(interval)
+        // Si se conectó exitosamente, detener iniciando
+        if (data.ready && initiating) {
+          setInitiating(false)
+        }
+      } catch (error) {
+        console.error('Error parsing SSE data:', error)
+      }
     }
-  }, [status?.qr, initiating, autoRefresh])
+
+    eventSource.onerror = (error) => {
+      console.error('SSE connection error:', error)
+      eventSource.close()
+      
+      // Fallback: recargar estado manualmente
+      setTimeout(() => loadStatus(), 5000)
+    }
+
+    return () => {
+      eventSource.close()
+    }
+  }, [autoRefresh, initiating, status?.qr, status?.ready])
 
   // Generar QR code visual cuando cambia
   useEffect(() => {
@@ -127,6 +154,29 @@ export function WhatsAppSystemControl() {
   const handleRefresh = () => {
     setLoading(true)
     loadStatus()
+  }
+
+  const handleSaveSession = async () => {
+    if (!status?.ready) {
+      toast.error('⚠️ Debes estar conectado para guardar la sesión')
+      return
+    }
+
+    if (!confirm('💾 ¿Guardar la sesión actual en Supabase? Esto creará un respaldo de la sesión WhatsApp conectada.')) {
+      return
+    }
+
+    setSavingSession(true)
+
+    try {
+      const result = await adminAPI.whatsappSystem.saveSession()
+      toast.success(`✅ ${result.message}`)
+      console.log('Session saved:', result.data)
+    } catch (error: any) {
+      toast.error(`Error al guardar sesión: ${error.message}`)
+    } finally {
+      setSavingSession(false)
+    }
   }
 
   if (loading) {
@@ -213,11 +263,13 @@ export function WhatsAppSystemControl() {
             <div className="bg-gray-50 rounded-lg p-4">
               <div className="text-sm text-gray-600 mb-1">Mensajes Hoy</div>
               <div className="font-semibold text-gray-900">
-                {status.stats.messagesToday} / {status.stats.maxPerDay}
+                {status.stats.messagesToday ?? 0} / {status.stats.maxPerDay ?? 0}
               </div>
-              <div className="text-xs text-gray-500 mt-1">
-                {status.stats.percentageUsed.toFixed(1)}% usado
-              </div>
+              {status.stats.percentageUsed !== undefined && (
+                <div className="text-xs text-gray-500 mt-1">
+                  {status.stats.percentageUsed.toFixed(1)}% usado
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -308,6 +360,25 @@ export function WhatsAppSystemControl() {
               <>
                 <LogOut className="h-4 w-4" />
                 Cerrar Sesión
+              </>
+            )}
+          </Button>
+
+          <Button
+            onClick={handleSaveSession}
+            disabled={savingSession || !status?.ready}
+            variant="secondary"
+            className="gap-2"
+          >
+            {savingSession ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Guardando...
+              </>
+            ) : (
+              <>
+                <Save className="h-4 w-4" />
+                Guardar en Supabase
               </>
             )}
           </Button>

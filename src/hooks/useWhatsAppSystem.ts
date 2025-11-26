@@ -48,8 +48,8 @@ export function useWhatsAppSystem() {
   useEffect(() => {
     fetchStatus();
 
-    // Actualizar cada 30 segundos
-    const interval = setInterval(fetchStatus, 30000);
+    // Actualizar cada 2 minutos para evitar 429 rate limit
+    const interval = setInterval(fetchStatus, 120000);
 
     return () => clearInterval(interval);
   }, [fetchStatus]);

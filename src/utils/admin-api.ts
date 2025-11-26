@@ -23,7 +23,7 @@ import { useState } from "react";
 const ADMIN_UID = process.env.NEXT_PUBLIC_ADMIN_UID || "";
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
 const WHATSAPP_WORKER_URL =
-  process.env.NEXT_PUBLIC_WHATSAPP_WORKER_URL || "http://localhost:3002";
+  process.env.NEXT_PUBLIC_WHATSAPP_WORKER_URL || "http://localhost:3010";
 
 if (!ADMIN_UID) {
   console.error("⚠️ NEXT_PUBLIC_ADMIN_UID not set in environment variables");
@@ -277,6 +277,21 @@ export const adminAPI = {
         }
       );
       if (!response.ok) throw new Error("Failed to logout WhatsApp system");
+      return response.json();
+    },
+
+    /**
+     * Guardar sesión manualmente en Supabase
+     */
+    async saveSession() {
+      const response = await fetch(
+        `${WHATSAPP_WORKER_URL}/api/whatsapp/save-session`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+      if (!response.ok) throw new Error("Failed to save WhatsApp session");
       return response.json();
     },
   },
