@@ -78,9 +78,15 @@ export const proximosVencerRowSchema = z.object({
 
   Criterios: z.string().trim().optional(),
 
-  contrato: z.string().trim().optional(),
+  contrato: z
+    .union([z.string(), z.number()])
+    .transform((val) => val?.toString().trim() || "")
+    .optional(),
 
-  entrega: z.string().trim().optional(),
+  entrega: z
+    .union([z.string(), z.number()])
+    .transform((val) => val?.toString().trim() || "")
+    .optional(),
 
   situ_actual: z.string().trim().optional(),
 
