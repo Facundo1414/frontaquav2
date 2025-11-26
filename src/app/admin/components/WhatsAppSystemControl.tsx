@@ -102,7 +102,9 @@ export function WhatsAppSystemControl() {
 
   const loadStatus = async () => {
     try {
-      const data = await adminAPI.whatsappSystem.getStatus()
+      const response = await adminAPI.whatsappSystem.getStatus()
+      // El backend devuelve { success, data: {...} }
+      const data = response.data || response
       setStatus(data)
     } catch (error: any) {
       console.error('Error loading WhatsApp status:', error)
