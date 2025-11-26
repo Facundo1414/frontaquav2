@@ -53,8 +53,9 @@ export function WhatsAppSystemControl() {
     if (!autoRefresh) return
     if (!status?.qr && !initiating && status?.ready) return // Solo SSE si hay QR o está iniciando
 
-    const WHATSAPP_WORKER_URL = process.env.NEXT_PUBLIC_WHATSAPP_WORKER_URL || "http://localhost:3010"
-    const eventSource = new EventSource(`${WHATSAPP_WORKER_URL}/api/whatsapp/qr/stream`)
+    // Usar el backend como proxy en lugar de ir directo al worker
+    const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"
+    const eventSource = new EventSource(`${API_BASE_URL}/api/wa/qr/stream`)
 
     eventSource.onmessage = (event) => {
       try {

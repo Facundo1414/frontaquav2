@@ -235,64 +235,35 @@ export const adminAPI = {
      * Obtener estado del sistema WhatsApp
      */
     async getStatus() {
-      const response = await fetch(
-        `${WHATSAPP_WORKER_URL}/api/whatsapp/status`
-      );
-      if (!response.ok) throw new Error("Failed to get WhatsApp system status");
-      const data = await response.json();
-      return data.data;
+      return adminFetch("/wa/system/status");
     },
 
     /**
      * Inicializar sistema WhatsApp (genera QR si es necesario)
      */
     async init() {
-      const response = await fetch(`${WHATSAPP_WORKER_URL}/api/whatsapp/init`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-      });
-      if (!response.ok) throw new Error("Failed to initialize WhatsApp system");
-      return response.json();
+      return adminFetch("/wa/system/init", { method: "POST" });
     },
 
     /**
      * Obtener QR code actual
      */
     async getQR() {
-      const response = await fetch(`${WHATSAPP_WORKER_URL}/api/whatsapp/qr`);
-      if (!response.ok) throw new Error("Failed to get QR code");
-      const data = await response.json();
-      return data.data;
+      return adminFetch("/wa/system/qr");
     },
 
     /**
      * Cerrar sesión del sistema
      */
     async logout() {
-      const response = await fetch(
-        `${WHATSAPP_WORKER_URL}/api/whatsapp/logout`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-        }
-      );
-      if (!response.ok) throw new Error("Failed to logout WhatsApp system");
-      return response.json();
+      return adminFetch("/wa/system/logout", { method: "POST" });
     },
 
     /**
      * Guardar sesión manualmente en Supabase
      */
     async saveSession() {
-      const response = await fetch(
-        `${WHATSAPP_WORKER_URL}/api/whatsapp/save-session`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-        }
-      );
-      if (!response.ok) throw new Error("Failed to save WhatsApp session");
-      return response.json();
+      return adminFetch("/wa/system/save-session", { method: "POST" });
     },
   },
 };
