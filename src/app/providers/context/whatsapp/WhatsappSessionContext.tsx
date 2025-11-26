@@ -337,12 +337,12 @@ export const WhatsappSessionProvider: React.FC<{ children: React.ReactNode }> = 
       checkAndReconnect();
     }
     
-    // Verificar cada 30 segundos (aumentado para evitar rate limiting) si no estamos ready ni waiting_qr
+    // Verificar cada 2 minutos (aumentado para evitar rate limiting) si no estamos ready ni waiting_qr
     const interval = setInterval(() => {
       if (!snapshot?.ready && snapshot?.state !== 'waiting_qr') {
         checkAndReconnect();
       }
-    }, 30000); // 30 segundos
+    }, 120000); // 2 minutos
     
     return () => clearInterval(interval);
   }, [userId, snapshot?.ready, snapshot?.state, reconnect, updateFromStatus, shouldEnableWhatsapp]);

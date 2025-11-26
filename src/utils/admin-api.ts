@@ -239,6 +239,20 @@ export const adminAPI = {
     },
 
     /**
+     * Activar sistema WhatsApp (cargar en memoria)
+     */
+    async activate() {
+      return adminFetch("/wa/system/activate", { method: "POST" });
+    },
+
+    /**
+     * Desactivar sistema WhatsApp (liberar memoria)
+     */
+    async deactivate() {
+      return adminFetch("/wa/system/deactivate", { method: "POST" });
+    },
+
+    /**
      * Inicializar sistema WhatsApp (genera QR si es necesario)
      */
     async init() {

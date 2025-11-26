@@ -206,7 +206,7 @@ export const WhatsappSessionModal: React.FC<WhatsappSessionModalProps> = ({ open
   useEffect(() => {
     if (!open || state !== 'waiting_qr') return
     
-    // 🔧 FIX: Polling cada 5 segundos para obtener estado actualizado (incluyendo QRs nuevos)
+    // Polling cada 10 segundos para obtener estado actualizado (incluyendo QRs nuevos)
     const pollInterval = setInterval(async () => {
       try {
         const { simpleWaState } = await import('@/lib/api/simpleWaApi')
@@ -219,7 +219,7 @@ export const WhatsappSessionModal: React.FC<WhatsappSessionModalProps> = ({ open
           qrLength: st.qr?.length || 0
         })
         
-        // 🔧 FIX: Actualizar con el estado completo del backend
+        // Actualizar con el estado completo del backend
         // Esto incluye QRs regenerados que el WebSocket pudo haber perdido
         if (st.ready || st.authenticated) {
           console.log('✅ WhatsappSessionModal: Detectado autenticado via polling')
@@ -238,7 +238,7 @@ export const WhatsappSessionModal: React.FC<WhatsappSessionModalProps> = ({ open
       } catch (e) {
         console.error('❌ Error en polling de estado:', e)
       }
-    }, 5000) // Poll cada 5 segundos
+    }, 10000) // Poll cada 10 segundos (reducido de 5s)
     
     return () => clearInterval(pollInterval)
   }, [open, state, updateFromStatus])

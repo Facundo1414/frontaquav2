@@ -85,9 +85,9 @@ export function WhatsAppUnifiedProvider({ children }: { children: ReactNode }) {
 
   // Retry con exponential backoff
   const [retryCount, setRetryCount] = useState(0);
-  const [retryDelay, setRetryDelay] = useState(120000); // Empezar con 2min para evitar rate limit
+  const [retryDelay, setRetryDelay] = useState(180000); // Empezar con 3min para evitar rate limit
   const MAX_RETRIES = 5;
-  const BASE_POLLING_INTERVAL = 120000; // 2 minutos base (0.5 req/min = 30 req/hr, reduce 429 errors)
+  const BASE_POLLING_INTERVAL = 180000; // 3 minutos base (0.33 req/min = 20 req/hr, reduce 429 errors)
 
   // Admin: WebSocket en tiempo real
   const {

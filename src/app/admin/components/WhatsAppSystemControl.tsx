@@ -26,6 +26,7 @@ interface WhatsAppSystemStatus {
   authenticated: boolean
   phone: string | null
   qr: string | null
+  active: boolean // Sistema activado/desactivado
   stats?: {
     messagesToday: number
     maxPerDay: number
@@ -38,6 +39,8 @@ export function WhatsAppSystemControl() {
   const [status, setStatus] = useState<WhatsAppSystemStatus | null>(null)
   const [loading, setLoading] = useState(true)
   const [initiating, setInitiating] = useState(false)
+  const [activating, setActivating] = useState(false)
+  const [deactivating, setDeactivating] = useState(false)
   const [loggingOut, setLoggingOut] = useState(false)
   const [savingSession, setSavingSession] = useState(false)
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null)
@@ -64,7 +67,8 @@ export function WhatsAppSystemControl() {
           ready: data.ready,
           authenticated: data.authenticated,
           qr: data.qr,
-          phone: data.phone || undefined
+          phone: data.phone || null,
+          active: data.active ?? true // Por defecto true si no viene en SSE
         })
 
         // Si se conectó exitosamente, detener iniciando
@@ -111,6 +115,52 @@ export function WhatsAppSystemControl() {
       toast.error('Error al cargar estado del sistema')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleActivate = async () => {
+    if (!confirm('🔋 ¿Activar el sistema WhatsApp? Esto cargará el servicio en memoria y generará un QR si no hay sesión guardada.')) {
+      return
+    }
+
+    setActivating(true)
+    setAutoRefresh(true)
+
+    try {
+      await adminAPI.whatsappSystem.activate()
+      toast.success('✅ Sistema activado. Esperando conexión...')
+      
+      // Poll cada segundo para captar QR rápido
+      let attempts = 0
+      const pollInterval = setInterval(() => {
+        loadStatus()
+        attempts++
+        if (attempts >= 15) {
+          clearInterval(pollInterval)
+        }
+      }, 1000)
+    } catch (error: any) {
+      toast.error(`Error al activar: ${error.message}`)
+    } finally {
+      setActivating(false)
+    }
+  }
+
+  const handleDeactivate = async () => {
+    if (!confirm('🛑 ¿Desactivar el sistema WhatsApp? Esto liberará la memoria pero cerrará la sesión. Tendrás que escanear el QR nuevamente cuando reactives.')) {
+      return
+    }
+
+    setDeactivating(true)
+
+    try {
+      await adminAPI.whatsappSystem.deactivate()
+      toast.success('✅ Sistema desactivado. Recursos liberados.')
+      await loadStatus()
+    } catch (error: any) {
+      toast.error(`Error al desactivar: ${error.message}`)
+    } finally {
+      setDeactivating(false)
     }
   }
 
@@ -201,11 +251,20 @@ export function WhatsAppSystemControl() {
   }
 
   const getStatusBadge = () => {
+    // Prioridad: primero verificar si está activo
+    if (!status?.active) {
+      return (
+        <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-100 text-gray-700 rounded-full text-sm font-medium">
+          <Power className="h-4 w-4" />
+          Inactivo (ahorrando recursos)
+        </div>
+      )
+    }
     if (status?.ready) {
       return (
         <div className="flex items-center gap-2 px-3 py-1.5 bg-green-100 text-green-700 rounded-full text-sm font-medium">
           <CheckCircle className="h-4 w-4" />
-          Conectado
+          Conectado y Listo
         </div>
       )
     }
@@ -218,9 +277,9 @@ export function WhatsAppSystemControl() {
       )
     }
     return (
-      <div className="flex items-center gap-2 px-3 py-1.5 bg-red-100 text-red-700 rounded-full text-sm font-medium">
-        <XCircle className="h-4 w-4" />
-        Desconectado
+      <div className="flex items-center gap-2 px-3 py-1.5 bg-orange-100 text-orange-700 rounded-full text-sm font-medium">
+        <AlertCircle className="h-4 w-4" />
+        Activo pero no conectado
       </div>
     )
   }
@@ -311,6 +370,20 @@ export function WhatsAppSystemControl() {
           </Alert>
         )}
 
+        {/* Aviso cuando está inactivo */}
+        {!status?.active && (
+          <Alert className="bg-blue-50 border-blue-200">
+            <AlertCircle className="h-4 w-4 text-blue-600" />
+            <AlertDescription>
+              <div className="text-sm text-blue-900">
+                <strong>💡 Sistema en modo ahorro de recursos:</strong> El servicio WhatsApp está apagado para no consumir memoria innecesariamente.
+                <br />
+                <span className="text-xs mt-1 block">Activa el sistema cuando necesites enviar mensajes. Se apagará automáticamente después de 8 horas de inactividad.</span>
+              </div>
+            </AlertDescription>
+          </Alert>
+        )}
+
         {/* Estado Conectado */}
         {status?.ready && (
           <Alert className="bg-green-50 border-green-200">
@@ -329,24 +402,47 @@ export function WhatsAppSystemControl() {
         )}
 
         {/* Acciones */}
-        <div className="flex gap-3 pt-4 border-t">
-          <Button
-            onClick={handleInit}
-            disabled={initiating || status?.ready}
-            className="gap-2"
-          >
-            {initiating ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Iniciando...
-              </>
-            ) : (
-              <>
-                <Power className="h-4 w-4" />
-                Inicializar Sistema
-              </>
-            )}
-          </Button>
+        <div className="flex gap-3 pt-4 border-t flex-wrap">
+          {/* Activar/Desactivar */}
+          {!status?.active ? (
+            <Button
+              onClick={handleActivate}
+              disabled={activating}
+              className="gap-2"
+              variant="default"
+            >
+              {activating ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Activando...
+                </>
+              ) : (
+                <>
+                  <Power className="h-4 w-4" />
+                  Activar Sistema
+                </>
+              )}
+            </Button>
+          ) : (
+            <Button
+              onClick={handleDeactivate}
+              disabled={deactivating}
+              variant="outline"
+              className="gap-2"
+            >
+              {deactivating ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Desactivando...
+                </>
+              ) : (
+                <>
+                  <Power className="h-4 w-4" />
+                  Desactivar Sistema
+                </>
+              )}
+            </Button>
+          )}
 
           <Button
             onClick={handleLogout}

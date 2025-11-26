@@ -65,19 +65,7 @@ const handleConnectWhatsApp = () => {
 const handleClick = async () => {
   // Usuarios con modo personal o admin necesitan verificar sesión
   if (needsWhatsAppModal) {
-    try {
-      const st = await simpleWaState(); // { worker, authenticated, ready, hasQR, qr? }
-      const mappedState = st.ready
-        ? 'ready'
-        : (st.authenticated
-            ? 'syncing'
-            : (st.hasQR ? 'waiting_qr' : 'launching'));
-      updateFromStatus({ state: mappedState, qr: st.qr || null });
-      if (st.ready || st.authenticated) {
-        router.push('/senddebts');
-        return;
-      }
-    } catch {/* ignorar y continuar */}
+    // Usar estado del contexto en lugar de hacer request
     if (!isReady) {
       setModalVisible(true);
     } else {
@@ -92,19 +80,7 @@ const handleClick = async () => {
 const handleClickProximosVencer = async () => {
   // Usuarios con modo personal o admin necesitan verificar sesión
   if (needsWhatsAppModal) {
-    try {
-      const st = await simpleWaState();
-      const mappedState = st.ready
-        ? 'ready'
-        : (st.authenticated
-            ? 'syncing'
-            : (st.hasQR ? 'waiting_qr' : 'launching'));
-      updateFromStatus({ state: mappedState, qr: st.qr || null });
-      if (st.ready || st.authenticated) {
-        router.push('/proximos-vencer');
-        return;
-      }
-    } catch {/* ignorar y continuar */}
+    // Usar estado del contexto en lugar de hacer request
     if (!isReady) {
       setModalVisible(true);
     } else {
