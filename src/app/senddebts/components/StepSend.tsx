@@ -23,6 +23,7 @@ const AVAILABLE_VARIABLES = [
 
 export function StepSend() {
   const {
+    processedFile,
     setProcessedFile,
     fileNameFiltered,
     setActiveStep,
@@ -137,12 +138,12 @@ Por favor, realiza el pago antes del vencimiento.
       
       // Si ya tenemos el archivo (se recibió junto con el jobId), avanzar directamente
       if (processedFile) {
-        console.log('✅ Archivo ya disponible. Avanzando al paso 3...')
+        console.log('✅ Archivo ya disponible. Avanzando al paso 2 (Download)...')
         setLoading(false)
         setWaitingForResults(false)
         setStatus('✅ Proceso completado. Descargando resultados...')
         setTimeout(() => {
-          setActiveStep(3)
+          setActiveStep(2)
         }, 1000)
       } else {
         // Si no tenemos el archivo, iniciar polling
@@ -180,7 +181,7 @@ Por favor, realiza el pago antes del vencimiento.
           setWaitingForResults(false)
           setStatus('✅ Proceso completado. Pasando a descarga...')
           setTimeout(() => {
-            setActiveStep(3)
+            setActiveStep(2)
           }, 1000)
         } else if (pollingAttempts >= 20) {
           // Después de 20 intentos, avanzar de todas formas
@@ -189,7 +190,7 @@ Por favor, realiza el pago antes del vencimiento.
           setWaitingForResults(false)
           setStatus('⚠️ Mensajes enviados. Descargá el archivo desde respaldos.')
           setTimeout(() => {
-            setActiveStep(3)
+            setActiveStep(2)
           }, 1000)
         } else {
           setPollingAttempts(prev => prev + 1)
@@ -280,9 +281,9 @@ Por favor, realiza el pago antes del vencimiento.
           // NO hacer setLoading(false) aquí, lo hace cuando llega el evento ws-completed
         } else {
           // Sin WebSocket, avanzar manualmente
-          console.log('🚀 Avanzando al paso 3 (sin WebSocket)')
+          console.log('🚀 Avanzando al paso 2 - Download (sin WebSocket)')
           setTimeout(() => {
-            setActiveStep(3) // Ir a descargar (ahora es paso 3)
+            setActiveStep(2) // Ir a descargar (paso 2)
           }, 1500)
           setLoading(false)
         }
