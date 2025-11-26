@@ -110,6 +110,9 @@ export function WhatsAppUnifiedProvider({ children }: { children: ReactNode }) {
 
         const currentHour = new Date().getHours();
         const isWorkingHours = currentHour >= workStart && currentHour < workEnd;
+        
+        // ⚙️ Verificar si la restricción de horario está habilitada en el backend
+        const workingHoursEnabled = data.workingHoursEnabled ?? false;
 
         const messagesToday = data.stats?.messagesToday || 0;
         const messagesRemaining = maxPerDay - messagesToday;
@@ -120,7 +123,8 @@ export function WhatsAppUnifiedProvider({ children }: { children: ReactNode }) {
         if (!data.ready) {
           canSendMessage = false;
           reason = 'Sistema WhatsApp no conectado';
-        } else if (!isWorkingHours) {
+        } else if (workingHoursEnabled && !isWorkingHours) {
+          // Solo bloquear si la restricción está HABILITADA
           canSendMessage = false;
           reason = `Horario de envío: ${workStart}:00 - ${workEnd}:00 hs`;
         } else if (messagesRemaining <= 0) {

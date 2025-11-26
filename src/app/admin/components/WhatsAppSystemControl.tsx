@@ -27,6 +27,7 @@ interface WhatsAppSystemStatus {
   phone: string | null
   qr: string | null
   active: boolean // Sistema activado/desactivado
+  workingHoursEnabled?: boolean // Restricción de horario habilitada
   stats?: {
     messagesToday: number
     maxPerDay: number
@@ -43,6 +44,7 @@ export function WhatsAppSystemControl() {
   const [deactivating, setDeactivating] = useState(false)
   const [loggingOut, setLoggingOut] = useState(false)
   const [savingSession, setSavingSession] = useState(false)
+  const [togglingWorkingHours, setTogglingWorkingHours] = useState(false)
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null)
   const [autoRefresh, setAutoRefresh] = useState(true)
 
@@ -229,6 +231,32 @@ export function WhatsAppSystemControl() {
       toast.error(`Error al guardar sesión: ${error.message}`)
     } finally {
       setSavingSession(false)
+    }
+  }
+
+  const handleToggleWorkingHours = async () => {
+    const isEnabled = status?.workingHoursEnabled
+    const action = isEnabled ? 'deshabilitar' : 'habilitar'
+    
+    if (!confirm(`⏰ ¿${action.charAt(0).toUpperCase() + action.slice(1)} restricción de horario laboral (9-16hs)?`)) {
+      return
+    }
+
+    setTogglingWorkingHours(true)
+
+    try {
+      if (isEnabled) {
+        await adminAPI.whatsappSystem.disableWorkingHours()
+        toast.success('✅ Horario deshabilitado - Envíos 24/7 permitidos')
+      } else {
+        await adminAPI.whatsappSystem.enableWorkingHours()
+        toast.success('✅ Horario habilitado - Solo 9-16hs')
+      }
+      await loadStatus()
+    } catch (error: any) {
+      toast.error(`Error: ${error.message}`)
+    } finally {
+      setTogglingWorkingHours(false)
     }
   }
 
@@ -490,6 +518,42 @@ export function WhatsAppSystemControl() {
             <RefreshCw className="h-4 w-4" />
             Actualizar
           </Button>
+        </div>
+
+        {/* Configuración de Horario Laboral */}
+        <div className="pt-4 border-t">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-sm font-semibold text-gray-900">Restricción de Horario</h3>
+              <p className="text-xs text-gray-500 mt-1">
+                {status?.workingHoursEnabled 
+                  ? '🔒 Solo 9:00-16:00 hs - Fuera de horario no se envían mensajes'
+                  : '🔓 24/7 habilitado - Envíos permitidos a cualquier hora'}
+              </p>
+            </div>
+            <Button
+              onClick={handleToggleWorkingHours}
+              disabled={togglingWorkingHours}
+              variant={status?.workingHoursEnabled ? "destructive" : "default"}
+              className="gap-2"
+              size="sm"
+            >
+              {togglingWorkingHours ? (
+                <>
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                  Cambiando...
+                </>
+              ) : status?.workingHoursEnabled ? (
+                <>
+                  🔓 Deshabilitar Restricción
+                </>
+              ) : (
+                <>
+                  🔒 Habilitar Restricción
+                </>
+              )}
+            </Button>
+          </div>
         </div>
 
         {/* Información */}

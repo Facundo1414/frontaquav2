@@ -279,6 +279,27 @@ export const adminAPI = {
     async saveSession() {
       return adminFetch("/wa/system/save-session", { method: "POST" });
     },
+
+    /**
+     * Obtener configuración de horario laboral
+     */
+    async getWorkingHoursConfig() {
+      return adminFetch("/wa/system/working-hours");
+    },
+
+    /**
+     * Habilitar horario laboral (9-16hs)
+     */
+    async enableWorkingHours() {
+      return adminFetch("/wa/system/working-hours/enable", { method: "POST" });
+    },
+
+    /**
+     * Deshabilitar horario laboral (24/7)
+     */
+    async disableWorkingHours() {
+      return adminFetch("/wa/system/working-hours/disable", { method: "POST" });
+    },
   },
 };
 
