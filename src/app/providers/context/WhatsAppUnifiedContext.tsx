@@ -99,7 +99,10 @@ export function WhatsAppUnifiedProvider({ children }: { children: ReactNode }) {
   // Sistema Centralizado: Polling HTTP con retry
   const fetchSystemStatus = useCallback(async () => {
     try {
-      const response = await api.get('/wa/state');
+      // Enviar userId para obtener estadísticas por usuario
+      const response = await api.get('/wa/state', {
+        params: { userId }
+      });
 
       if (response.data?.data) {
         const data = response.data.data;
