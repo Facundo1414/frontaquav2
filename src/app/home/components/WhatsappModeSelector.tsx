@@ -83,13 +83,11 @@ export function WhatsappModeSelector({ onModeChange, onConnectClick }: WhatsappM
       toast.success(
         newMode === 'system'
           ? '✅ Ahora usarás el WhatsApp del sistema (prepago)'
-          : '✅ Ahora usarás tu WhatsApp personal'
+          : '✅ Ahora usarás tu WhatsApp personal. Hacé click en "Conectar sesión" cuando quieras usarlo.'
       )
       
-      // Si cambia a personal, abrir automáticamente el modal de conexión
-      if (newMode === 'personal' && onConnectClick) {
-        setTimeout(() => onConnectClick(), 500)
-      }
+      // NO abrir automáticamente - solo mostrar mensaje
+      // El usuario debe hacer click explícito en "Conectar sesión"
     } catch (error: any) {
       console.error('Error saving WhatsApp mode:', error)
       toast.error(error.response?.data?.message || 'Error al guardar preferencia')
