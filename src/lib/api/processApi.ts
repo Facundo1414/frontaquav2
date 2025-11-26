@@ -42,6 +42,9 @@ export const sendAndScrape = async (
     console.log("📊 Headers recibidos:", response.headers);
     console.log("📊 JobId extraído:", jobId);
     console.log("💰 OverQuota extraído:", overQuotaCount);
+    console.log("📦 Response data type:", response.data?.constructor?.name);
+    console.log("📦 Response data size:", response.data?.size);
+    console.log("📄 Content-Type:", contentType);
 
     if (contentType && contentType.includes("application/json")) {
       // Si vino un JSON de error o mensaje
@@ -55,6 +58,7 @@ export const sendAndScrape = async (
     }
 
     // Si vino un archivo Excel
+    console.log("✅ Archivo Excel recibido correctamente");
     return {
       message: "✅ Procesamiento finalizado",
       file: response.data,
@@ -62,6 +66,9 @@ export const sendAndScrape = async (
       overQuotaCount, // Incluir sobrecargo
     };
   } catch (error: any) {
+    console.error("❌ Error completo en sendAndScrape:", error);
+    console.error("❌ Error response:", error?.response);
+    console.error("❌ Error response data:", error?.response?.data);
     const errorMessage =
       error?.response?.data?.message || "❌ Error en el procesamiento";
     return { message: errorMessage };

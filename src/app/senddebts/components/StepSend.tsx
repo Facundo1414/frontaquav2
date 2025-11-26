@@ -132,12 +132,26 @@ Por favor, realiza el pago antes del vencimiento.
 
   // Efecto para iniciar polling cuando PDF se completa
   useEffect(() => {
-    if (wsCompleted && loading && !waitingForResults) {
-      console.log('✅ PDFs generados. Esperando que termine el envío de WhatsApp...')
-      setWaitingForResults(true)
-      setStatus('⏳ Enviando mensajes por WhatsApp...')
+    if (wsCompleted && loading) {
+      console.log('✅ WebSocket completed. Verificando si tenemos el archivo...')
+      
+      // Si ya tenemos el archivo (se recibió junto con el jobId), avanzar directamente
+      if (processedFile) {
+        console.log('✅ Archivo ya disponible. Avanzando al paso 3...')
+        setLoading(false)
+        setWaitingForResults(false)
+        setStatus('✅ Proceso completado. Descargando resultados...')
+        setTimeout(() => {
+          setActiveStep(3)
+        }, 1000)
+      } else {
+        // Si no tenemos el archivo, iniciar polling
+        console.log('⏳ Archivo no disponible. Iniciando polling...')
+        setWaitingForResults(true)
+        setStatus('⏳ Esperando archivo de resultados...')
+      }
     }
-  }, [wsCompleted, loading, waitingForResults])
+  }, [wsCompleted, loading, processedFile, setActiveStep, setProcessedFile])
 
   // Polling para esperar archivo de resultados
   useEffect(() => {
@@ -226,6 +240,11 @@ Por favor, realiza el pago antes del vencimiento.
           telefonoUsuario || undefined
         )
         
+        console.log('📦 Result completo:', result)
+        console.log('📦 Result.file existe:', !!result.file)
+        console.log('📦 Result.file type:', result.file?.constructor?.name)
+        console.log('📦 Result.file size:', result.file?.size)
+        
         // 🎯 Backend siempre devuelve jobId para tracking en tiempo real
         if (result.jobId) {
           console.log('📊 JobId recibido:', result.jobId)
@@ -236,8 +255,11 @@ Por favor, realiza el pago antes del vencimiento.
         
         setStatus(result.message || '✅ Mensajes enviados correctamente')
         if (result.file) {
+          console.log('✅ Guardando archivo en processedFile')
           setProcessedFile(result.file) 
           setBackupFiles([])
+        } else {
+          console.warn('⚠️ No se recibió archivo en result.file')
         }
         
         // 💰 Actualizar sobrecargo de cuota si viene en response
@@ -245,12 +267,17 @@ Por favor, realiza el pago antes del vencimiento.
           setOverQuotaCount(result.overQuotaCount)
         }
         
-        // Si hay jobId, mantener loading=true y esperar WebSocket
+        // Si hay jobId Y archivo, esperar WebSocket pero ya tenemos el archivo
         if (result.jobId) {
           console.log('🔌 Job iniciado, esperando progreso via WebSocket...')
           setStatus('⏳ Generando PDFs y verificando deudas...')
           setPollingAttempts(0)
-          // NO hacer setLoading(false) aquí, lo hace cuando llega el archivo
+          
+          // Si YA tenemos el archivo, no hacer polling, solo esperar WebSocket completion
+          if (result.file) {
+            console.log('✅ Archivo ya recibido, solo esperando completion WebSocket')
+          }
+          // NO hacer setLoading(false) aquí, lo hace cuando llega el evento ws-completed
         } else {
           // Sin WebSocket, avanzar manualmente
           console.log('🚀 Avanzando al paso 3 (sin WebSocket)')
