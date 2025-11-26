@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useGlobalContext } from '@/app/providers/context/GlobalContext'
 import { adminAPI } from '@/utils/admin-api'
 import { ServiceStatus } from './components/ServiceStatus'
+import { WhatsAppSystemControl } from './components/WhatsAppSystemControl'
 import { toast } from 'sonner'
 
 // Leer ADMIN_UID desde variables de entorno
@@ -96,6 +97,11 @@ export default function AdminDashboard() {
         {/* Service Status */}
         <div className="mb-8">
           <ServiceStatus />
+        </div>
+
+        {/* WhatsApp System Control */}
+        <div className="mb-8">
+          <WhatsAppSystemControl />
         </div>
 
         {/* System Management Cards */}

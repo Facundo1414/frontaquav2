@@ -22,6 +22,8 @@ import { useState } from "react";
 // Leer ADMIN_UID desde variables de entorno
 const ADMIN_UID = process.env.NEXT_PUBLIC_ADMIN_UID || "";
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
+const WHATSAPP_WORKER_URL =
+  process.env.NEXT_PUBLIC_WHATSAPP_WORKER_URL || "http://localhost:3002";
 
 if (!ADMIN_UID) {
   console.error("⚠️ NEXT_PUBLIC_ADMIN_UID not set in environment variables");
@@ -221,7 +223,61 @@ export const adminAPI = {
 
     // Maintenance
     async cleanupMetrics() {
-      return adminFetch("/admin/baileys/cleanup-metrics", { method: "POST" });
+      return adminFetch("/admin/baileys/cleanup", { method: "POST" });
+    },
+  },
+
+  /**
+   * WhatsApp System Control
+   */
+  whatsappSystem: {
+    /**
+     * Obtener estado del sistema WhatsApp
+     */
+    async getStatus() {
+      const response = await fetch(
+        `${WHATSAPP_WORKER_URL}/api/whatsapp/status`
+      );
+      if (!response.ok) throw new Error("Failed to get WhatsApp system status");
+      const data = await response.json();
+      return data.data;
+    },
+
+    /**
+     * Inicializar sistema WhatsApp (genera QR si es necesario)
+     */
+    async init() {
+      const response = await fetch(`${WHATSAPP_WORKER_URL}/api/whatsapp/init`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+      if (!response.ok) throw new Error("Failed to initialize WhatsApp system");
+      return response.json();
+    },
+
+    /**
+     * Obtener QR code actual
+     */
+    async getQR() {
+      const response = await fetch(`${WHATSAPP_WORKER_URL}/api/whatsapp/qr`);
+      if (!response.ok) throw new Error("Failed to get QR code");
+      const data = await response.json();
+      return data.data;
+    },
+
+    /**
+     * Cerrar sesión del sistema
+     */
+    async logout() {
+      const response = await fetch(
+        `${WHATSAPP_WORKER_URL}/api/whatsapp/logout`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+      if (!response.ok) throw new Error("Failed to logout WhatsApp system");
+      return response.json();
     },
   },
 };
