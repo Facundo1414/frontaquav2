@@ -83,22 +83,6 @@ export default function AdminDashboard() {
 
       {/* Dashboard Content - Ancho completo */}
       <main className="px-6 pb-10">
-        {/* Dashboard Info Card */}
-        {dashboardData && (
-          <div className="bg-white rounded-lg shadow-md p-6 mb-8 border border-gray-200">
-            <h2 className="text-xl font-semibold mb-2 text-gray-900">{dashboardData.title}</h2>
-            <p className="text-gray-600 text-sm mb-4">Versión: {dashboardData.version}</p>
-            <p className="text-gray-500 text-xs">
-              Última actualización: {new Date(dashboardData.timestamp).toLocaleString('es-AR')}
-            </p>
-          </div>
-        )}
-
-        {/* Service Status */}
-        <div className="mb-8">
-          <ServiceStatus />
-        </div>
-
         {/* WhatsApp System Control */}
         <div className="mb-8">
           <WhatsAppSystemControl />
@@ -213,14 +197,6 @@ export default function AdminDashboard() {
               </p>
             </div>
           </div>
-        </div>
-
-        {/* TODO: Implementar pestañas de Monitoreo y Gestión de Sesiones */}
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 text-center">
-          <p className="text-blue-800 font-medium">🚧 En Construcción</p>
-          <p className="text-blue-600 text-sm mt-2">
-            Nuevas pestañas próximamente: Monitoreo de Salud y Gestión de Sesiones
-          </p>
         </div>
       </main>
     </div>

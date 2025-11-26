@@ -53,47 +53,28 @@ export function WhatsAppSystemControl() {
     loadStatus()
   }, [])
 
-  // SSE streaming para actualizaciones en tiempo real (reemplaza polling)
+  // Polling controlado: solo cuando está activando/iniciando o esperando QR
   useEffect(() => {
     if (!autoRefresh) return
-    if (!status?.qr && !initiating && status?.ready) return // Solo SSE si hay QR o está iniciando
-
-    // Usar el backend como proxy en lugar de ir directo al worker
-    const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"
-    const eventSource = new EventSource(`${API_BASE_URL}/api/wa/qr/stream`)
-
-    eventSource.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data)
-        setStatus({
-          ready: data.ready,
-          authenticated: data.authenticated,
-          qr: data.qr,
-          phone: data.phone || null,
-          active: data.active ?? true // Por defecto true si no viene en SSE
-        })
-
-        // Si se conectó exitosamente, detener iniciando
-        if (data.ready && initiating) {
-          setInitiating(false)
-        }
-      } catch (error) {
-        console.error('Error parsing SSE data:', error)
-      }
+    
+    // Detener polling si ya está conectado y no está iniciando
+    if (status?.ready && !initiating && !activating) {
+      setAutoRefresh(false)
+      return
+    }
+    
+    // Detener polling si está inactivo
+    if (!status?.active && !activating) {
+      return
     }
 
-    eventSource.onerror = (error) => {
-      console.error('SSE connection error:', error)
-      eventSource.close()
-      
-      // Fallback: recargar estado manualmente
-      setTimeout(() => loadStatus(), 5000)
-    }
+    // Poll cada 3 segundos (solo cuando es necesario)
+    const intervalId = setInterval(() => {
+      loadStatus()
+    }, 3000)
 
-    return () => {
-      eventSource.close()
-    }
-  }, [autoRefresh, initiating, status?.qr, status?.ready])
+    return () => clearInterval(intervalId)
+  }, [autoRefresh, status?.ready, status?.active, initiating, activating])
 
   // Generar QR code visual cuando cambia
   useEffect(() => {
@@ -112,6 +93,13 @@ export function WhatsAppSystemControl() {
       // El backend devuelve { success, data: {...} }
       const data = response.data || response
       setStatus(data)
+      
+      // Detener polling si ya está conectado
+      if (data.ready && autoRefresh) {
+        setAutoRefresh(false)
+        setInitiating(false)
+        setActivating(false)
+      }
     } catch (error: any) {
       console.error('Error loading WhatsApp status:', error)
       toast.error('Error al cargar estado del sistema')
@@ -126,25 +114,18 @@ export function WhatsAppSystemControl() {
     }
 
     setActivating(true)
-    setAutoRefresh(true)
+    setAutoRefresh(true) // Iniciar polling
 
     try {
       await adminAPI.whatsappSystem.activate()
       toast.success('✅ Sistema activado. Esperando conexión...')
       
-      // Poll cada segundo para captar QR rápido
-      let attempts = 0
-      const pollInterval = setInterval(() => {
-        loadStatus()
-        attempts++
-        if (attempts >= 15) {
-          clearInterval(pollInterval)
-        }
-      }, 1000)
+      // Cargar estado inmediatamente
+      await loadStatus()
     } catch (error: any) {
       toast.error(`Error al activar: ${error.message}`)
-    } finally {
       setActivating(false)
+      setAutoRefresh(false)
     }
   }
 
@@ -154,6 +135,7 @@ export function WhatsAppSystemControl() {
     }
 
     setDeactivating(true)
+    setAutoRefresh(false) // Detener polling
 
     try {
       await adminAPI.whatsappSystem.deactivate()
@@ -172,19 +154,18 @@ export function WhatsAppSystemControl() {
     }
 
     setInitiating(true)
-    setAutoRefresh(true)
+    setAutoRefresh(true) // Iniciar polling
 
     try {
       await adminAPI.whatsappSystem.init()
       toast.success('✅ Inicialización iniciada. Esperando QR...')
       
-      // Esperar 3 segundos y recargar
-      setTimeout(() => {
-        loadStatus()
-      }, 3000)
+      // Cargar estado inmediatamente
+      await loadStatus()
     } catch (error: any) {
       toast.error(`Error al inicializar: ${error.message}`)
       setInitiating(false)
+      setAutoRefresh(false)
     }
   }
 
@@ -209,6 +190,11 @@ export function WhatsAppSystemControl() {
   const handleRefresh = () => {
     setLoading(true)
     loadStatus()
+    
+    // Si no está conectado, reactivar polling temporalmente
+    if (!status?.ready) {
+      setAutoRefresh(true)
+    }
   }
 
   const handleSaveSession = async () => {
