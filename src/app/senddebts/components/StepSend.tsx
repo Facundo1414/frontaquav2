@@ -39,7 +39,9 @@ export function StepSend() {
 
   const [message, setMessage] = useState(`Hola \${clientName}, te envio tu comprobante actualizado de la CUOTA PLAN DE PAGOS.
 
-El PDF incluye un instructivo con todas las opciones de pago disponibles.
+📄 El PDF incluye un instructivo con todas las opciones de pago disponibles.
+
+🤖 Este número es automático. Para consultas personalizadas, TOCÁ EL BOTÓN VERDE de WhatsApp dentro del PDF instructivo para hablar con tu asesor.
 
 Por favor, realiza el pago antes del vencimiento.
 
