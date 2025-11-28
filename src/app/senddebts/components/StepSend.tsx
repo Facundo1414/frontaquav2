@@ -52,7 +52,6 @@ Por favor, realiza el pago antes del vencimiento.
   const [status, setStatus] = useState<string | null>(null)
   const [backupFiles, setBackupFiles] = useState<string[]>([])
   const [incluirIntimacion, setIncluirIntimacion] = useState(false)
-  const [telefonoUsuario, setTelefonoUsuario] = useState<string | null>(null)
   const [waitingForResults, setWaitingForResults] = useState(false)
   const [pollingAttempts, setPollingAttempts] = useState(0)
   const [estimatedTime, setEstimatedTime] = useState<string>('')
@@ -66,21 +65,8 @@ Por favor, realiza el pago antes del vencimiento.
   // 🚀 Hook para verificación y feedback de envío
   const sendControl = useSendWithWhatsAppCheck()
 
-  // Auto-fetch phone number on mount
-  useEffect(() => {
-    const fetchPhone = async () => {
-      try {
-        const phone = await getUserPhone()
-        if (phone) {
-          setTelefonoUsuario(phone)
-        }
-      } catch (error) {
-        console.warn('No se pudo obtener el teléfono del usuario:', error)
-        // No es crítico, el usuario puede continuar sin teléfono en el instructivo
-      }
-    }
-    fetchPhone()
-  }, [])
+  // ❌ ELIMINADO: Auto-fetch phone number (generaba error 404 y no se usaba)
+  // El teléfono del usuario ya se obtiene del perfil en el backend
 
   useEffect(() => {
     // Inicializar stats cuando se monta el componente
@@ -113,19 +99,19 @@ Por favor, realiza el pago antes del vencimiento.
   const overallProgress = wsProgress?.percentage || 0
   const currentStats = wsProgress ? {
     total: wsProgress.total,
-    completed: wsProgress.processed,
-    failed: 0,
+    completed: wsProgress.successful || 0,
+    failed: wsProgress.failed || 0,
     pending: wsProgress.total - wsProgress.processed,
   } : sendStats
 
   // Efecto para actualizar stats con datos del WebSocket
   useEffect(() => {
     if (wsProgress) {
-      console.log(`📊 Progreso PDF: ${wsProgress.processed}/${wsProgress.total} (${wsProgress.percentage}%)`)
+      console.log(`📊 Progreso PDF: ${wsProgress.processed}/${wsProgress.total} (${wsProgress.percentage}%) - Exitosos: ${wsProgress.successful || 0}, Sin deuda: ${wsProgress.failed || 0}`)
       setSendStats({
         total: wsProgress.total,
-        completed: wsProgress.processed,
-        failed: 0,
+        completed: wsProgress.successful || 0,
+        failed: wsProgress.failed || 0,
         pending: wsProgress.total - wsProgress.processed,
       })
       
@@ -239,8 +225,7 @@ Por favor, realiza el pago antes del vencimiento.
         const result = await sendAndScrape(
           fileNameFiltered, 
           message, 
-          incluirIntimacion,
-          telefonoUsuario || undefined
+          incluirIntimacion
         )
         
         console.log('📦 Result completo:', result)
@@ -408,11 +393,6 @@ Por favor, realiza el pago antes del vencimiento.
                       Requiere que todos los clientes estén cargados en la base de datos con dirección y barrio completos.
                       Solo se incluirá la intimación para clientes con planes vencidos.
                     </span>
-                  </p>
-                )}
-                {telefonoUsuario && incluirIntimacion && (
-                  <p className="text-xs text-gray-500 mt-1">
-                    📞 Teléfono detectado: {telefonoUsuario}
                   </p>
                 )}
               </div>

@@ -6,6 +6,8 @@ interface PyseProgress {
   processed: number;
   total: number;
   percentage: number;
+  successful?: number;
+  failed?: number;
 }
 
 interface PyseCompleted {

@@ -122,12 +122,12 @@ export function ProgressCard({
               <p className="text-2xl font-bold text-green-700 mt-1">{stats.completed}</p>
             </div>
 
-            <div className="bg-red-50 rounded-lg p-3 border border-red-200">
+            <div className="bg-amber-50 rounded-lg p-3 border border-amber-200">
               <div className="flex items-center gap-2">
-                <XCircle className="w-4 h-4 text-red-600" />
-                <p className="text-xs text-red-700">Fallidos</p>
+                <XCircle className="w-4 h-4 text-amber-600" />
+                <p className="text-xs text-amber-700">Sin deuda</p>
               </div>
-              <p className="text-2xl font-bold text-red-700 mt-1">{stats.failed}</p>
+              <p className="text-2xl font-bold text-amber-700 mt-1">{stats.failed}</p>
             </div>
 
             <div className="bg-blue-50 rounded-lg p-3 border border-blue-200">
