@@ -80,17 +80,35 @@ export function WhatsappModeSelector({ onModeChange, onConnectClick }: WhatsappM
       // Luego guardar en el backend
       await api.post('/users/whatsapp-mode', { whatsapp_mode: newMode })
       
-      toast.success(
-        newMode === 'system'
-          ? '✅ Ahora usarás el WhatsApp del sistema (prepago)'
-          : '✅ Ahora usarás tu WhatsApp personal. Hacé click en "Conectar sesión" cuando quieras usarlo.'
-      )
+      // 🔧 MEJORA: Mensajes más claros con acciones específicas
+      if (newMode === 'system') {
+        toast.success('✅ Modo Sistema activado', {
+          description: 'Los mensajes se enviarán automáticamente desde el número del sistema.',
+          duration: 4000,
+        })
+      } else {
+        // Modo personal: mostrar toast con botón de acción
+        toast.info('📱 Modo Personal activado', {
+          description: 'Recordá conectar tu sesión antes de enviar mensajes.',
+          duration: 5000,
+          action: onConnectClick ? {
+            label: 'Conectar ahora',
+            onClick: () => {
+              toast.dismiss()
+              onConnectClick()
+            }
+          } : undefined,
+        })
+      }
       
       // NO abrir automáticamente - solo mostrar mensaje
       // El usuario debe hacer click explícito en "Conectar sesión"
     } catch (error: any) {
       console.error('Error saving WhatsApp mode:', error)
-      toast.error(error.response?.data?.message || 'Error al guardar preferencia')
+      toast.error('❌ Error al guardar preferencia', {
+        description: error.response?.data?.message || 'Intentá nuevamente en unos segundos.',
+        duration: 4000,
+      })
     } finally {
       setSaving(false)
     }

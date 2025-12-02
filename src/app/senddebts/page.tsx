@@ -2,6 +2,7 @@
 import dynamic from 'next/dynamic'
 import { Suspense } from 'react'
 import { SendDebtsProvider, useSendDebtsContext } from '../providers/context/SendDebtsContext'
+import { SendDebtsGuard } from './components/SendDebtsGuard'
 import { Card, CardContent } from '@/components/ui/card'
 import { Loader2 } from 'lucide-react'
 import { StepIndicator, Step } from './components/StepIndicator'
@@ -143,8 +144,10 @@ function Content() {
 
 export default function SendDebtsPage() {
   return (
-    <SendDebtsProvider>
-      <Content />
-    </SendDebtsProvider>
+    <SendDebtsGuard>
+      <SendDebtsProvider>
+        <Content />
+      </SendDebtsProvider>
+    </SendDebtsGuard>
   )
 }

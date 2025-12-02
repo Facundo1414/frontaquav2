@@ -12,14 +12,17 @@ import {
 } from '@/lib/api'
 import { parseExcelBlob, parseExcelBlobWithIndexMapping } from '@/utils/parseExcelBlob'
 import { useProximosVencerContext } from '@/app/providers/context/ProximosVencerContext'
-import { proximosVencerDataSchema } from '@/lib/validations/proximos-vencer.schema'
+import { proximosVencerDataSchema, validateProximosVencerData } from '@/lib/validations/proximos-vencer.schema'
 import { validateExcelFile, sanitizeObject } from '@/lib/validations/validation-utils'
 import { useFileValidation } from '@/hooks/useValidation'
+import { ValidationPreviewProximosVencer } from './ValidationPreviewProximosVencer'
 
 export default function StepUploadFileProximosVencer() {
   const [file, setFile] = useState<File | null>(null)
   const [uploading, setUploading] = useState(false)
   const [isDragOver, setIsDragOver] = useState(false)
+  const [showValidationPreview, setShowValidationPreview] = useState(false)
+  const [validationResult, setValidationResult] = useState<ReturnType<typeof validateProximosVencerData> | null>(null)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
 
   const { setActiveStep, setRawData, setFilteredData, setFileNameFiltered, setNotWhatsappData } = useProximosVencerContext()
@@ -44,11 +47,32 @@ export default function StepUploadFileProximosVencer() {
       const blob = new Blob([fileData], { type: selected.type })
       const parsedData = await parseExcelBlob(blob)
 
-      // 🛡️ Validar datos parseados
+      // 🛡️ Validar contenido del Excel con helper detallado
+      const detailedValidation = validateProximosVencerData(parsedData)
+      
+      console.log('🔍 Validación detallada:', detailedValidation)
+
+      // Si hay errores críticos o no hay clientes con teléfono, mostrar preview
+      if (!detailedValidation.valid || detailedValidation.summary.withPhone === 0) {
+        setValidationResult(detailedValidation)
+        setShowValidationPreview(true)
+        toast.warning('Se detectaron problemas en el archivo. Revisá el resumen.')
+        return
+      }
+
+      // Si hay advertencias (algunos sin WhatsApp pero al menos 1 válido), mostrar preview opcional
+      if (detailedValidation.summary.withoutPhone > 0 || detailedValidation.errors.length > 0) {
+        setValidationResult(detailedValidation)
+        setShowValidationPreview(true)
+        toast.info('Archivo cargado con advertencias. Revisá el resumen antes de continuar.')
+        return
+      }
+
+      // 🛡️ Validación con Zod schema (fallback)
       const validation = proximosVencerDataSchema.safeParse(parsedData)
       
       if (!validation.success) {
-        console.error('Error de validación:', validation.error)
+        console.error('Error de validación Zod:', validation.error)
         toast.error('El archivo contiene datos inválidos. Verifica el formato.')
         setFile(null)
         if (fileInputRef.current) fileInputRef.current.value = ''
@@ -116,7 +140,31 @@ export default function StepUploadFileProximosVencer() {
   const handleCancel = () => {
     setFile(null)
     setRawData([])
+    setShowValidationPreview(false)
+    setValidationResult(null)
     if (fileInputRef.current) fileInputRef.current.value = ''
+  }
+
+  const handleContinueAfterValidation = async () => {
+    if (!file || !validationResult) return
+
+    setShowValidationPreview(false)
+
+    // Continuar con el flujo normal
+    try {
+      const fileData = await file.arrayBuffer()
+      const blob = new Blob([fileData], { type: file.type })
+      const parsedData = await parseExcelBlob(blob)
+
+      // Sanitizar y guardar datos (el backend filtrará los sin WhatsApp)
+      const sanitizedData = parsedData.map((row: any) => sanitizeObject(row))
+      setRawData(sanitizedData)
+      toast.success(`Archivo cargado: ${validationResult.summary.withPhone} cliente(s) con WhatsApp`)
+    } catch (error) {
+      console.error('Error al procesar archivo:', error)
+      toast.error('Error al procesar el archivo')
+      handleCancel()
+    }
   }
 
   const handleDrop = async (e: React.DragEvent) => {
@@ -135,6 +183,19 @@ export default function StepUploadFileProximosVencer() {
       animate={{ opacity: 1, y: 0 }}
       className="w-full h-full flex flex-col relative"
     >
+      {/* Vista de Validación Preview */}
+      {showValidationPreview && validationResult && (
+        <div className="absolute inset-0 z-50 bg-white p-6 overflow-y-auto">
+          <ValidationPreviewProximosVencer
+            summary={validationResult.summary}
+            errors={validationResult.errors}
+            onContinue={handleContinueAfterValidation}
+            onCancel={handleCancel}
+            canContinue={validationResult.summary.withPhone > 0}
+          />
+        </div>
+      )}
+
       {/* Overlay de filtrado (igual estilo que el de envío) */}
       {uploading && (
         <div className="absolute inset-0 z-50 flex flex-col justify-center items-center bg-black/30 backdrop-blur-sm">

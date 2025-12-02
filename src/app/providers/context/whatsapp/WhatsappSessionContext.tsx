@@ -265,17 +265,35 @@ export const WhatsappSessionProvider: React.FC<{ children: React.ReactNode }> = 
       return;
     }
 
+    // 🔧 OPTIMIZACIÓN: Leer userMode para evitar polling innecesario
+    const userMode = typeof window !== 'undefined' 
+      ? (localStorage.getItem('whatsapp_mode') as 'system' | 'personal') || 'system'
+      : 'system';
+    
+    // Si admin está en modo sistema puro, NO necesita polling de sesión personal
+    // El sistema centralizado se maneja desde el backend
+    if (userMode === 'system' && snapshot?.ready) {
+      console.log('⏭️ Admin en modo sistema con sesión lista - Polling deshabilitado');
+      return;
+    }
+
     const checkAndReconnect = async () => {
       // Solo intentar si:
       // 1. Hay userId (usuario autenticado)
-      // 2. No hay snapshot o el estado es 'none'
-      // 3. No estamos ya conectados vía WebSocket
+      // 2. No estamos ya conectados y listos
+      // 3. No estamos escaneando QR
       if (!userId) return;
       
       // 🔧 FIX: NO VERIFICAR SI ESTAMOS ESPERANDO QR
       // Esto evita que el polling sobrescriba el estado mientras el usuario escanea
       if (snapshot?.state === 'waiting_qr') {
         console.log('⏸️ Pausando verificación - usuario escaneando QR');
+        return;
+      }
+      
+      // 🔧 OPTIMIZACIÓN: Si ya está ready, no hacer polling tan frecuente
+      if (snapshot?.ready) {
+        console.log('⏸️ Sesión ya lista - Reduciendo frecuencia de polling');
         return;
       }
       
@@ -332,17 +350,26 @@ export const WhatsappSessionProvider: React.FC<{ children: React.ReactNode }> = 
       }
     };
     
-    // Verificar inmediatamente al montar SOLO si no estamos waiting_qr
-    if (snapshot?.state !== 'waiting_qr') {
+    // Verificar inmediatamente al montar SOLO si no estamos waiting_qr ni ready
+    if (snapshot?.state !== 'waiting_qr' && !snapshot?.ready) {
       checkAndReconnect();
     }
     
-    // Verificar cada 2 minutos (aumentado para evitar rate limiting) si no estamos ready ni waiting_qr
+    // 🔧 OPTIMIZACIÓN: Polling condicional
+    // - Si ya está ready: cada 5 minutos (solo para mantener sync)
+    // - Si no está ready: cada 2 minutos (intentar reconectar)
+    const pollingInterval = snapshot?.ready ? 300000 : 120000; // 5min vs 2min
+    
     const interval = setInterval(() => {
-      if (!snapshot?.ready && snapshot?.state !== 'waiting_qr') {
-        checkAndReconnect();
+      // Solo hacer polling si:
+      // - NO está esperando QR (usuario escaneando)
+      // - Admin usa modo personal O no está ready
+      if (snapshot?.state !== 'waiting_qr') {
+        if (userMode === 'personal' || !snapshot?.ready) {
+          checkAndReconnect();
+        }
       }
-    }, 120000); // 2 minutos
+    }, pollingInterval);
     
     return () => clearInterval(interval);
   }, [userId, snapshot?.ready, snapshot?.state, reconnect, updateFromStatus, shouldEnableWhatsapp]);
