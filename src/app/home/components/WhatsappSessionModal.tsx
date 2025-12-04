@@ -2,11 +2,12 @@
 
 import { useEffect, useMemo, useState, useRef } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Loader2, RefreshCw } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Loader2, RefreshCw, LogOut } from 'lucide-react'
 import { toast } from 'sonner'
 import { generateQRCode } from '@/lib/qrcode'
 import { useWhatsappSessionContext } from '@/app/providers/context/whatsapp/WhatsappSessionContext'
-import { simpleWaInit } from '@/lib/api/simpleWaApi'
+import { simpleWaInit, simpleWaLogout } from '@/lib/api/simpleWaApi'
 import { useWhatsappStatus } from '@/hooks/useWhatsappStatus'
 import { getAccessToken } from '@/utils/authToken'
 
@@ -98,7 +99,7 @@ export const WhatsappSessionModal: React.FC<WhatsappSessionModalProps> = ({ open
     setError(null)
     
     try {
-      const result = await simpleWaInit()
+      const result = await simpleWaInit(true) // ✅ Forzar modo personal
       console.log('✅ WhatsappSessionModal: Init exitoso:', result)
       
       // El WebSocket se encargará de actualizar el estado
@@ -117,6 +118,36 @@ export const WhatsappSessionModal: React.FC<WhatsappSessionModalProps> = ({ open
       console.error('❌ WhatsappSessionModal: Error en init:', e)
       setError(e.message || 'Error al iniciar sesión')
       toast.error('Error al iniciar sesión de WhatsApp')
+    } finally {
+      setIsInitializing(false)
+    }
+  }
+
+  // ✅ Función para cerrar sesión (logout)
+  const handleLogout = async () => {
+    try {
+      console.log('🚪 WhatsappSessionModal: Cerrando sesión...')
+      await simpleWaLogout()
+      
+      // Actualizar estado global
+      updateFromStatus({
+        state: 'none',
+        qr: null,
+        ready: false,
+        authenticated: false,
+      })
+      
+      // Limpiar estado local
+      setQrImage(null)
+      lastValidQr.current = null
+      
+      toast.success('Sesión de WhatsApp cerrada correctamente')
+      
+      // Cerrar modal
+      onOpenChange(false)
+    } catch (e: any) {
+      console.error('❌ WhatsappSessionModal: Error en logout:', e)
+      toast.error('Error al cerrar sesión: ' + (e.message || 'Error desconocido'))
     } finally {
       setIsInitializing(false)
     }
@@ -271,6 +302,22 @@ export const WhatsappSessionModal: React.FC<WhatsappSessionModalProps> = ({ open
           <div className="text-center py-8">
             <p className="text-green-600 font-semibold text-lg">¡Listo para enviar mensajes!</p>
             <p className="text-sm text-muted-foreground mt-2">Tu dispositivo quedó vinculado correctamente.</p>
+            
+            {/* ✅ Botón de desconexión */}
+            <div className="mt-6 flex justify-center gap-2">
+              <Button
+                variant="outline"
+                onClick={handleLogout}
+                className="inline-flex items-center gap-2"
+              >
+                <LogOut className="h-4 w-4" />
+                Desconectar WhatsApp
+              </Button>
+            </div>
+            
+            <p className="text-xs text-muted-foreground mt-4">
+              ⚠️ Nota: Tu sesión se cerrará automáticamente después de 1 hora de inactividad
+            </p>
           </div>
         ) : (
           <div className="flex flex-col md:flex-row gap-8 py-4">

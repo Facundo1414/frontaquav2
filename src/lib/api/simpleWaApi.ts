@@ -4,8 +4,11 @@ import { getAccessToken } from "../../utils/authToken";
 const withAuth = () => ({ Authorization: `Bearer ${getAccessToken()}` });
 
 // Ahora todo pasa por el orquestador /api/wa/*
-export const simpleWaInit = async () => {
-  const { data } = await api.get("/wa/init", { headers: withAuth() });
+export const simpleWaInit = async (usePersonalNumber: boolean = true) => {
+  const { data } = await api.get("/wa/init", {
+    headers: withAuth(),
+    params: { usePersonalNumber },
+  });
   return data; // { worker, userId, authenticated, ready, hasQR }
 };
 

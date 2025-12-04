@@ -219,7 +219,7 @@ export const WhatsappSessionProvider: React.FC<{ children: React.ReactNode }> = 
   const reconnect = useCallback(async () => {
     console.log('🔄 Intentando reconectar WhatsApp...');
     try {
-      const result = await simpleWaInit();
+      const result = await simpleWaInit(true); // ✅ Forzar modo personal
       console.log('✅ Reconexión iniciada:', result);
       
       // Actualizar estado basado en la respuesta
@@ -255,9 +255,8 @@ export const WhatsappSessionProvider: React.FC<{ children: React.ReactNode }> = 
     }
   }, [updateFromStatus]);
 
-  // 🆕 Auto-reconectar si no hay sesión activa al montar componentes que necesitan WA
-  // Verificamos periódicamente si hay sesión guardada pero no está conectada
-  // SOLO para Admin - Usuarios PRO/BASE no necesitan esto
+  // ✅ OPTIMIZACIÓN: NO auto-reconectar al montar
+  // Solo verificar estado si ya hay una sesión activa
   useEffect(() => {
     // Skip completamente si no es admin
     if (!shouldEnableWhatsapp) {
@@ -265,114 +264,28 @@ export const WhatsappSessionProvider: React.FC<{ children: React.ReactNode }> = 
       return;
     }
 
-    // 🔧 OPTIMIZACIÓN: Leer userMode para evitar polling innecesario
-    const userMode = typeof window !== 'undefined' 
-      ? (localStorage.getItem('whatsapp_mode') as 'system' | 'personal') || 'system'
-      : 'system';
-    
-    // Si admin está en modo sistema puro, NO necesita polling de sesión personal
-    // El sistema centralizado se maneja desde el backend
-    if (userMode === 'system' && snapshot?.ready) {
-      console.log('⏭️ Admin en modo sistema con sesión lista - Polling deshabilitado');
-      return;
-    }
+    // Solo verificar cada 10 segundos SI ya hay una sesión activa
+    const intervalId = setInterval(() => {
+      if (snapshot?.state !== 'none' && snapshot?.state !== 'offline' && snapshot?.state !== 'waiting_qr') {
+        console.log('🔍 Verificando estado de sesión activa...');
+        simpleWaState()
+          .then((state) => {
+            if (state.ready && !snapshot?.ready) {
+              console.log('✅ Sesión activa detectada');
+              updateFromStatus({ state: 'ready' });
+            } else if (state.authenticated && !state.ready) {
+              console.log('🔄 Sesión sincronizando');
+              updateFromStatus({ state: 'syncing' });
+            }
+          })
+          .catch(() => {
+            // Ignorar errores silenciosamente
+          });
+      }
+    }, 10000);
 
-    const checkAndReconnect = async () => {
-      // Solo intentar si:
-      // 1. Hay userId (usuario autenticado)
-      // 2. No estamos ya conectados y listos
-      // 3. No estamos escaneando QR
-      if (!userId) return;
-      
-      // 🔧 FIX: NO VERIFICAR SI ESTAMOS ESPERANDO QR
-      // Esto evita que el polling sobrescriba el estado mientras el usuario escanea
-      if (snapshot?.state === 'waiting_qr') {
-        console.log('⏸️ Pausando verificación - usuario escaneando QR');
-        return;
-      }
-      
-      // 🔧 OPTIMIZACIÓN: Si ya está ready, no hacer polling tan frecuente
-      if (snapshot?.ready) {
-        console.log('⏸️ Sesión ya lista - Reduciendo frecuencia de polling');
-        return;
-      }
-      
-      console.log('🔍 Verificando estado de WhatsApp...');
-      
-      try {
-        // Verificar si hay sesión en el backend
-        const state = await simpleWaState();
-        console.log('📊 Estado actual:', state);
-        
-        // Si el backend dice que está ready pero nosotros no lo sabemos
-        if (state.ready && !snapshot?.ready) {
-          console.log('✅ Sesión activa detectada, actualizando contexto');
-          updateFromStatus({ state: 'ready' });
-        }
-        // Si está autenticado pero sincronizando
-        else if (state.authenticated && !state.ready) {
-          console.log('🔄 Sesión sincronizando');
-          updateFromStatus({ state: 'syncing' });
-        }
-        // ⚠️ SOLO reconectar si NO hay sesión Y el contexto está completamente vacío
-        // Evitar reconectar si ya hay una sesión inicializándose o trabajando
-        else if (!state.ready && !state.authenticated && !snapshot) {
-          console.log('🔌 No hay sesión activa ni contexto, intentando reconectar...');
-          await reconnect();
-        } else {
-          console.log('⏸️ Sesión en proceso o ya existe, no reconectar');
-        }
-      } catch (error: any) {
-        const status = error?.response?.status;
-        const message = error?.response?.data?.message || error?.message;
-        
-        // Error 500: Baileys worker no disponible o no hay sesión
-        if (status === 500) {
-          console.log('📦 Baileys worker no disponible o sin sesión - WhatsApp deshabilitado');
-          updateFromStatus({ state: 'none' });
-          return;
-        }
-        
-        // Error 429: Rate limiting - dejar de hacer polling temporalmente
-        if (status === 429) {
-          console.warn('⚠️ Rate limit alcanzado en checkAndReconnect');
-          // El interval se encargará de reintentar después
-          return;
-        }
-        
-        // Error de red
-        if (error?.code === 'ERR_NETWORK') {
-          console.warn('⚠️ Error de red - Baileys worker no accesible');
-          return;
-        }
-        
-        console.error('❌ Error verificando estado WhatsApp:', message);
-      }
-    };
-    
-    // Verificar inmediatamente al montar SOLO si no estamos waiting_qr ni ready
-    if (snapshot?.state !== 'waiting_qr' && !snapshot?.ready) {
-      checkAndReconnect();
-    }
-    
-    // 🔧 OPTIMIZACIÓN: Polling condicional
-    // - Si ya está ready: cada 5 minutos (solo para mantener sync)
-    // - Si no está ready: cada 2 minutos (intentar reconectar)
-    const pollingInterval = snapshot?.ready ? 300000 : 120000; // 5min vs 2min
-    
-    const interval = setInterval(() => {
-      // Solo hacer polling si:
-      // - NO está esperando QR (usuario escaneando)
-      // - Admin usa modo personal O no está ready
-      if (snapshot?.state !== 'waiting_qr') {
-        if (userMode === 'personal' || !snapshot?.ready) {
-          checkAndReconnect();
-        }
-      }
-    }, pollingInterval);
-    
-    return () => clearInterval(interval);
-  }, [userId, snapshot?.ready, snapshot?.state, reconnect, updateFromStatus, shouldEnableWhatsapp]);
+    return () => clearInterval(intervalId);
+  }, [shouldEnableWhatsapp, snapshot?.state, snapshot?.ready, updateFromStatus]);
 
   return (
     <WhatsappSessionContext.Provider value={{ snapshot, updateFromStatus, markQr, reconnect }}>

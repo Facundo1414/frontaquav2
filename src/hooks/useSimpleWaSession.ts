@@ -86,7 +86,7 @@ export function useSimpleWaSession({
       setError(null);
       setStatus("initializing");
       try {
-        const init = await simpleWaInit();
+        const init = await simpleWaInit(true); // ✅ Forzar modo personal
         setLastUpdated(Date.now());
         if (init.ready) {
           setStatus("ready");
@@ -111,10 +111,12 @@ export function useSimpleWaSession({
     [poll]
   );
 
+  // ✅ OPTIMIZACIÓN: NO auto-iniciar al montar
+  // El usuario debe llamar start() manualmente
   useEffect(() => {
-    if (auto) start();
+    // Limpiar polling al desmontar
     return () => clearPolling();
-  }, [auto, start]);
+  }, []);
 
   return {
     status,

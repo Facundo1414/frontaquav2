@@ -238,13 +238,20 @@ export function WhatsAppUnifiedProvider({ children }: { children: ReactNode }) {
       intervalRef.current = null;
     }
 
-    // Llamada inicial
-    fetchRef.current();
-
-    // Usar intervalo base de 15s, o el delay de retry si hay errores
-    const pollInterval = retryCount > 0 ? retryDelay : BASE_POLLING_INTERVAL;
-    intervalRef.current = setInterval(() => {
+    // ✅ OPTIMIZACIÓN: Solo verificar si ya hay sesión activa
+    // No hacer llamada inicial automática
+    if (status.ready || status.authenticated) {
+      console.log('🔍 Verificando estado de WhatsApp (sesión activa detectada)...');
       fetchRef.current();
+    }
+
+    // Usar intervalo base de 30s, o el delay de retry si hay errores
+    const pollInterval = retryCount > 0 ? retryDelay : 30000; // 30 segundos
+    intervalRef.current = setInterval(() => {
+      // Solo verificar si hay sesión activa
+      if (status.ready || status.authenticated) {
+        fetchRef.current();
+      }
     }, pollInterval);
 
     if (process.env.NODE_ENV === 'development') {
@@ -260,7 +267,7 @@ export function WhatsAppUnifiedProvider({ children }: { children: ReactNode }) {
         console.log('⏹️ Polling detenido');
       }
     };
-  }, [isAdmin, retryCount, retryDelay, BASE_POLLING_INTERVAL]);
+  }, [isAdmin, retryCount, retryDelay, status.ready, status.authenticated]);
 
   const refresh = useCallback(() => {
     if (!isAdmin) {
