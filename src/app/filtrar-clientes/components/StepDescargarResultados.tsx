@@ -7,6 +7,7 @@ import { Download, CheckCircle2, XCircle, AlertCircle, RotateCcw, FileSpreadshee
 import { toast } from "sonner"
 import { ProcessResults } from '../page'
 import { generateAptosExcel, generateNoAptosExcel, generateMacheteExcel } from '@/lib/api/comprobanteApi'
+import { logger } from '@/lib/logger';
 
 interface StepDescargarResultadosProps {
   results: ProcessResults
@@ -49,8 +50,8 @@ export function StepDescargarResultados({ results, selectedClients = [], onReset
     setDownloadingNoAptos(true)
 
     try {
-      console.log('📊 Descargando NO APTOS - Total resultados:', results.results.length)
-      console.log('📋 Muestra de resultados:', results.results.slice(0, 3))
+      logger.log('📊 Descargando NO APTOS - Total resultados:', results.results.length)
+      logger.log('📋 Muestra de resultados:', results.results.slice(0, 3))
       
       const blob = await generateNoAptosExcel(results.results)
       
@@ -77,7 +78,7 @@ export function StepDescargarResultados({ results, selectedClients = [], onReset
     setDownloadingMachete(true)
 
     try {
-      console.log('📋 Generando Machete para Visitas...')
+      logger.log('📋 Generando Machete para Visitas...')
       
       // Extraer UFs de los clientes APTOS
       const aptosResults = results.results.filter(

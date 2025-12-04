@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { io, Socket } from "socket.io-client";
+import { logger } from '@/lib/logger';
 
 interface PyseProgress {
   userId: string;
@@ -58,16 +59,16 @@ export function useProgressWebSocket(
     socketRef.current = socket;
 
     socket.on("connect", () => {
-      console.log("✅ WebSocket conectado al worker (tipo:", eventType, ")");
+      logger.log("✅ WebSocket conectado al worker (tipo:", eventType, ")");
     });
 
     socket.on("connect_error", (err) => {
-      console.warn("⚠️ Error conectando al comprobante-worker:", err.message);
+      logger.warn("⚠️ Error conectando al comprobante-worker:", err.message);
       // No mostrar error al usuario, el servicio puede no estar disponible
     });
 
     socket.on("disconnect", () => {
-      console.log("🔌 WebSocket desconectado del comprobante-worker");
+      logger.log("🔌 WebSocket desconectado del comprobante-worker");
     });
 
     // Escuchar eventos según el tipo
@@ -76,7 +77,7 @@ export function useProgressWebSocket(
         // Filtrar por userId si se proporciona
         if (userId && data.userId !== userId) return;
 
-        console.log(
+        logger.log(
           `📊 Progreso PYSE: ${data.processed}/${data.total} (${data.percentage}%)`
         );
         setProgress(data);
@@ -87,7 +88,7 @@ export function useProgressWebSocket(
       socket.on("pyse-completed", (data: PyseCompleted) => {
         if (userId && data.userId !== userId) return;
 
-        console.log(
+        logger.log(
           `✅ PYSE Completado: ${data.aptos} aptos, ${data.noAptos} no aptos`
         );
         setIsCompleted(true);
@@ -110,7 +111,7 @@ export function useProgressWebSocket(
       socket.on("pdf-progress", (data: PyseProgress) => {
         if (userId && data.userId !== userId) return;
 
-        console.log(
+        logger.log(
           `📊 Progreso PDF: ${data.processed}/${data.total} (${data.percentage}%)`
         );
         setProgress(data);
@@ -121,7 +122,7 @@ export function useProgressWebSocket(
       socket.on("pdf-completed", (data: PdfCompleted) => {
         if (userId && data.userId !== userId) return;
 
-        console.log(
+        logger.log(
           `✅ PDF Completado: ${data.successful} exitosos, ${data.failed} fallidos`
         );
         setIsCompleted(true);

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { io, Socket } from "socket.io-client";
+import { logger } from '@/lib/logger';
 
 const WEBSOCKET_URL =
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
@@ -20,13 +21,13 @@ export function useWebSocket() {
     mountedRef.current = true;
     connectionCount++;
 
-    console.log(
+    logger.log(
       `🔌 useWebSocket montado (conexiones activas: ${connectionCount})`
     );
 
     // Crear nuevo socket si no existe
     if (!globalSocket) {
-      console.log(
+      logger.log(
         "🔌 Iniciando nueva conexión WebSocket a:",
         `${WEBSOCKET_URL}/events`
       );
@@ -52,13 +53,13 @@ export function useWebSocket() {
 
     // Setear estado inicial
     if (globalSocket.connected) {
-      console.log(
+      logger.log(
         `♻️ Reutilizando conexión WebSocket existente (connected: true)`,
         globalSocket.id
       );
       setConnected(true);
     } else {
-      console.log(
+      logger.log(
         `♻️ Reutilizando conexión WebSocket existente (connected: false, esperando...)`
       );
       setConnected(false);
@@ -67,14 +68,14 @@ export function useWebSocket() {
     // SIEMPRE agregar listeners (incluso si reutilizamos)
     const handleConnect = () => {
       if (!mountedRef.current) return;
-      console.log("✅ WebSocket conectado:", globalSocket?.id);
+      logger.log("✅ WebSocket conectado:", globalSocket?.id);
       setConnected(true);
       setReconnecting(false);
     };
 
     const handleDisconnect = (reason: string) => {
       if (!mountedRef.current) return;
-      console.warn("⚠️ WebSocket desconectado:", reason);
+      logger.warn("⚠️ WebSocket desconectado:", reason);
       setConnected(false);
       if (reason === "io server disconnect") {
         globalSocket?.connect();
@@ -83,32 +84,32 @@ export function useWebSocket() {
 
     const handleReconnect = (attemptNumber: number) => {
       if (!mountedRef.current) return;
-      console.log(`🔄 WebSocket reconectado (intento ${attemptNumber})`);
+      logger.log(`🔄 WebSocket reconectado (intento ${attemptNumber})`);
       setConnected(true);
       setReconnecting(false);
     };
 
     const handleReconnectAttempt = (attemptNumber: number) => {
       if (!mountedRef.current) return;
-      console.log(`⏳ Intento de reconexión ${attemptNumber}...`);
+      logger.log(`⏳ Intento de reconexión ${attemptNumber}...`);
       setReconnecting(true);
     };
 
     const handleReconnectFailed = () => {
       if (!mountedRef.current) return;
-      console.warn("⚠️ WebSocket: Máximo de intentos de reconexión alcanzado");
-      console.log("ℹ️ Los comprobantes se seguirán enviando correctamente en segundo plano");
+      logger.warn("⚠️ WebSocket: Máximo de intentos de reconexión alcanzado");
+      logger.log("ℹ️ Los comprobantes se seguirán enviando correctamente en segundo plano");
       setReconnecting(false);
     };
 
     const handleConnectError = (error: Error) => {
       // Solo loggear en modo desarrollo, no mostrar error al usuario
       if (process.env.NODE_ENV === 'development') {
-        console.warn("⚠️ WebSocket temporal sin conexión:", {
+        logger.warn("⚠️ WebSocket temporal sin conexión:", {
           message: error.message,
           url: `${WEBSOCKET_URL}/events`,
         });
-        console.log("ℹ️ El sistema seguirá funcionando, los datos se actualizarán al finalizar");
+        logger.log("ℹ️ El sistema seguirá funcionando, los datos se actualizarán al finalizar");
       }
     };
 
@@ -122,7 +123,7 @@ export function useWebSocket() {
     return () => {
       mountedRef.current = false;
       connectionCount--;
-      console.log(
+      logger.log(
         `🔌 useWebSocket desmontado (conexiones activas: ${connectionCount})`
       );
 
@@ -136,7 +137,7 @@ export function useWebSocket() {
 
       // Solo cerrar la conexión si no hay más componentes usándola
       if (connectionCount === 0 && globalSocket) {
-        console.log("🔌 Cerrando conexión WebSocket global");
+        logger.log("🔌 Cerrando conexión WebSocket global");
         globalSocket.close();
         globalSocket = null;
       }

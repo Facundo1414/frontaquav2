@@ -16,6 +16,7 @@ import { proximosVencerDataSchema, validateProximosVencerData } from '@/lib/vali
 import { validateExcelFile, sanitizeObject } from '@/lib/validations/validation-utils'
 import { useFileValidation } from '@/hooks/useValidation'
 import { ValidationPreviewProximosVencer } from './ValidationPreviewProximosVencer'
+import { logger } from '@/lib/logger';
 
 export default function StepUploadFileProximosVencer() {
   const [file, setFile] = useState<File | null>(null)
@@ -50,7 +51,7 @@ export default function StepUploadFileProximosVencer() {
       // 🛡️ Validar contenido del Excel con helper detallado
       const detailedValidation = validateProximosVencerData(parsedData)
       
-      console.log('🔍 Validación detallada:', detailedValidation)
+      logger.log('🔍 Validación detallada:', detailedValidation)
 
       // Si hay errores críticos o no hay clientes con teléfono, mostrar preview
       if (!detailedValidation.valid || detailedValidation.summary.withPhone === 0) {

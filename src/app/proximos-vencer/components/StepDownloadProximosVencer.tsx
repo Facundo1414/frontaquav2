@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { getFileByName, listResultBackups } from '@/lib/api'
 import { Loader2, Home, Download } from 'lucide-react'
 import { useRouter } from 'next/navigation'
+import { logger } from '@/lib/logger';
 
 export default function StepDownloadProximosVencer() {
   const router = useRouter()
@@ -57,16 +58,16 @@ export default function StepDownloadProximosVencer() {
 
   const handleDownloadResults = () => {
     if (!processedFile) {
-      console.warn('No hay archivo procesado para descargar')
+      logger.warn('No hay archivo procesado para descargar')
       return
     }
     
     setLoadingResults(true)
     
     try {
-      console.log('Iniciando descarga de resultados próximos a vencer')
-      console.log('Tipo de archivo:', processedFile.type)
-      console.log('Tamaño del archivo:', processedFile.size, 'bytes')
+      logger.log('Iniciando descarga de resultados próximos a vencer')
+      logger.log('Tipo de archivo:', processedFile.type)
+      logger.log('Tamaño del archivo:', processedFile.size, 'bytes')
       
       // Verificar que el archivo no esté vacío
       if (processedFile.size === 0) {
@@ -85,7 +86,7 @@ export default function StepDownloadProximosVencer() {
       a.remove()
       window.URL.revokeObjectURL(url)
       
-      console.log('Descarga completada exitosamente')
+      logger.log('Descarga completada exitosamente')
     } catch (error) {
       console.error('Error durante la descarga:', error)
       alert('Error al descargar el archivo de resultados')

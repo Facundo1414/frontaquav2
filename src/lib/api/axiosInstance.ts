@@ -2,6 +2,7 @@
 import axios from "axios";
 import { tokenManager } from "../tokenManager";
 import { generateCorrelationId } from "@/utils/correlationId";
+import { logger } from '@/lib/logger';
 
 // Normalizamos la base URL para garantizar que termine en /api
 let rawBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
@@ -32,7 +33,7 @@ api.interceptors.request.use(
         await tokenManager.refreshTokenIfNeeded();
       }
     } catch (error) {
-      console.warn("Failed to refresh token preemptively:", error);
+      logger.warn("Failed to refresh token preemptively:", error);
     }
 
     // Obtener el token actual

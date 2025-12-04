@@ -17,6 +17,7 @@ import { toast } from 'sonner'
 import { motion } from '@/lib/motion'
 import { LoadingOverlay } from '@/components/LoadingOverlay'
 import { getUserFriendlyError } from '@/utils/errorMessages'
+import { logger } from '@/lib/logger';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
@@ -46,10 +47,10 @@ export default function LoginPage() {
       return toast.error('Por favor, verifica tu email')
     }
 
-    console.log('🔐 Iniciando login...')
+    logger.log('🔐 Iniciando login...')
     const { success, message, username } = await login(email, password)
 
-    console.log('📊 Resultado login:', { success, username })
+    logger.log('📊 Resultado login:', { success, username })
 
     if (success) {
       toast.success(`¡Bienvenido, ${username}!`)
@@ -58,9 +59,9 @@ export default function LoginPage() {
       // Pequeña pausa para animación de salida
       await new Promise(resolve => setTimeout(resolve, 500))
       
-      console.log('🚀 Redirigiendo a /home...')
+      logger.log('🚀 Redirigiendo a /home...')
       router.push('/home')
-      console.log('✅ router.push ejecutado')
+      logger.log('✅ router.push ejecutado')
     } else {
       console.error('❌ Login falló:', message)
       const friendlyMessage = getUserFriendlyError(message || 'Error desconocido')

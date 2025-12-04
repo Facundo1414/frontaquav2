@@ -1,5 +1,6 @@
 // src/lib/tokenManager.ts
 import { refreshToken as apiRefreshToken } from "./api/authApi";
+import { logger } from '@/lib/logger';
 
 interface TokenData {
   accessToken: string;
@@ -52,7 +53,7 @@ class TokenManager {
 
     this.scheduleRefresh(expiresAt);
 
-    console.log(
+    logger.log(
       `Token set. Expires at: ${new Date(expiresAt).toLocaleString()}`
     );
   }
@@ -70,7 +71,7 @@ class TokenManager {
 
     // Si el token expira en menos de X minutos, considéralo expirado
     if (expires - now < this.MIN_TOKEN_VALIDITY_MINUTES * 60 * 1000) {
-      console.log("Token expiring soon, will refresh");
+      logger.log("Token expiring soon, will refresh");
       return null;
     }
 
@@ -88,14 +89,14 @@ class TokenManager {
 
     if (timeUntilRefresh > 0) {
       const minutesUntilRefresh = Math.round(timeUntilRefresh / 1000 / 60);
-      console.log(`Token will be refreshed in ${minutesUntilRefresh} minutes`);
+      logger.log(`Token will be refreshed in ${minutesUntilRefresh} minutes`);
 
       this.refreshTimer = setTimeout(() => {
         this.refreshTokenIfNeeded();
       }, timeUntilRefresh);
     } else {
       // Token is already close to expiry, refresh immediately
-      console.log("Token close to expiry, refreshing immediately");
+      logger.log("Token close to expiry, refreshing immediately");
       this.refreshTokenIfNeeded();
     }
   }
@@ -121,7 +122,7 @@ class TokenManager {
       return currentToken;
     }
 
-    console.log("Refreshing token...");
+    logger.log("Refreshing token...");
     this.isRefreshing = true;
 
     this.refreshPromise = this.performTokenRefresh(refreshTokenValue);
@@ -152,7 +153,7 @@ class TokenManager {
 
         this.scheduleRefresh(newExpiresAt);
 
-        console.log("Token refreshed successfully");
+        logger.log("Token refreshed successfully");
         return newAccessToken;
       } else {
         throw new Error("No new token received");
@@ -175,7 +176,7 @@ class TokenManager {
       this.refreshTimer = null;
     }
 
-    console.log("Tokens cleared");
+    logger.log("Tokens cleared");
   }
 
   // Inicializar el manager al cargar la aplicación
@@ -186,13 +187,13 @@ class TokenManager {
     if (accessToken && expiresAt) {
       const expires = parseInt(expiresAt);
       this.scheduleRefresh(expires);
-      console.log(
+      logger.log(
         `Token manager initialized. Token expires at: ${new Date(
           expires
         ).toLocaleString()}`
       );
     } else {
-      console.log("No valid tokens found during initialization");
+      logger.log("No valid tokens found during initialization");
     }
   }
 

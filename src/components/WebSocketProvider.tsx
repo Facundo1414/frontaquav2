@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react'
 import { useWebSocket } from '@/hooks/useWebSocket'
+import { logger } from '@/lib/logger';
 
 /**
  * Provider que mantiene la conexión WebSocket activa durante toda la sesión
@@ -12,9 +13,9 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (connected) {
-      console.log('🌐 WebSocketProvider: Conexión establecida')
+      logger.log('🌐 WebSocketProvider: Conexión establecida')
     } else if (reconnecting) {
-      console.log('🔄 WebSocketProvider: Reconectando...')
+      logger.log('🔄 WebSocketProvider: Reconectando...')
     }
   }, [connected, reconnecting])
 

@@ -2,6 +2,7 @@ import { getAccessToken } from "../../utils/authToken";
 import api from "./axiosInstance";
 import { parseExcelBlobWithIndexMapping } from "../../utils/parseExcelBlob";
 import { getFileByName } from "./uploadApi";
+import { logger } from '@/lib/logger';
 
 export const sendAndScrape = async (
   fileName: string,
@@ -37,12 +38,12 @@ export const sendAndScrape = async (
       ? parseInt(response.headers["x-overquota-count"])
       : undefined;
 
-    console.log("📊 Headers recibidos:", response.headers);
-    console.log("📊 JobId extraído:", jobId);
-    console.log("💰 OverQuota extraído:", overQuotaCount);
-    console.log("📦 Response data type:", response.data?.constructor?.name);
-    console.log("📦 Response data size:", response.data?.size);
-    console.log("📄 Content-Type:", contentType);
+    logger.log("📊 Headers recibidos:", response.headers);
+    logger.log("📊 JobId extraído:", jobId);
+    logger.log("💰 OverQuota extraído:", overQuotaCount);
+    logger.log("📦 Response data type:", response.data?.constructor?.name);
+    logger.log("📦 Response data size:", response.data?.size);
+    logger.log("📄 Content-Type:", contentType);
 
     if (contentType && contentType.includes("application/json")) {
       // Si vino un JSON de error o mensaje
@@ -56,7 +57,7 @@ export const sendAndScrape = async (
     }
 
     // Si vino un archivo Excel
-    console.log("✅ Archivo Excel recibido correctamente");
+    logger.log("✅ Archivo Excel recibido correctamente");
     return {
       message: "✅ Procesamiento finalizado",
       file: response.data,
@@ -152,8 +153,8 @@ export const sendAndScrapeProximosVencer = async (
     // Axios normaliza headers a minúsculas en respuestas blob
     const jobId = response.headers["x-job-id"] || response.headers["X-Job-Id"];
 
-    console.log("📊 Headers recibidos (próximos a vencer):", response.headers);
-    console.log("📊 JobId extraído (próximos a vencer):", jobId);
+    logger.log("📊 Headers recibidos (próximos a vencer):", response.headers);
+    logger.log("📊 JobId extraído (próximos a vencer):", jobId);
 
     if (contentType && contentType.includes("application/json")) {
       // Si vino un JSON de error o mensaje

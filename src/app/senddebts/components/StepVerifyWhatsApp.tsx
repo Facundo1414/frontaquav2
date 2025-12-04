@@ -9,6 +9,7 @@ import { ProgressCard } from './ProgressCard'
 import { Badge } from '@/components/ui/badge'
 import { simpleWaBulkVerify, getPhonesByUFs } from '@/lib/api'
 import { toast } from 'sonner'
+import { logger } from '@/lib/logger';
 
 interface VerificationResult {
   telefono: string
@@ -93,14 +94,14 @@ export function StepVerifyWhatsApp() {
     try {
       const startTime = Date.now()
       
-      console.log('📋 rawData completo:', rawData)
+      logger.log('📋 rawData completo:', rawData)
       
       // 0. Verificar que la sesión de WhatsApp esté lista
       toast.info('Verificando sesión de WhatsApp...')
       const { simpleWaState } = await import('@/lib/api')
       const sessionState = await simpleWaState()
       
-      console.log('📊 Estado de sesión:', sessionState)
+      logger.log('📊 Estado de sesión:', sessionState)
       
       // El orquestador wrapea la respuesta en { worker, type, data }
       const session = sessionState.data || sessionState
@@ -118,13 +119,13 @@ export function StepVerifyWhatsApp() {
         .map((record: any) => record.unidad)
         .filter((uf: any) => uf && !isNaN(uf))
       
-      console.log(`📞 Consultando BD para ${ufs.length} UFs...`)
+      logger.log(`📞 Consultando BD para ${ufs.length} UFs...`)
       toast.info(`Consultando base de datos para ${ufs.length} clientes...`)
       
       // 2. Obtener teléfonos actualizados desde la base de datos
       const dbPhones = await getPhonesByUFs(ufs)
-      console.log(`📊 Teléfonos encontrados en BD:`, dbPhones)
-      console.log(`✅ ${Object.keys(dbPhones).length} teléfonos actualizados encontrados en BD`)
+      logger.log(`📊 Teléfonos encontrados en BD:`, dbPhones)
+      logger.log(`✅ ${Object.keys(dbPhones).length} teléfonos actualizados encontrados en BD`)
       
       // 3. Extraer y normalizar teléfonos del rawData (con prioridad de BD)
       const phonesData = rawData.map((record: any) => {
@@ -139,14 +140,14 @@ export function StepVerifyWhatsApp() {
           rawPhone = record.tel_clien || record.tel_uni || record.telefono
         }
         
-        console.log(`Registro UF ${uf} (${record.Cliente_01}):`)
-        console.log(`  - BD: ${dbPhones[uf] || 'N/A'}`)
-        console.log(`  - Excel tel_clien: ${record.tel_clien}`)
-        console.log(`  - Excel tel_uni: ${record.tel_uni}`)
-        console.log(`  - Fuente elegida: ${source}`)
+        logger.log(`Registro UF ${uf} (${record.Cliente_01}):`)
+        logger.log(`  - BD: ${dbPhones[uf] || 'N/A'}`)
+        logger.log(`  - Excel tel_clien: ${record.tel_clien}`)
+        logger.log(`  - Excel tel_uni: ${record.tel_uni}`)
+        logger.log(`  - Fuente elegida: ${source}`)
         
         const normalized = normalizePhone(rawPhone)
-        console.log(`  -> Normalizado: ${normalized}`)
+        logger.log(`  -> Normalizado: ${normalized}`)
         
         return {
           original: record,
@@ -169,15 +170,15 @@ export function StepVerifyWhatsApp() {
 
       // 3. Llamar al API de verificación bulk
       const phoneNumbers = validPhones.map(item => item.phone!)
-      console.log('📞 Números a verificar:', phoneNumbers)
+      logger.log('📞 Números a verificar:', phoneNumbers)
       
       const response = await simpleWaBulkVerify(phoneNumbers)
-      console.log('📡 Respuesta del API:', response)
+      logger.log('📡 Respuesta del API:', response)
 
       // 4. Mapear resultados
       const verificationResults: VerificationResult[] = validPhones.map((item, index) => {
         const apiResult = response.results.find((r: any) => r.phone === item.phone)
-        console.log(`Buscando ${item.phone} en resultados:`, apiResult)
+        logger.log(`Buscando ${item.phone} en resultados:`, apiResult)
         const hasWhatsApp = apiResult?.isWhatsApp || false
 
         return {

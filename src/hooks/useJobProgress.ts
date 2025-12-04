@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useWebSocket } from "./useWebSocket";
+import { logger } from '@/lib/logger';
 
 export interface JobProgress {
   jobId: string;
@@ -20,7 +21,7 @@ export function useJobProgress(jobId: string | null) {
 
   useEffect(() => {
     if (!socket || !connected || !jobId) {
-      console.log("⏸️ No se puede suscribir aún:", {
+      logger.log("⏸️ No se puede suscribir aún:", {
         hasSocket: !!socket,
         connected,
         hasJobId: !!jobId,
@@ -29,16 +30,16 @@ export function useJobProgress(jobId: string | null) {
       return;
     }
 
-    console.log(`📊 Suscribiendo a job: ${jobId}`);
+    logger.log(`📊 Suscribiendo a job: ${jobId}`);
 
     // Listeners de eventos
     const handleProgress = (data: JobProgress) => {
-      console.log("📊 Job progress recibido:", data);
+      logger.log("📊 Job progress recibido:", data);
       setProgress(data);
     };
 
     const handleCompleted = (data: any) => {
-      console.log("✅ Job completado:", data);
+      logger.log("✅ Job completado:", data);
       setProgress({
         jobId,
         status: "completed",
@@ -71,7 +72,7 @@ export function useJobProgress(jobId: string | null) {
 
     // Cleanup
     return () => {
-      console.log(`📊 Dessuscribiendo de job: ${jobId}`);
+      logger.log(`📊 Dessuscribiendo de job: ${jobId}`);
       socket.emit("job:unsubscribe", { jobId });
       socket.off("job:progress", handleProgress);
       socket.off("job:completed", handleCompleted);

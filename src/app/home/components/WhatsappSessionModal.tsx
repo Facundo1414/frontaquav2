@@ -10,6 +10,7 @@ import { useWhatsappSessionContext } from '@/app/providers/context/whatsapp/What
 import { simpleWaInit, simpleWaLogout } from '@/lib/api/simpleWaApi'
 import { useWhatsappStatus } from '@/hooks/useWhatsappStatus'
 import { getAccessToken } from '@/utils/authToken'
+import { logger } from '@/lib/logger';
 
 interface WhatsappSessionModalProps {
   open: boolean
@@ -54,7 +55,7 @@ export const WhatsappSessionModal: React.FC<WhatsappSessionModalProps> = ({ open
   const isAuthenticated = snapshot?.ready || false
   
   // 🐛 DEBUG: Log del estado actual
-  console.log('📱 WhatsappSessionModal render:', {
+  logger.log('📱 WhatsappSessionModal render:', {
     state,
     hasQr: !!qr,
     qrLength: qr?.length || 0,
@@ -66,7 +67,7 @@ export const WhatsappSessionModal: React.FC<WhatsappSessionModalProps> = ({ open
   // WebSocket está listo cuando está conectado y suscrito
   const wsReady = connected && isSubscribed
   
-  console.log('📱 WhatsappSessionModal state:', { 
+  logger.log('📱 WhatsappSessionModal state:', { 
     open, 
     state, 
     wsReady,
@@ -82,7 +83,7 @@ export const WhatsappSessionModal: React.FC<WhatsappSessionModalProps> = ({ open
   // 🔧 FIX: Sincronizar wsStatus → Context cuando llega via WebSocket
   useEffect(() => {
     if (wsStatus && (wsStatus.qr || wsStatus.state || wsStatus.ready !== undefined)) {
-      console.log('🔄 Actualizando context desde WebSocket:', wsStatus)
+      logger.log('🔄 Actualizando context desde WebSocket:', wsStatus)
       updateFromStatus({
         state: wsStatus.ready ? 'ready' : wsStatus.state || 'none',
         qr: wsStatus.qr || null,
@@ -94,13 +95,13 @@ export const WhatsappSessionModal: React.FC<WhatsappSessionModalProps> = ({ open
 
   // Función para iniciar sesión
   const handleStart = async () => {
-    console.log('🚀 WhatsappSessionModal: Iniciando sesión...')
+    logger.log('🚀 WhatsappSessionModal: Iniciando sesión...')
     setIsInitializing(true)
     setError(null)
     
     try {
       const result = await simpleWaInit(true) // ✅ Forzar modo personal
-      console.log('✅ WhatsappSessionModal: Init exitoso:', result)
+      logger.log('✅ WhatsappSessionModal: Init exitoso:', result)
       
       // El WebSocket se encargará de actualizar el estado
       // No necesitamos actualizar manualmente si está suscrito
@@ -126,7 +127,7 @@ export const WhatsappSessionModal: React.FC<WhatsappSessionModalProps> = ({ open
   // ✅ Función para cerrar sesión (logout)
   const handleLogout = async () => {
     try {
-      console.log('🚪 WhatsappSessionModal: Cerrando sesión...')
+      logger.log('🚪 WhatsappSessionModal: Cerrando sesión...')
       await simpleWaLogout()
       
       // Actualizar estado global
@@ -163,16 +164,16 @@ export const WhatsappSessionModal: React.FC<WhatsappSessionModalProps> = ({ open
     if (open) {
       try {
         sessionStorage.removeItem('whatsapp_v2_snapshot')
-        console.log('🧹 WhatsappSessionModal: sessionStorage limpiado al abrir modal')
+        logger.log('🧹 WhatsappSessionModal: sessionStorage limpiado al abrir modal')
       } catch (e) {
-        console.warn('⚠️ No se pudo limpiar sessionStorage:', e)
+        logger.warn('⚠️ No se pudo limpiar sessionStorage:', e)
       }
     }
   }, [open])
 
   // Iniciar sesión cuando se abre el modal Y el WebSocket está listo
   useEffect(() => {
-    console.log('📱 WhatsappSessionModal: useEffect', { 
+    logger.log('📱 WhatsappSessionModal: useEffect', { 
       open, 
       wsReady,
       isSubscribed,
@@ -181,7 +182,7 @@ export const WhatsappSessionModal: React.FC<WhatsappSessionModalProps> = ({ open
     })
     
     if (open && wsReady && !initAttempted.current) {
-      console.log('🚀 WhatsappSessionModal: Modal abierto y WebSocket listo, iniciando sesión...')
+      logger.log('🚀 WhatsappSessionModal: Modal abierto y WebSocket listo, iniciando sesión...')
       initAttempted.current = true
       handleStart()
     }
@@ -209,7 +210,7 @@ export const WhatsappSessionModal: React.FC<WhatsappSessionModalProps> = ({ open
           .then((img: string) => { 
             if (active) {
               setQrImage(img)
-              console.log('✅ QR convertido y guardado')
+              logger.log('✅ QR convertido y guardado')
             }
           })
           .catch(() => setQrImage(null))
@@ -243,7 +244,7 @@ export const WhatsappSessionModal: React.FC<WhatsappSessionModalProps> = ({ open
         const { simpleWaState } = await import('@/lib/api/simpleWaApi')
         const st = await simpleWaState()
         
-        console.log('🔍 Polling estado:', { 
+        logger.log('🔍 Polling estado:', { 
           ready: st.ready, 
           authenticated: st.authenticated,
           hasQR: !!st.qr,
@@ -253,14 +254,14 @@ export const WhatsappSessionModal: React.FC<WhatsappSessionModalProps> = ({ open
         // Actualizar con el estado completo del backend
         // Esto incluye QRs regenerados que el WebSocket pudo haber perdido
         if (st.ready || st.authenticated) {
-          console.log('✅ WhatsappSessionModal: Detectado autenticado via polling')
+          logger.log('✅ WhatsappSessionModal: Detectado autenticado via polling')
           updateFromStatus({
             state: st.ready ? 'ready' : 'syncing',
             qr: null, // Limpiar QR solo cuando está autenticado
           })
         } else if (st.qr) {
           // Si hay un QR nuevo del backend, actualizarlo
-          console.log('📱 WhatsappSessionModal: QR detectado via polling, actualizando')
+          logger.log('📱 WhatsappSessionModal: QR detectado via polling, actualizando')
           updateFromStatus({
             state: 'waiting_qr',
             qr: st.qr,

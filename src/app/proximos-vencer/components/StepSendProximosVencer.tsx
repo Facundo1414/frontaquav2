@@ -8,6 +8,7 @@ import { Loader2 } from 'lucide-react'
 import { ProgressCard } from '@/app/senddebts/components/ProgressCard'
 import { useProgressWebSocket } from '@/hooks/useProgressWebSocket'
 import { useGlobalContext } from '@/app/providers/context/GlobalContext'
+import { logger } from '@/lib/logger';
 
 export default function StepSendProximosVencer() {
   const {
@@ -89,7 +90,7 @@ Por favor, realiza el pago antes del vencimiento.
   // Efecto para actualizar stats con datos del WebSocket
   useEffect(() => {
     if (wsProgress) {
-      console.log(`📊 Progreso PDF (próximos a vencer): ${wsProgress.processed}/${wsProgress.total} (${wsProgress.percentage}%)`)
+      logger.log(`📊 Progreso PDF (próximos a vencer): ${wsProgress.processed}/${wsProgress.total} (${wsProgress.percentage}%)`)
       setSendStats({
         total: wsProgress.total,
         completed: wsProgress.processed,
@@ -104,7 +105,7 @@ Por favor, realiza el pago antes del vencimiento.
   // Efecto para iniciar polling cuando PDF se completa
   useEffect(() => {
     if (wsCompleted && loading && !waitingForResults) {
-      console.log('✅ PDFs generados (próximos a vencer). Esperando que termine el envío de WhatsApp...')
+      logger.log('✅ PDFs generados (próximos a vencer). Esperando que termine el envío de WhatsApp...')
       setWaitingForResults(true)
       setStatus('⏳ Enviando notificaciones por WhatsApp...')
     }
@@ -133,7 +134,7 @@ Por favor, realiza el pago antes del vencimiento.
         })
 
         if (recentFile) {
-          console.log('✅ Archivo de resultados encontrado:', recentFile)
+          logger.log('✅ Archivo de resultados encontrado:', recentFile)
           const blob = await getFileByName(recentFile)
           setProcessedFile(blob)
           setLoading(false)
@@ -144,7 +145,7 @@ Por favor, realiza el pago antes del vencimiento.
           }, 1000)
         } else if (pollingAttempts >= 20) {
           // Después de 20 intentos, avanzar de todas formas
-          console.warn('⚠️ Timeout esperando archivo de resultados')
+          logger.warn('⚠️ Timeout esperando archivo de resultados')
           setLoading(false)
           setWaitingForResults(false)
           setStatus('⚠️ Notificaciones enviadas. Descargá el archivo desde respaldos.')
@@ -158,7 +159,7 @@ Por favor, realiza el pago antes del vencimiento.
         console.error('Error en polling:', error)
         // Si es error 429 (rate limit), esperar más tiempo
         if (error?.response?.status === 429) {
-          console.warn('⚠️ Rate limit alcanzado, aumentando intervalo de polling')
+          logger.warn('⚠️ Rate limit alcanzado, aumentando intervalo de polling')
         }
         setPollingAttempts(prev => prev + 1)
       }
@@ -173,7 +174,7 @@ Por favor, realiza el pago antes del vencimiento.
   // Efecto para manejar errores
   useEffect(() => {
     if (wsError && loading) {
-      console.warn('⚠️ WebSocket desconectado durante envío de próximos a vencer:', wsError)
+      logger.warn('⚠️ WebSocket desconectado durante envío de próximos a vencer:', wsError)
       // No detener el proceso, los comprobantes se siguen enviando
       setStatus('⏳ Procesando mensajes en segundo plano... (sin actualización en vivo)')
       // El proceso continuará y se completará cuando el backend termine
@@ -200,10 +201,10 @@ Por favor, realiza el pago antes del vencimiento.
       
       // 🎯 Backend siempre devuelve jobId para tracking en tiempo real
       if (result.jobId) {
-        console.log('📊 JobId recibido (próximos a vencer):', result.jobId)
+        logger.log('📊 JobId recibido (próximos a vencer):', result.jobId)
         setJobId(result.jobId)
       } else {
-        console.warn('⚠️ Backend no retornó jobId, no habrá progreso en tiempo real')
+        logger.warn('⚠️ Backend no retornó jobId, no habrá progreso en tiempo real')
       }
       
       setStatus(result.message || '✅ Notificaciones enviadas correctamente')
@@ -214,13 +215,13 @@ Por favor, realiza el pago antes del vencimiento.
       
       // Si hay jobId, mantener loading=true y esperar WebSocket
       if (result.jobId) {
-        console.log('🔌 Job iniciado, esperando progreso via WebSocket...')
+        logger.log('🔌 Job iniciado, esperando progreso via WebSocket...')
         setStatus('⏳ Generando PDFs y verificando cuotas...')
         setPollingAttempts(0)
         // NO hacer setLoading(false) aquí, lo hace cuando llega el archivo
       } else {
         // Sin WebSocket, avanzar manualmente
-        console.log('🚀 Avanzando al paso 2 (sin WebSocket)')
+        logger.log('🚀 Avanzando al paso 2 (sin WebSocket)')
         setTimeout(() => {
           setActiveStep(2)
         }, 1500)

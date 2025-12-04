@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { LogOut, Settings } from 'lucide-react';
 import { useGlobalContext } from '@/app/providers/context/GlobalContext';
 import { useRouter } from 'next/navigation';
+import { logger } from '@/lib/logger';
 
 interface HomeSidebarProps {
   onOpenWhatsappModal: () => void;
@@ -17,7 +18,7 @@ export function HomeSidebar({ onOpenWhatsappModal, onLogout }: HomeSidebarProps)
   const isAdmin = userId === ADMIN_UID;
 
   // Debug: verificar comparación
-  console.log('🔍 HomeSidebar Debug:', {
+  logger.log('🔍 HomeSidebar Debug:', {
     userId,
     ADMIN_UID,
     isAdmin,

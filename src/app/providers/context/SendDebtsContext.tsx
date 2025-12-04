@@ -1,6 +1,7 @@
 // context/SendDebtsContext.tsx
 'use client'
 import { createContext, useContext, useState, ReactNode, useCallback } from 'react'
+import { logger } from '@/lib/logger';
 
 
 interface SendDebtsContextType {
@@ -64,19 +65,19 @@ export const SendDebtsProvider = ({ children }: { children: ReactNode }) => {
   const [overQuotaCount, setOverQuotaCount] = useState(0)
 
   const setFilteredData = (data: any[]) => {
-    console.log('🎯 Context: setFilteredData llamado con', data?.length, 'filas')
-    console.log('🔍 Primeras 2 filas del context:', data?.slice(0, 2))
+    logger.log('🎯 Context: setFilteredData llamado con', data?.length, 'filas')
+    logger.log('🔍 Primeras 2 filas del context:', data?.slice(0, 2))
     setFilteredDataState(data)
   }
 
   const setRawData = (data: any[]) => {
-    console.log('📝 Context: setRawData llamado con', data?.length, 'filas')
+    logger.log('📝 Context: setRawData llamado con', data?.length, 'filas')
     setRawDataState(data)
   }
 
   const setActiveStep = (step: number) => {
-    console.log('🚶 Context: setActiveStep llamado con', step)
-    console.log('📊 Context state en este momento:', {
+    logger.log('🚶 Context: setActiveStep llamado con', step)
+    logger.log('📊 Context state en este momento:', {
       filteredDataLength: filteredData.length,
       rawDataLength: rawData.length,
       fileNameFiltered,

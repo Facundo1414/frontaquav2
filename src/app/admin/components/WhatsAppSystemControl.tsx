@@ -20,6 +20,7 @@ import {
 import { adminAPI } from '@/utils/admin-api'
 import { toast } from 'sonner'
 import QRCode from 'qrcode'
+import { logger } from '@/lib/logger';
 
 interface WhatsAppSystemStatus {
   ready: boolean
@@ -212,7 +213,7 @@ export function WhatsAppSystemControl() {
     try {
       const result = await adminAPI.whatsappSystem.saveSession()
       toast.success(`✅ ${result.message}`)
-      console.log('Session saved:', result.data)
+      logger.log('Session saved:', result.data)
     } catch (error: any) {
       toast.error(`Error al guardar sesión: ${error.message}`)
     } finally {

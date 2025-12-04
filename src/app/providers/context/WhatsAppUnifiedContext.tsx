@@ -14,6 +14,7 @@ import { createContext, useContext, useState, useEffect, useCallback, useRef, Re
 import { useGlobalContext } from './GlobalContext';
 import { useWhatsappStatus } from '@/hooks/useWhatsappStatus';
 import api from '@/lib/api/axiosInstance';
+import { logger } from '@/lib/logger';
 
 interface UnifiedWhatsAppStatus {
   // Estado de conexión
@@ -53,7 +54,7 @@ export function WhatsAppUnifiedProvider({ children }: { children: ReactNode }) {
   // Log para debug - solo en dev
   useEffect(() => {
     if (process.env.NODE_ENV === 'development') {
-      console.log('🚀 WhatsAppUnifiedProvider montado - userId:', userId, 'isAdmin:', isAdmin);
+      logger.log('🚀 WhatsAppUnifiedProvider montado - userId:', userId, 'isAdmin:', isAdmin);
     }
   }, [userId, isAdmin]);
 
@@ -180,7 +181,7 @@ export function WhatsAppUnifiedProvider({ children }: { children: ReactNode }) {
       const baseDelay = is429 ? 120000 : Math.min(retryDelay * 2, 32000);
       const nextDelay = is429 ? Math.min(baseDelay * nextRetry, 300000) : baseDelay; // Max 5 min para 429
 
-      console.warn(
+      logger.warn(
         `⚠️ ${is429 ? 'Rate limit (429)' : 'Error'} - Retry ${nextRetry}/${MAX_RETRIES} en ${nextDelay / 1000}s...`
       );
 
@@ -202,7 +203,7 @@ export function WhatsAppUnifiedProvider({ children }: { children: ReactNode }) {
   // Admin: Usar WebSocket status
   useEffect(() => {
     if (isAdmin && adminStatus) {
-      console.log('👤 Admin mode: usando WebSocket status', adminStatus);
+      logger.log('👤 Admin mode: usando WebSocket status', adminStatus);
 
       setStatus({
         connected: adminConnected,
@@ -241,7 +242,7 @@ export function WhatsAppUnifiedProvider({ children }: { children: ReactNode }) {
     // ✅ OPTIMIZACIÓN: Solo verificar si ya hay sesión activa
     // No hacer llamada inicial automática
     if (status.ready || status.authenticated) {
-      console.log('🔍 Verificando estado de WhatsApp (sesión activa detectada)...');
+      logger.log('🔍 Verificando estado de WhatsApp (sesión activa detectada)...');
       fetchRef.current();
     }
 
@@ -255,7 +256,7 @@ export function WhatsAppUnifiedProvider({ children }: { children: ReactNode }) {
     }, pollInterval);
 
     if (process.env.NODE_ENV === 'development') {
-      console.log(`⏱️ Polling iniciado con intervalo de ${pollInterval / 1000}s`);
+      logger.log(`⏱️ Polling iniciado con intervalo de ${pollInterval / 1000}s`);
     }
 
     return () => {
@@ -264,7 +265,7 @@ export function WhatsAppUnifiedProvider({ children }: { children: ReactNode }) {
         intervalRef.current = null;
       }
       if (process.env.NODE_ENV === 'development') {
-        console.log('⏹️ Polling detenido');
+        logger.log('⏹️ Polling detenido');
       }
     };
   }, [isAdmin, retryCount, retryDelay, status.ready, status.authenticated]);

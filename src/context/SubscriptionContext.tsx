@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { useGlobalContext } from '@/app/providers/context/GlobalContext';
+import { logger } from '@/lib/logger';
 
 // =====================================================
 // INTERFACES Y TIPOS
@@ -60,23 +61,23 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
    * Fetch user subscription from backend
    */
   const fetchSubscription = useCallback(async () => {
-    console.log('🎯 fetchSubscription called with userId:', userId, 'hasToken:', !!accessToken);
+    logger.log('🎯 fetchSubscription called with userId:', userId, 'hasToken:', !!accessToken);
     
     // Prevent duplicate simultaneous fetches
     if (isFetchingRef.current) {
-      console.log('🔒 SubscriptionContext: Fetch already in progress, skipping...');
+      logger.log('🔒 SubscriptionContext: Fetch already in progress, skipping...');
       return;
     }
 
     if (!userId) {
-      console.log('⚠️ SubscriptionContext: No userId, skipping fetch');
+      logger.log('⚠️ SubscriptionContext: No userId, skipping fetch');
       setIsLoading(false);
       return;
     }
 
     // Check if user is authenticated - use token from context
     if (!accessToken) {
-      console.log('⚠️ SubscriptionContext: No accessToken in context, waiting...');
+      logger.log('⚠️ SubscriptionContext: No accessToken in context, waiting...');
       setIsLoading(false);
       setSubscription(null);
       return;
@@ -87,7 +88,7 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
       setIsLoading(true);
       setError(null);
 
-      console.log('📡 SubscriptionContext: Fetching subscription for user:', userId);
+      logger.log('📡 SubscriptionContext: Fetching subscription for user:', userId);
 
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
       const baseUrl = apiUrl.endsWith('/api') ? apiUrl : `${apiUrl}/api`;
@@ -110,7 +111,7 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
         
         // Handle rate limiting
         if (response.status === 429) {
-          console.warn('⚠️ SubscriptionContext: Rate limit exceeded, will retry later');
+          logger.warn('⚠️ SubscriptionContext: Rate limit exceeded, will retry later');
           throw new Error('Demasiadas solicitudes, intente nuevamente en unos segundos');
         }
         
@@ -121,7 +122,7 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
       if (result.success && result.data) {
         setSubscription(result.data);
-        console.log('✅ SubscriptionContext: Subscription loaded:', result.data.plan_type);
+        logger.log('✅ SubscriptionContext: Subscription loaded:', result.data.plan_type);
       } else {
         // Usuario sin suscripción (creará una automática con plan BASE)
         setSubscription(null);
@@ -147,7 +148,7 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
    * Load subscription on mount and when userId changes
    */
   useEffect(() => {
-    console.log('🔄 SubscriptionContext useEffect triggered:', { userId, hasToken: !!accessToken, ADMIN_UID });
+    logger.log('🔄 SubscriptionContext useEffect triggered:', { userId, hasToken: !!accessToken, ADMIN_UID });
     if (userId && accessToken) {
       fetchSubscription();
     }

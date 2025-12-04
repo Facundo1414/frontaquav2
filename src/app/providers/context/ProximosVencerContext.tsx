@@ -1,6 +1,7 @@
 // context/ProximosVencerContext.tsx
 'use client'
 import { createContext, useContext, useState, ReactNode, useMemo } from 'react'
+import { logger } from '@/lib/logger';
 
 // Función helper para calcular días hasta fin del mes actual
 const calcularDiasHastaFinMesActual = (): number => {
@@ -85,7 +86,7 @@ export const ProximosVencerProvider = ({ children }: { children: ReactNode }) =>
   // setDiasAnticipacion es solo para mantener compatibilidad, pero no se usa
   const setDiasAnticipacion = (_dias: number) => {
     // No hace nada - el valor se calcula automáticamente
-    console.warn('setDiasAnticipacion llamado pero diasAnticipacion se calcula automáticamente')
+    logger.warn('setDiasAnticipacion llamado pero diasAnticipacion se calcula automáticamente')
   }
 
   return (

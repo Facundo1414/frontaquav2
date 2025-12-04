@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { io, Socket } from "socket.io-client";
 import { useGlobalContext } from "@/app/providers/context/GlobalContext";
+import { logger } from '@/lib/logger';
 
 export interface ProgressPhase {
   name: string;
@@ -83,13 +84,13 @@ export function useProgressTracking({
     });
 
     newSocket.on("connect", () => {
-      console.log("✅ WebSocket conectado");
+      logger.log("✅ WebSocket conectado");
       setConnected(true);
       setError(null);
     });
 
     newSocket.on("disconnect", (reason) => {
-      console.log("❌ WebSocket desconectado:", reason);
+      logger.log("❌ WebSocket desconectado:", reason);
       setConnected(false);
     });
 
@@ -110,23 +111,23 @@ export function useProgressTracking({
   useEffect(() => {
     if (!socket || !jobId || !connected) return;
 
-    console.log(`📊 Suscribiendo a job: ${jobId}`);
+    logger.log(`📊 Suscribiendo a job: ${jobId}`);
 
     socket.emit("job:subscribe", { jobId }, (response: any) => {
       if (response?.success) {
-        console.log(`✅ Suscrito a job ${jobId}`);
+        logger.log(`✅ Suscrito a job ${jobId}`);
       }
     });
 
     // Escuchar eventos de progreso
     const handleProgress = (data: JobProgress) => {
-      console.log(`📊 Progreso recibido:`, data);
+      logger.log(`📊 Progreso recibido:`, data);
       setProgress(data);
       onProgressRef.current?.(data);
     };
 
     const handleCompleted = (data: any) => {
-      console.log(`✅ Job completado:`, data);
+      logger.log(`✅ Job completado:`, data);
       setProgress(data);
       onCompletedRef.current?.(data);
     };
@@ -147,7 +148,7 @@ export function useProgressTracking({
       socket.off("job:error", handleError);
 
       socket.emit("job:unsubscribe", { jobId });
-      console.log(`📊 Dessuscrito de job ${jobId}`);
+      logger.log(`📊 Dessuscrito de job ${jobId}`);
     };
   }, [socket, jobId, connected]);
 

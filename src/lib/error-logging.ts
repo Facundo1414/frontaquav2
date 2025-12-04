@@ -1,3 +1,5 @@
+import { logger } from '@/lib/logger';
+
 /**
  * Utilidades para logging de errores client-side
  */
@@ -92,7 +94,7 @@ export async function sendErrorToLoggingService(
     //   body: JSON.stringify(errorData),
     // })
 
-    console.log(
+    logger.log(
       "Error enviado a servicio de logging (simulado):",
       errorData.digest
     );

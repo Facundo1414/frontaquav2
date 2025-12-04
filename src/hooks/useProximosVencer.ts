@@ -3,6 +3,7 @@
 import { useProximosVencerContext } from "../app/providers/context/ProximosVencerContext";
 import { processFileProximosVencer, sendProximosVencer } from "@/lib/api";
 import { toast } from "sonner";
+import { logger } from '@/lib/logger';
 
 const useProximosVencer = () => {
   const {
@@ -44,8 +45,8 @@ const useProximosVencer = () => {
         (user: any) => !user.celular || user.celular.length < 10
       );
 
-      console.log("Usuarios con WhatsApp:", usersWithWhatsapp.length);
-      console.log("Usuarios sin WhatsApp:", usersWithoutWhatsapp.length);
+      logger.log("Usuarios con WhatsApp:", usersWithWhatsapp.length);
+      logger.log("Usuarios sin WhatsApp:", usersWithoutWhatsapp.length);
 
       setProcessedData(responseData.data);
       setFilteredData(usersWithWhatsapp);

@@ -5,6 +5,7 @@ import { Upload, Database, FileSpreadsheet, Users, ArrowLeft, CheckCircle, XCirc
 import { useRouter } from 'next/navigation';
 import { importPYSEClients, importDeudasClients, importPhones, getClients, updateClient, previewPYSEImport, previewDeudasImport } from '@/lib/api';
 import * as XLSX from 'xlsx';
+import { logger } from '@/lib/logger';
 
 // 🚀 Lazy load del componente de vista paginada (pesado)
 const PaginatedClientsView = dynamic(() => import('./components/PaginatedClientsView').then(mod => ({ default: mod.PaginatedClientsView })), {
@@ -784,7 +785,7 @@ export default function ClientesDatabasePage() {
       const startTime = Date.now();
 
       const data = await importPhones(file);
-      console.log('📞 Respuesta del backend:', data);
+      logger.log('📞 Respuesta del backend:', data);
 
       const endTime = Date.now();
       const duration = ((endTime - startTime) / 1000).toFixed(1);

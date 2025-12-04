@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge"
 import { EmptyState } from "@/components/EmptyState"
 import { useRouter } from 'next/navigation'
 import { getUserFriendlyError } from '@/utils/errorMessages'
+import { logger } from '@/lib/logger';
 
 interface Client {
   id: string
@@ -77,13 +78,13 @@ export function StepSeleccionarClientesBD({ onNext }: StepSeleccionarClientesBDP
       // Pedir TODOS los clientes (limit: 10000 para asegurar que traiga todo)
       const data = await getClients({ limit: 10000 })
       
-      console.log('🔍 [filtrar-clientes] Respuesta:', data)
-      console.log('🔍 [filtrar-clientes] Total en BD:', data.total)
+      logger.log('🔍 [filtrar-clientes] Respuesta:', data)
+      logger.log('🔍 [filtrar-clientes] Total en BD:', data.total)
       
       // El backend puede devolver { clients: [...], total: X } o directamente [...]
       const clientsArray = Array.isArray(data) ? data : (data.clients || data)
       
-      console.log('🔍 [filtrar-clientes] Clientes cargados:', clientsArray.length)
+      logger.log('🔍 [filtrar-clientes] Clientes cargados:', clientsArray.length)
       
       setClients(clientsArray)
       

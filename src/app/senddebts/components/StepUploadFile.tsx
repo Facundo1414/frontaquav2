@@ -17,6 +17,7 @@ import { validateExcelFile, sanitizeObject } from '@/lib/validations/validation-
 import { useFileValidation } from '@/hooks/useValidation'
 import { ProgressCard } from './ProgressCard'
 import { useProgressTracking } from '@/hooks/useProgressTracking'
+import { logger } from '@/lib/logger';
 
 export default function StepUploadFile() {
   const [file, setFile] = useState<File | null>(null)
@@ -42,7 +43,7 @@ export default function StepUploadFile() {
     jobId,
     enabled: !!jobId,
     onCompleted: (result) => {
-      console.log('✅ Upload completado:', result)
+      logger.log('✅ Upload completado:', result)
       setUploading(false)
       setJobId(null)
     },
@@ -142,7 +143,7 @@ export default function StepUploadFile() {
       formData.append('file', file)
       
       const response = await uploadExcelFile(formData)
-      console.log('✅ Archivo subido al backend:', response)
+      logger.log('✅ Archivo subido al backend:', response)
       
       // El backend retorna savedFileNames con los archivos generados:
       // [0]: "not-whatsapp-xxx.xlsx", [1]: "clients-with-whatsapp-xxx.xlsx"
@@ -159,17 +160,17 @@ export default function StepUploadFile() {
       
       // 🔥 PASO 4: Descargar el archivo filtrado del backend y parsearlo
       // Esto es CRÍTICO: necesitamos los datos filtrados, no los originales
-      console.log('📥 Descargando archivo filtrado:', savedFile)
+      logger.log('📥 Descargando archivo filtrado:', savedFile)
       const filteredBlob = await getFileByName(savedFile)
-      console.log('📄 Blob recibido:', filteredBlob.size, 'bytes')
+      logger.log('📄 Blob recibido:', filteredBlob.size, 'bytes')
       
       const parsedFilteredData = await parseExcelBlobWithIndexMapping(filteredBlob)
-      console.log('📊 Datos filtrados parseados:', parsedFilteredData.length, 'filas')
-      console.log('🔍 Primeras 3 filas:', parsedFilteredData.slice(0, 3))
+      logger.log('📊 Datos filtrados parseados:', parsedFilteredData.length, 'filas')
+      logger.log('🔍 Primeras 3 filas:', parsedFilteredData.slice(0, 3))
       
       // Guardar los datos FILTRADOS (solo clientes con WhatsApp)
       setFilteredData(parsedFilteredData)
-      console.log('✅ filteredData guardado en contexto')
+      logger.log('✅ filteredData guardado en contexto')
       
       // Guardar jobId si existe para tracking
       if (response.jobId) {
@@ -179,7 +180,7 @@ export default function StepUploadFile() {
       toast.success('Archivo procesado correctamente')
       
       // Ir al paso 1 (Enviar Mensajes)
-      console.log('🚀 Navegando a paso 1 (Enviar)')
+      logger.log('🚀 Navegando a paso 1 (Enviar)')
       setActiveStep(1)
     } catch (err: any) {
       console.error('Error al subir archivo:', err)

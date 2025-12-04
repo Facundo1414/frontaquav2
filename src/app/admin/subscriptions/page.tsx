@@ -33,6 +33,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import api from '@/lib/api/axiosInstance';
+import { logger } from '@/lib/logger';
 import {
   Users,
   Crown,
@@ -164,8 +165,8 @@ export default function AdminSubscriptionsPage() {
         login_enabled: true,
       };
       
-      console.log('📤 Creating subscription with payload:', payload);
-      console.log('📊 Payload types:', {
+      logger.log('📤 Creating subscription with payload:', payload);
+      logger.log('📊 Payload types:', {
         user_id: typeof userId,
         plan_type: typeof planType,
         plan_price: typeof (planType === 'PRO' ? 5000 : 0),
@@ -491,8 +492,8 @@ export default function AdminSubscriptionsPage() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="BASE">Plan BASE ($50,000/mes)</SelectItem>
-                  <SelectItem value="PRO">Plan PRO ($75,000/mes)</SelectItem>
+                  <SelectItem value="BASE">Plan BASE ($35 USD/mes)</SelectItem>
+                  <SelectItem value="PRO">Plan PRO ($60 USD/mes + 400 msg)</SelectItem>
                 </SelectContent>
               </Select>
             </div>

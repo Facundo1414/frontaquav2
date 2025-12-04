@@ -534,20 +534,22 @@ export default function AdminTutorialPage() {
                     <p className="font-semibold mb-2">📊 Planes disponibles:</p>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                       <div className="bg-gray-50 p-3 rounded-lg border border-gray-200">
-                        <p className="font-semibold text-sm mb-2">🆓 Plan BASE (Gratis)</p>
+                        <p className="font-semibold text-sm mb-2">🆓 Plan BASE ($35 USD/mes)</p>
                         <ul className="text-xs space-y-1 text-gray-700">
                           <li>• 1000 consultas PYSE/día</li>
                           <li>• 600 consultas PYSE/hora</li>
                           <li>• Acceso a todas las funcionalidades</li>
+                          <li>• Sin WhatsApp Cloud API</li>
                         </ul>
                       </div>
                       <div className="bg-indigo-50 p-3 rounded-lg border border-indigo-200">
-                        <p className="font-semibold text-sm mb-2">⭐ Plan PRO ($50 USD/mes)</p>
+                        <p className="font-semibold text-sm mb-2">⭐ Plan PRO ($60 USD/mes)</p>
                         <ul className="text-xs space-y-1 text-gray-700">
-                          <li>• 1000 consultas PYSE/día</li>
-                          <li>• 600 consultas PYSE/hora</li>
+                          <li>• Todo de Plan BASE</li>
                           <li>• WhatsApp Cloud API oficial</li>
-                          <li>• Sin tracking de envíos</li>
+                          <li>• 400 mensajes/mes incluidos</li>
+                          <li>• Mensajes adicionales: $0.05 c/u</li>
+                          <li>• Bot de respuestas automáticas</li>
                         </ul>
                       </div>
                     </div>

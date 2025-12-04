@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/dialog';
 import { Crown } from 'lucide-react';
 import { useState } from 'react';
+import { logger } from '@/lib/logger';
 
 interface RequiresPlanProps {
   children: ReactNode;
@@ -29,7 +30,7 @@ export function RequiresPlan({
   const [showUpgradeDialog, setShowUpgradeDialog] = useState(false);
 
   // Debug log
-  console.log('🔒 RequiresPlan - plan:', plan, 'isPro:', isPro, 'isBase:', isBase, 'isLoading:', isLoading);
+  logger.log('🔒 RequiresPlan - plan:', plan, 'isPro:', isPro, 'isBase:', isBase, 'isLoading:', isLoading);
 
   if (isLoading) {
     return <div className="opacity-50">{children}</div>;
@@ -82,12 +83,13 @@ export function RequiresPlan({
             <div className="space-y-4 pt-2">
               <div className="bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
                 <p className="text-sm font-medium text-amber-900 dark:text-amber-100">
-                  Plan PRO - $75,000/mes
+                  Plan PRO - $60 USD/mes
                 </p>
                 <ul className="mt-2 space-y-1 text-sm text-amber-700 dark:text-amber-300">
                   <li>✓ Envío masivo de comprobantes por WhatsApp</li>
                   <li>✓ Notificaciones de próximos vencimientos</li>
-                  <li>✓ Generación automática de PDFs</li>
+                  <li>✓ 400 mensajes WhatsApp/mes incluidos</li>
+                  <li>✓ Bot de respuestas automáticas</li>
                   <li>✓ Todas las funciones BASE incluidas</li>
                 </ul>
               </div>

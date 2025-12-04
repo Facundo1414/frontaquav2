@@ -8,6 +8,7 @@ import { Loader2, CheckCircle, AlertTriangle, Users } from "lucide-react"
 import { toast } from "sonner"
 import { useGlobalContext } from '@/app/providers/context/GlobalContext'
 import { useJobProgress } from '@/hooks/useJobProgress'
+import { logger } from '@/lib/logger';
 
 interface FiltroStatus {
   jobId: string
@@ -37,7 +38,7 @@ export function StepProcessFiltro({ jobId, onComplete }: StepProcessFiltroProps)
   // Actualizar estado desde WebSocket
   useEffect(() => {
     if (wsProgress && isSubscribed && connected) {
-      console.log('📊 Job progress recibido por WebSocket:', wsProgress)
+      logger.log('📊 Job progress recibido por WebSocket:', wsProgress)
       
       // Mapear datos del WebSocket a formato FiltroStatus
       const mappedStatus: FiltroStatus = {

@@ -1,5 +1,6 @@
 import { getAccessToken } from "../../utils/authToken";
 import api from "./axiosInstance";
+import { logger } from '@/lib/logger';
 
 /**
  * Preview de importación PYSE (sin ejecutar cambios)
@@ -166,9 +167,9 @@ export const getClients = async (params?: {
     params,
   });
 
-  console.log("🔍 Response headers:", response.headers);
-  console.log("🔍 X-Total-Count:", response.headers["x-total-count"]);
-  console.log("🔍 All header keys:", Object.keys(response.headers));
+  logger.log("🔍 Response headers:", response.headers);
+  logger.log("🔍 X-Total-Count:", response.headers["x-total-count"]);
+  logger.log("🔍 All header keys:", Object.keys(response.headers));
 
   // El backend devuelve los clientes en response.data
   // Y la información de paginación en los headers
@@ -177,8 +178,8 @@ export const getClients = async (params?: {
     ? parseInt(response.headers["x-total-count"], 10)
     : clients.length;
 
-  console.log("🔍 Total calculado:", total);
-  console.log("🔍 Clientes length:", clients.length);
+  logger.log("🔍 Total calculado:", total);
+  logger.log("🔍 Clientes length:", clients.length);
 
   return {
     clients,
@@ -243,7 +244,7 @@ export const getPhonesByUFs = async (
       // Merge results
       Object.assign(phoneMap, data);
     } catch (error) {
-      console.warn(
+      logger.warn(
         `Error obteniendo teléfonos para lote ${i}-${i + batch.length}:`,
         error
       );

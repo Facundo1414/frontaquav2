@@ -3,6 +3,7 @@ import { userLogin, checkValidateToken } from "../lib/api";
 import { useGlobalContext } from "@/app/providers/context/GlobalContext";
 import { useRouter } from "next/navigation";
 import { tokenManager } from "@/lib/tokenManager";
+import { logger } from '@/lib/logger';
 
 export const useAuth = () => {
   const { setAccessToken, setRefreshToken, setUsernameGlobal, setUserId } =
@@ -33,7 +34,7 @@ export const useAuth = () => {
         // Setear cookie para middleware
         document.cookie = `auth-token=${result.accessToken}; path=/; max-age=86400; SameSite=Strict`;
 
-        console.log("✅ Login exitoso, redirigiendo a /home...");
+        logger.log("✅ Login exitoso, redirigiendo a /home...");
 
         return { success: true, username: result.user.email || email };
       } catch (error: any) {
@@ -57,7 +58,7 @@ export const useAuth = () => {
     try {
       await tokenManager.refreshTokenIfNeeded();
     } catch (error) {
-      console.warn("Token refresh failed during auth check:", error);
+      logger.warn("Token refresh failed during auth check:", error);
     }
 
     const isValid = await checkValidateToken();

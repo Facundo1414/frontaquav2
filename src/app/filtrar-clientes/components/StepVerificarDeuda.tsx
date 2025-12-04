@@ -12,6 +12,7 @@ import { ProcessResults } from '../page'
 import { FiltrosBarrios } from './StepSeleccionarBarrios'
 import { checkDebtByNeighborhoods, checkDebtByUnits } from '@/lib/api'
 import api from '@/lib/api/axiosInstance'
+import { logger } from '@/lib/logger';
 
 interface PyseQuotaStatus {
   used_today: number
@@ -104,8 +105,8 @@ export function StepVerificarDeuda({ selectedClients, filtros, onComplete }: Ste
           titular: c.titular,
         }))
 
-        console.log(`🎯 Verificando deuda para ${unidades.length} unidades específicas...`)
-        console.log(`📋 Datos de cliente incluidos: barrio, titular`)
+        logger.log(`🎯 Verificando deuda para ${unidades.length} unidades específicas...`)
+        logger.log(`📋 Datos de cliente incluidos: barrio, titular`)
 
         // Usar el nuevo endpoint optimizado con datos de cliente
         data = await checkDebtByUnits(
@@ -118,7 +119,7 @@ export function StepVerificarDeuda({ selectedClients, filtros, onComplete }: Ste
       }
       // Flujo original: por barrios y filtros
       else if (filtros) {
-        console.log(`📍 Verificando deuda por barrios (flujo legacy)...`)
+        logger.log(`📍 Verificando deuda por barrios (flujo legacy)...`)
         data = await checkDebtByNeighborhoods(filtros.barrios, filtros)
       }
       else {

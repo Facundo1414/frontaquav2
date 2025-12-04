@@ -9,6 +9,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import api from '@/lib/api/axiosInstance';
+import { logger } from '@/lib/logger';
 
 interface RailwayService {
   id: string;
@@ -64,20 +65,20 @@ export default function RailwayAdminPage() {
       setRefreshing(true);
       setError(null);
 
-      console.log('🔄 [Railway] Fetching metrics...');
+      logger.log('🔄 [Railway] Fetching metrics...');
 
       const [metricsRes, healthRes] = await Promise.all([
         api.get('/admin/metrics/railway'),
         api.get('/admin/metrics/railway/health'),
       ]);
 
-      console.log('📊 [Railway] Metrics response:', metricsRes.data);
-      console.log('🏥 [Railway] Health response:', healthRes.data);
+      logger.log('📊 [Railway] Metrics response:', metricsRes.data);
+      logger.log('🏥 [Railway] Health response:', healthRes.data);
 
       setMetrics(metricsRes.data);
       setHealth(healthRes.data);
       
-      console.log('✅ [Railway] Data loaded successfully');
+      logger.log('✅ [Railway] Data loaded successfully');
     } catch (err: any) {
       const errorMsg = err.response?.data?.message || err.message || 'Error desconocido';
       console.error('❌ [Railway] Error fetching metrics:', err);

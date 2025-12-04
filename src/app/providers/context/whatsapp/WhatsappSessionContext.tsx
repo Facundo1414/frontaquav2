@@ -4,6 +4,7 @@ import { simpleWaState, simpleWaInit } from '@/lib/api/simpleWaApi';
 import { toast } from 'sonner';
 import { useWhatsappStatus } from '@/hooks/useWhatsappStatus';
 import { getAccessToken } from '@/utils/authToken';
+import { logger } from '@/lib/logger';
 
 // V2 snapshot: minimal shape reflecting server summary (state machine based)
 export interface WhatsappSessionSnapshot {
@@ -54,7 +55,7 @@ export const WhatsappSessionProvider: React.FC<{ children: React.ReactNode }> = 
   
   const { status: wsStatus, isSubscribed, connected } = useWhatsappStatus(userId, shouldEnableWhatsapp);
   
-  console.log('📱 WhatsappSessionContext state:', {
+  logger.log('📱 WhatsappSessionContext state:', {
     userId,
     ADMIN_UID,
     isAdmin,
@@ -85,34 +86,34 @@ export const WhatsappSessionProvider: React.FC<{ children: React.ReactNode }> = 
     if (!shouldEnableWhatsapp || !userId) return;
 
     const verifyBackendState = async () => {
-      console.log('🔍 Admin detectado - Verificando estado real en Baileys Worker...');
+      logger.log('🔍 Admin detectado - Verificando estado real en Baileys Worker...');
       
       try {
         const state = await simpleWaState();
-        console.log('📊 Estado en backend:', state);
+        logger.log('📊 Estado en backend:', state);
         
         // Si el sessionStorage dice 'ready' pero el backend dice que no hay sesión
         if (snapshot?.state === 'ready' && !state.ready && !state.authenticated) {
-          console.warn('⚠️ Estado inconsistente detectado: sessionStorage dice "ready" pero backend no tiene sesión');
-          console.log('🧹 Limpiando estado obsoleto del sessionStorage');
+          logger.warn('⚠️ Estado inconsistente detectado: sessionStorage dice "ready" pero backend no tiene sesión');
+          logger.log('🧹 Limpiando estado obsoleto del sessionStorage');
           sessionStorage.removeItem('whatsapp_v2_snapshot');
           updateFromStatus({ state: 'none' });
         }
         // Si el backend tiene sesión pero nosotros no lo sabemos
         else if (state.ready && snapshot?.state !== 'ready') {
-          console.log('✅ Sesión activa encontrada en backend, actualizando contexto');
+          logger.log('✅ Sesión activa encontrada en backend, actualizando contexto');
           updateFromStatus({ state: 'ready' });
         }
         // Si está sincronizando
         else if (state.authenticated && !state.ready) {
-          console.log('🔄 Sesión sincronizando en backend');
+          logger.log('🔄 Sesión sincronizando en backend');
           updateFromStatus({ state: 'syncing' });
         }
       } catch (error: any) {
         console.error('❌ Error verificando estado del backend:', error);
         // Si hay error 500, probablemente no hay sesión
         if (error?.response?.status === 500) {
-          console.log('🧹 Baileys Worker indica no hay sesión (500), limpiando estado');
+          logger.log('🧹 Baileys Worker indica no hay sesión (500), limpiando estado');
           sessionStorage.removeItem('whatsapp_v2_snapshot');
           updateFromStatus({ state: 'none' });
         }
@@ -140,7 +141,7 @@ export const WhatsappSessionProvider: React.FC<{ children: React.ReactNode }> = 
       // 2. El estado cambió a algo diferente de 'waiting_qr' (limpiar QR)
       let newQr = prev?.qr ?? null;
       
-      console.log('🔄 updateFromStatus:', {
+      logger.log('🔄 updateFromStatus:', {
         payloadState: state,
         hasPayloadQr: 'qr' in payload,
         payloadQrLength: payload.qr?.length || 0,
@@ -150,16 +151,16 @@ export const WhatsappSessionProvider: React.FC<{ children: React.ReactNode }> = 
       
       if (payload.qr && typeof payload.qr === 'string' && payload.qr.length > 0) {
         // Hay un QR nuevo válido, usarlo
-        console.log('✅ Actualizando con QR nuevo de backend (length:', payload.qr.length, ')');
+        logger.log('✅ Actualizando con QR nuevo de backend (length:', payload.qr.length, ')');
         newQr = payload.qr;
       } else if (state === 'ready' || state === 'syncing') {
         // 🔧 FIX: Solo limpiar QR cuando ya está autenticado (ready/syncing)
         // NO limpiar cuando state='launching' porque ahí se está generando el QR
-        console.log('🧹 Limpiando QR porque ya está autenticado (estado:', state, ')');
+        logger.log('🧹 Limpiando QR porque ya está autenticado (estado:', state, ')');
         newQr = null;
       } else {
         // Mantener QR anterior para estados 'waiting_qr' y 'launching'
-        console.log('⏸️ Manteniendo QR anterior para estado:', state, '(prev length:', prev?.qr?.length || 0, ')');
+        logger.log('⏸️ Manteniendo QR anterior para estado:', state, '(prev length:', prev?.qr?.length || 0, ')');
       }
       
       const next: WhatsappSessionSnapshot = {
@@ -194,7 +195,7 @@ export const WhatsappSessionProvider: React.FC<{ children: React.ReactNode }> = 
   // Actualizar desde WebSocket
   useEffect(() => {
     if (wsStatus && isSubscribed && connected) {
-      console.log('📱 Usando WebSocket para WhatsApp status:', wsStatus);
+      logger.log('📱 Usando WebSocket para WhatsApp status:', wsStatus);
       
       // 🔧 FIX: Solo incluir QR en el payload si existe en wsStatus
       // No enviar qr: null si wsStatus no lo incluye, para evitar sobrescribir QR válido
@@ -217,10 +218,10 @@ export const WhatsappSessionProvider: React.FC<{ children: React.ReactNode }> = 
 
   // 🆕 Función de reconexión automática
   const reconnect = useCallback(async () => {
-    console.log('🔄 Intentando reconectar WhatsApp...');
+    logger.log('🔄 Intentando reconectar WhatsApp...');
     try {
       const result = await simpleWaInit(true); // ✅ Forzar modo personal
-      console.log('✅ Reconexión iniciada:', result);
+      logger.log('✅ Reconexión iniciada:', result);
       
       // Actualizar estado basado en la respuesta
       if (result.ready) {
@@ -238,7 +239,7 @@ export const WhatsappSessionProvider: React.FC<{ children: React.ReactNode }> = 
       
       // Error 500: No hay sesión o baileys worker no disponible
       if (status === 500) {
-        console.log('📦 No hay sesión de WhatsApp guardada - Usuario debe escanear QR');
+        logger.log('📦 No hay sesión de WhatsApp guardada - Usuario debe escanear QR');
         // Estado limpio, esperando que el usuario inicie sesión
         updateFromStatus({ state: 'none' });
         return;
@@ -246,7 +247,7 @@ export const WhatsappSessionProvider: React.FC<{ children: React.ReactNode }> = 
       
       // Error 429: Rate limiting
       if (status === 429) {
-        console.warn('⚠️ Rate limit alcanzado - reduciendo frecuencia de polling');
+        logger.warn('⚠️ Rate limit alcanzado - reduciendo frecuencia de polling');
         return;
       }
       
@@ -260,21 +261,21 @@ export const WhatsappSessionProvider: React.FC<{ children: React.ReactNode }> = 
   useEffect(() => {
     // Skip completamente si no es admin
     if (!shouldEnableWhatsapp) {
-      console.log('⏭️ WhatsApp auto-reconnect: Deshabilitado (usuario no es admin)');
+      logger.log('⏭️ WhatsApp auto-reconnect: Deshabilitado (usuario no es admin)');
       return;
     }
 
     // Solo verificar cada 10 segundos SI ya hay una sesión activa
     const intervalId = setInterval(() => {
-      if (snapshot?.state !== 'none' && snapshot?.state !== 'offline' && snapshot?.state !== 'waiting_qr') {
-        console.log('🔍 Verificando estado de sesión activa...');
+      if (snapshot?.state !== 'none' && snapshot?.state !== 'waiting_qr') {
+        logger.log('🔍 Verificando estado de sesión activa...');
         simpleWaState()
           .then((state) => {
             if (state.ready && !snapshot?.ready) {
-              console.log('✅ Sesión activa detectada');
+              logger.log('✅ Sesión activa detectada');
               updateFromStatus({ state: 'ready' });
             } else if (state.authenticated && !state.ready) {
-              console.log('🔄 Sesión sincronizando');
+              logger.log('🔄 Sesión sincronizando');
               updateFromStatus({ state: 'syncing' });
             }
           })

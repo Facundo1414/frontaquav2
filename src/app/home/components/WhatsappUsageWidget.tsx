@@ -1,14 +1,53 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { MessageCircle, Users, Clock, ChevronDown } from 'lucide-react'
-import { useWhatsAppUnified } from '@/hooks/useWhatsAppUnified'
+import { MessageCircle, TrendingUp, Calendar, ChevronDown, RefreshCw } from 'lucide-react'
+
+interface WhatsAppQuota {
+  quota: number
+  used: number
+  remaining: number
+  resetDate: string
+  isExceeded: boolean
+  overageMessages: number
+  overageCost: number
+}
 
 export function WhatsappUsageWidget() {
   const router = useRouter()
-  const { ready, stats, loading } = useWhatsAppUnified()
   const [isOpen, setIsOpen] = useState(false)
+  const [quota, setQuota] = useState<WhatsAppQuota | null>(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    fetchQuota()
+  }, [])
+
+  const fetchQuota = async () => {
+    try {
+      const token = localStorage.getItem('token')
+      if (!token) {
+        setLoading(false)
+        return
+      }
+
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/subscription/whatsapp-quota`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      })
+
+      if (response.ok) {
+        const result = await response.json()
+        setQuota(result.data)
+      }
+    } catch (error) {
+      console.error('Error fetching quota:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   if (loading) {
     return (
@@ -23,25 +62,20 @@ export function WhatsappUsageWidget() {
               </div>
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-4 mb-4">
-            <div className="bg-white/80 rounded-lg p-4">
-              <div className="h-4 w-20 bg-gray-200 rounded mb-2"></div>
-              <div className="h-8 w-16 bg-gray-200 rounded"></div>
-            </div>
-            <div className="bg-white/80 rounded-lg p-4">
-              <div className="h-4 w-20 bg-gray-200 rounded mb-2"></div>
-              <div className="h-8 w-16 bg-gray-200 rounded"></div>
-            </div>
-          </div>
         </div>
       </div>
     );
   }
 
-  const messagesRemaining = stats ? (stats.maxPerDay - stats.messagesToday) : 0
-  const percentageUsed = stats?.percentageUsed ?? 0
-  const maxMessages = stats?.maxPerDay ?? 300
-  const isWorkingHours = stats?.isWorkingHours ?? false
+  if (!quota || quota.quota === 0) {
+    return null
+  }
+
+  const percentageUsed = quota.quota > 0 ? (quota.used / quota.quota) * 100 : 0
+  const resetDate = new Date(quota.resetDate).toLocaleDateString('es-AR', {
+    day: 'numeric',
+    month: 'short',
+  })
 
   return (
     <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-lg shadow-md border border-green-200 overflow-hidden">
@@ -51,21 +85,31 @@ export function WhatsappUsageWidget() {
         className="flex items-center justify-between p-4 cursor-pointer hover:bg-green-100/50 transition-colors"
       >
         <div className="flex items-center gap-3">
-          <div className={`p-2 rounded-lg transition-colors ${
-            ready ? 'bg-green-100' : 'bg-gray-100'
-          }`}>
-            <MessageCircle className={`w-5 h-5 ${ready ? 'text-green-600' : 'text-gray-400'}`} />
+          <div className="p-2 rounded-lg bg-green-100">
+            <MessageCircle className="w-5 h-5 text-green-600" />
           </div>
           <div>
-            <h3 className="text-base font-semibold text-gray-900">WhatsApp Sistema</h3>
+            <h3 className="text-base font-semibold text-gray-900">WhatsApp Cloud API</h3>
             <p className="text-xs text-gray-600">
-              {ready ? (isWorkingHours ? 'Activo' : 'Fuera de horario') : 'Desconectado'}
+              {quota.remaining} de {quota.quota} mensajes
             </p>
           </div>
         </div>
-        <ChevronDown className={`w-5 h-5 text-gray-500 transition-transform duration-200 ${
-          isOpen ? 'rotate-180' : ''
-        }`} />
+        <div className="flex items-center gap-2">
+          <button
+            onClick={(e) => {
+              e.stopPropagation()
+              fetchQuota()
+            }}
+            className="p-1 hover:bg-green-200 rounded transition-colors"
+            title="Actualizar"
+          >
+            <RefreshCw className="w-4 h-4 text-gray-600" />
+          </button>
+          <ChevronDown className={`w-5 h-5 text-gray-500 transition-transform duration-200 ${
+            isOpen ? 'rotate-180' : ''
+          }`} />
+        </div>
       </div>
 
       {/* Contenido colapsable */}
@@ -73,59 +117,77 @@ export function WhatsappUsageWidget() {
         isOpen ? 'max-h-[500px] opacity-100' : 'max-h-0 opacity-0'
       } overflow-hidden`}>
         <div className="px-4 pb-4">
-          <div 
-            onClick={(e) => {
-              e.stopPropagation()
-              router.push('/whatsapp/profile')
-            }}
-            className="cursor-pointer hover:opacity-90 transition-opacity"
-          >
-            {/* Grid de estadísticas */}
-            <div className="grid grid-cols-2 gap-4 mb-4">
-              {/* Mensajes disponibles */}
-              <div className="bg-white/80 rounded-lg p-4">
-                <div className="flex items-center gap-2 mb-1">
-                  <Users className="w-4 h-4 text-green-600" />
-                  <span className="text-xs text-gray-600 font-medium">Disponibles</span>
-                </div>
-                <p className="text-2xl font-bold text-gray-900">{messagesRemaining}</p>
-                <p className="text-xs text-gray-500 mt-1">de {maxMessages} diarios</p>
+          {/* Grid de estadísticas */}
+          <div className="grid grid-cols-2 gap-4 mb-4">
+            {/* Mensajes restantes */}
+            <div className="bg-white/80 rounded-lg p-4">
+              <div className="flex items-center gap-2 mb-1">
+                <MessageCircle className="w-4 h-4 text-green-600" />
+                <span className="text-xs text-gray-600 font-medium">Disponibles</span>
               </div>
-
-              {/* Horario */}
-              <div className="bg-white/80 rounded-lg p-4">
-                <div className="flex items-center gap-2 mb-1">
-                  <Clock className="w-4 h-4 text-blue-600" />
-                  <span className="text-xs text-gray-600 font-medium">Horario</span>
-                </div>
-                <p className="text-lg font-bold text-gray-900">9-16hs</p>
-                <p className="text-xs text-gray-500 mt-1">
-                  {isWorkingHours ? 'En horario' : 'Fuera de horario'}
-                </p>
-              </div>
+              <p className="text-2xl font-bold text-gray-900">{quota.remaining}</p>
+              <p className="text-xs text-gray-500 mt-1">de {quota.quota} incluidos</p>
             </div>
 
-            {/* Barra de progreso */}
-            <div className="mb-3">
-              <div className="flex justify-between text-xs text-gray-600 mb-1">
-                <span>Uso diario</span>
-                <span className="font-medium">{percentageUsed.toFixed(0)}%</span>
+            {/* Próximo reset */}
+            <div className="bg-white/80 rounded-lg p-4">
+              <div className="flex items-center gap-2 mb-1">
+                <Calendar className="w-4 h-4 text-blue-600" />
+                <span className="text-xs text-gray-600 font-medium">Reset</span>
               </div>
-              <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
-                <div
-                  className={`h-full transition-all ${
-                    percentageUsed < 70 ? 'bg-green-500' : 
-                    percentageUsed < 90 ? 'bg-amber-500' : 'bg-red-500'
-                  }`}
-                  style={{ width: `${Math.min(percentageUsed, 100)}%` }}
-                />
-              </div>
+              <p className="text-sm font-bold text-gray-900">{resetDate}</p>
+              <p className="text-xs text-gray-500 mt-1">Próxima renovación</p>
             </div>
-
-            <p className="text-xs text-gray-600 text-center mt-2">
-              Click para configurar tu perfil de contacto
-            </p>
           </div>
+
+          {/* Barra de progreso */}
+          <div className="mb-3">
+            <div className="flex justify-between text-xs text-gray-600 mb-1">
+              <span>Uso mensual</span>
+              <span className="font-medium">{percentageUsed.toFixed(0)}%</span>
+            </div>
+            <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+              <div
+                className={`h-full transition-all ${
+                  percentageUsed < 70 ? 'bg-green-500' : 
+                  percentageUsed < 90 ? 'bg-amber-500' : 'bg-red-500'
+                }`}
+                style={{ width: `${Math.min(percentageUsed, 100)}%` }}
+              />
+            </div>
+          </div>
+
+          {/* Advertencia si quedan pocos */}
+          {!quota.isExceeded && quota.remaining <= 50 && quota.remaining > 0 && (
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-3">
+              <p className="text-xs font-semibold text-amber-900">
+                ⚠️ Quedan pocos mensajes disponibles
+              </p>
+              <p className="text-xs text-amber-700 mt-1">
+                Solo {quota.remaining} mensajes restantes este mes
+              </p>
+            </div>
+          )}
+
+          {/* Excedente (si aplica) */}
+          {quota.isExceeded && (
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-3">
+              <div className="flex items-center gap-2 mb-1">
+                <TrendingUp className="w-4 h-4 text-amber-600" />
+                <span className="text-xs font-semibold text-amber-900">Mensajes adicionales</span>
+              </div>
+              <p className="text-sm text-amber-800">
+                {quota.overageMessages} mensajes × $0.05 = <span className="font-bold">${quota.overageCost.toFixed(2)} USD</span>
+              </p>
+              <p className="text-xs text-amber-700 mt-1">
+                Se cobrará en tu próxima factura
+              </p>
+            </div>
+          )}
+
+          <p className="text-xs text-gray-600 text-center mt-2">
+            Plan PRO: 400 mensajes/mes incluidos
+          </p>
         </div>
       </div>
     </div>

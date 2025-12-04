@@ -6,6 +6,7 @@ import { getClients, getClientWorks, updateClient, getClientStats } from '@/lib/
 import { getUserFriendlyError } from '@/utils/errorMessages';
 import { EmptyState } from '@/components/EmptyState';
 import { toast } from 'sonner';
+import { logger } from '@/lib/logger';
 
 const PAGE_SIZE = 50;
 
@@ -117,14 +118,14 @@ export function PaginatedClientsView() {
 
       const data = await getClients(params);
       
-      console.log('📊 Respuesta getClients:', data);
-      console.log('📊 Total count:', data.total);
-      console.log('📊 Clientes:', data.clients?.length);
+      logger.log('📊 Respuesta getClients:', data);
+      logger.log('📊 Total count:', data.total);
+      logger.log('📊 Clientes:', data.clients?.length);
       
       setClients(data.clients);
       setTotalCount(data.total);
       
-      console.log('📊 Estado después de setear:', {
+      logger.log('📊 Estado después de setear:', {
         clientsLength: data.clients.length,
         totalCount: data.total,
         totalPages: Math.ceil(data.total / PAGE_SIZE)
