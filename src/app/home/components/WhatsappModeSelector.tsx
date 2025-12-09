@@ -67,6 +67,22 @@ export function WhatsappModeSelector({ onModeChange, onConnectClick }: WhatsappM
   const handleModeChange = async (newMode: WhatsAppMode) => {
     if (saving) return
 
+    // ⚠️ ADVERTENCIA: Si está cambiando a modo personal, mostrar alerta de riesgo de baneo
+    if (newMode === 'personal' && mode !== 'personal') {
+      const confirmed = window.confirm(
+        '⚠️ ADVERTENCIA DE RIESGO\n\n' +
+        'El uso intensivo de WhatsApp Web.js con tu número personal puede resultar en el baneo de tu cuenta de WhatsApp.\n\n' +
+        '🚫 Riesgo de baneo si se envían más de 50 mensajes por hora\n\n' +
+        'El sistema WhatsApp (modo prepago) es la opción recomendada para evitar cualquier riesgo.\n\n' +
+        '¿Aceptás los riesgos y querés continuar con el modo personal?'
+      )
+      
+      if (!confirmed) {
+        // Usuario rechazó: mantener modo system
+        return
+      }
+    }
+
     try {
       setSaving(true)
       
@@ -88,9 +104,9 @@ export function WhatsappModeSelector({ onModeChange, onConnectClick }: WhatsappM
         })
       } else {
         // Modo personal: mostrar toast con botón de acción
-        toast.info('📱 Modo Personal activado', {
-          description: 'Recordá conectar tu sesión antes de enviar mensajes.',
-          duration: 5000,
+        toast.warning('⚠️ Modo Personal activado', {
+          description: 'Recordá conectar tu sesión y evitar enviar más de 50 mensajes por hora.',
+          duration: 6000,
           action: onConnectClick ? {
             label: 'Conectar ahora',
             onClick: () => {
