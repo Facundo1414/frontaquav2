@@ -82,6 +82,8 @@ export const WhatsappSessionProvider: React.FC<{ children: React.ReactNode }> = 
   }, []);
 
   // 🆕 Verificar estado real del backend cuando se habilita WhatsApp (admin detectado)
+  // TEMPORALMENTE DESHABILITADO
+  /*
   useEffect(() => {
     if (!shouldEnableWhatsapp || !userId) return;
 
@@ -123,6 +125,7 @@ export const WhatsappSessionProvider: React.FC<{ children: React.ReactNode }> = 
     // Verificar inmediatamente al montar
     verifyBackendState();
   }, [shouldEnableWhatsapp, userId]);
+  */
 
   const updateFromStatus = useCallback((payload: any) => {
     if (!payload) return;

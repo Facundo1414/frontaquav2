@@ -9,6 +9,7 @@ import { ModalEnDesarrollo } from './components/modal-en-desarrollo'
 import { WhatsappSessionModal } from './components/WhatsappSessionModal'
 import { WhatsappUsageWidget } from './components/WhatsappUsageWidget'
 import { WhatsappModeSelector } from './components/WhatsappModeSelector'
+import { WhatsAppCloudAPINoticeModal, useWhatsAppCloudAPINotice } from './components/WhatsAppCloudAPINoticeModal'
 import { useWhatsappSessionContext } from '@/app/providers/context/whatsapp/WhatsappSessionContext'
 import { useGlobalContext } from '@/app/providers/context/GlobalContext'
 import { simpleWaState } from '@/lib/api/simpleWaApi'
@@ -21,6 +22,9 @@ export default function HomePage() {
   const router = useRouter()
   const [modalVisible, setModalVisible] = useState(false)
   const [modalDevVisible, setModalDevVisible] = useState(false)
+  
+  // Hook para el modal de aviso WhatsApp Cloud API
+  const { showNotice, setShowNotice } = useWhatsAppCloudAPINotice()
   
   // Consumimos el snapshot global (estado único)
   const { snapshot, updateFromStatus } = useWhatsappSessionContext() as any
@@ -54,6 +58,11 @@ export default function HomePage() {
 const handleClickFiltrarClientes = () => {
   // No necesita sesión WhatsApp, va directo al filtro
   router.push('/filtrar-clientes')
+}
+
+const handleClickVerificarPlanesPago = () => {
+  // Nueva funcionalidad para verificar planes de pago vigentes
+  router.push('/verificar-planes-pago')
 }
 
 const handleClickRecuperarArchivos = () => {
@@ -183,21 +192,23 @@ const handleClickFAQ = () => {
       )}
 
       {/* Widget de Estado del Sistema WhatsApp - Todos los usuarios */}
-      {userId && (
+      {/* TEMPORALMENTE DESHABILITADO */}
+      {/* {userId && (
         <div className="mb-6">
           <WhatsappUsageWidget />
         </div>
-      )}
+      )} */}
 
       {/* Selector de Modo WhatsApp - Todos los usuarios */}
-      {userId && (
+      {/* TEMPORALMENTE DESHABILITADO */}
+      {/* {userId && (
         <div className="mb-6">
           <WhatsappModeSelector 
             onModeChange={handleWhatsAppModeChange}
             onConnectClick={handleConnectWhatsApp}
           />
         </div>
-      )}
+      )} */}
 
       {/* Servicios Header */}
       <div className="text-center mb-10">
@@ -217,6 +228,8 @@ const handleClickFAQ = () => {
             description="Envía comprobantes vencidos a clientes con plan de pago"
             onClick={handleClick}
             color="bg-teal-500"
+            disabled
+            badge="DESHABILITADO"
           />
         </RequiresPlan>
         <RequiresPlan plan="PRO">
@@ -226,6 +239,8 @@ const handleClickFAQ = () => {
             description="Avisa a clientes con plan de pago próximos a vencer"
             onClick={handleClickProximosVencer}
             color="bg-orange-500"
+            disabled
+            badge="DESHABILITADO"
           />
         </RequiresPlan>
         <ServiceCard
@@ -234,6 +249,14 @@ const handleClickFAQ = () => {
           description="Selecciona barrios y genera Excel de aptos/no aptos"
           onClick={handleClickFiltrarClientes}
           color="bg-green-600"
+        />
+        <ServiceCard
+          icon={<Check className="w-6 h-6 text-white" />}
+          title="Verificar Planes de Pago"
+          description="Consulta qué clientes tienen planes de pago vigentes"
+          onClick={handleClickVerificarPlanesPago}
+          color="bg-blue-600"
+          badge="NUEVO"
         />
         <RequiresPlan plan="PRO">
           <ServiceCard
@@ -285,6 +308,12 @@ const handleClickFAQ = () => {
 
       {/* Modal en desarrollo (otros features) */}
       <ModalEnDesarrollo open={modalDevVisible} onOpenChange={setModalDevVisible} />
+
+      {/* Modal de aviso WhatsApp Cloud API */}
+      <WhatsAppCloudAPINoticeModal 
+        open={showNotice} 
+        onOpenChange={setShowNotice} 
+      />
 
       {/* Modal WhatsApp unificado - Solo modo personal */}
       {userMode === 'personal' && (
