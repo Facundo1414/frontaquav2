@@ -11,6 +11,10 @@ export default function LayoutWrapper({ children }: { children: ReactNode }) {
   const noLayoutPaths = ['/login', '/register']
   const hideLayout = noLayoutPaths.some(path => pathname.startsWith(path))
 
+  // Páginas que necesitan ancho completo sin padding
+  const fullWidthNoPaddingPaths = ['/conversaciones']
+  const isFullWidthNoPadding = fullWidthNoPaddingPaths.some(path => pathname.startsWith(path))
+
   // Páginas que necesitan ancho completo para tablas
   const fullWidthPaths = ['/clientes-database', '/senddebts', '/proximos-vencer']
   const isFullWidth = fullWidthPaths.some(path => pathname.startsWith(path))
@@ -19,13 +23,19 @@ export default function LayoutWrapper({ children }: { children: ReactNode }) {
     <>
       {!hideLayout && <Navbar />}
       
-      <main className={hideLayout ? '' : 'flex-grow px-4 sm:px-6 md:px-10 py-2'}>
-        <div className={hideLayout ? '' : isFullWidth ? 'max-w-full mx-auto' : 'max-w-7xl mx-auto'}>
+      {isFullWidthNoPadding ? (
+        <main className="flex-grow">
           {children}
-        </div>
-      </main>
+        </main>
+      ) : (
+        <main className={hideLayout ? '' : 'flex-grow px-4 sm:px-6 md:px-10 py-2'}>
+          <div className={hideLayout ? '' : isFullWidth ? 'max-w-full mx-auto' : 'max-w-7xl mx-auto'}>
+            {children}
+          </div>
+        </main>
+      )}
 
-      {!hideLayout && <Footer />}
+      {!hideLayout && !isFullWidthNoPadding && <Footer />}
     </>
   )
 }

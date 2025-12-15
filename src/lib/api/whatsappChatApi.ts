@@ -36,7 +36,7 @@ export interface Message {
 }
 
 export interface SendReplyPayload {
-  text: string;
+  content: string;
 }
 
 export interface SendTemplatePayload {

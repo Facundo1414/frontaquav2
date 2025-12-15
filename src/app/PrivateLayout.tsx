@@ -5,7 +5,6 @@ import { useRouter, usePathname } from 'next/navigation'
 import { getAccessToken } from '@/utils/authToken'
 import LayoutWrapper from './LayoutWrapper'
 import { WhatsappSessionProvider } from '@/app/providers/context/whatsapp/WhatsappSessionContext'
-import TokenStatus from '@/components/TokenStatus'
 
 const PUBLIC_PATHS = ['/login', '/register']
 
@@ -47,7 +46,6 @@ export default function PrivateLayout({ children }: { children: React.ReactNode 
     <WhatsappSessionProvider>
       <LayoutWrapper>
         {children}
-        <TokenStatus />
       </LayoutWrapper>
     </WhatsappSessionProvider>
   )

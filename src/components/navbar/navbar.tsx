@@ -57,6 +57,10 @@ export default function Navbar() {
   } | null>(null)
   // Purge removido
 
+  // Token status
+  const [tokenTimeLeft, setTokenTimeLeft] = useState<number | null>(null)
+  const [tokenNeedsRefresh, setTokenNeedsRefresh] = useState(false)
+
   useEffect(() => {
     // Track transitions for potential future side-effects (placeholder)
     prevWhatsappState.current = whatsappState
@@ -82,6 +86,30 @@ export default function Navbar() {
     }
     loadWhatsappUsage()
   }, [])
+
+  // Update token status
+  useEffect(() => {
+    const updateTokenStatus = () => {
+      const time = tokenManager.getTimeUntilExpiry()
+      const needs = tokenManager.needsRefreshSoon()
+      setTokenTimeLeft(time)
+      setTokenNeedsRefresh(needs)
+    }
+
+    updateTokenStatus()
+    const interval = setInterval(updateTokenStatus, 30000)
+    return () => clearInterval(interval)
+  }, [])
+
+  const formatTokenTime = (ms: number) => {
+    const minutes = Math.floor(ms / (1000 * 60))
+    const hours = Math.floor(minutes / 60)
+    const remainingMinutes = minutes % 60
+    if (hours > 0) {
+      return `${hours}h ${remainingMinutes}m`
+    }
+    return `${minutes}m`
+  }
 
   const [open, setOpen] = useState(false)
 
@@ -133,8 +161,22 @@ export default function Navbar() {
         </Link>
       </div>
 
-      {/* Derecha: Aviso de horario + Avatar */}
+      {/* Derecha: Aviso de horario + Token Status + Avatar */}
       <div className="flex items-center gap-3">
+        {/* Token Status */}
+        {tokenTimeLeft && (
+          <div className="flex items-center gap-2 text-xs text-white/90 bg-blue-800/50 px-3 py-1.5 rounded-md">
+            <div 
+              className={`w-2 h-2 rounded-full ${
+                tokenNeedsRefresh ? 'bg-yellow-400' : 'bg-green-400'
+              }`}
+            />
+            <span>
+              Token: {formatTokenTime(tokenTimeLeft)}
+            </span>
+          </div>
+        )}
+
         {/* Aviso de horario */}
         <div className="flex items-center gap-2 text-xs text-white/90 bg-blue-800/50 px-3 py-1.5 rounded-md">
           <Clock className="h-3.5 w-3.5" />
