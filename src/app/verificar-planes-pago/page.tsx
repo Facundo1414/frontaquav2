@@ -206,13 +206,11 @@ export default function VerificarPlanesPagoPage() {
         const linkComprobante = `https://www.aguascordobesas.com.ar/espacioClientes/seccion/gestionDeuda/consulta/${r.uf}`
         
         // Generar mensaje personalizado
-        const mensaje = `Hola ${r.nombre}, te contacto de Aguas Cordobesas respecto a tu cuenta ${r.uf}.
+        const mensaje = `Hola ${r.nombre}, te envio tu comprobante actualizado de la CUOTA PLAN DE PAGOS.
+Por favor, realiza el pago antes del vencimiento.
+Se puede pagar por Mercado Pago, Rapipago y Pago facil
 
-${estadoSimple === 'Tiene deuda' ? '⚠️ Tenés cuotas de tu plan de pago impagas. ' : '✅ Tu plan de pago está activo. '}
-
-${linkComprobante ? `Podés descargar tu comprobante aquí: ${linkComprobante}\n\n` : ''}Por favor, comunicate para regularizar tu situación.
-
-🌐 Cclip - Al servicio de Aguas Cordobesas`
+🌐 Cclip 🔹 Al servicio de Aguas Cordobesas.`
         
         // Generar link de WhatsApp SIEMPRE que haya teléfono
         const waLink = telefonoNormalizado 
@@ -304,6 +302,44 @@ ${linkComprobante ? `Podés descargar tu comprobante aquí: ${linkComprobante}\n
   const copiarMensaje = (mensaje: string, nombre: string) => {
     navigator.clipboard.writeText(mensaje)
     toast.success(`Mensaje de ${nombre} copiado al portapapeles`)
+  }
+
+  const descargarPDF = async (uf: number) => {
+    try {
+      toast.info('Generando PDF...')
+      
+      const token = localStorage.getItem('accessToken')
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'
+      const comprobanteUrl = process.env.NEXT_PUBLIC_COMPROBANTE_WORKER_URL || 'http://localhost:3002'
+      
+      const response = await fetch(`${comprobanteUrl}/comprobante/test/generar-pdf?uf=${uf}&userId=${userId}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.message || 'Error al generar PDF')
+      }
+
+      // Descargar el PDF
+      const blob = await response.blob()
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `comprobante_${uf}.pdf`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      window.URL.revokeObjectURL(url)
+
+      toast.success('PDF descargado correctamente')
+    } catch (error: any) {
+      console.error('Error descargando PDF:', error)
+      toast.error(error.message || 'Error al descargar el PDF')
+    }
   }
 
   const toggleEnviado = (uf: number) => {
@@ -539,14 +575,24 @@ ${linkComprobante ? `Podés descargar tu comprobante aquí: ${linkComprobante}\n
 
                           {/* Acciones */}
                           <div className="flex gap-2 flex-wrap">
-                            {r.linkComprobante && (
+                            {r.puedeGenerarComprobante && (
                               <Button
                                 size="sm"
                                 variant="default"
-                                className="bg-blue-600 hover:bg-blue-700"
-                                onClick={() => window.open(r.linkComprobante!, '_blank')}
+                                className="bg-purple-600 hover:bg-purple-700"
+                                onClick={() => descargarPDF(r.uf)}
                               >
                                 <Download className="w-4 h-4 mr-2" />
+                                Descargar PDF
+                              </Button>
+                            )}
+                            {r.linkComprobante && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="border-blue-600 text-blue-600 hover:bg-blue-50"
+                                onClick={() => window.open(r.linkComprobante!, '_blank')}
+                              >
                                 Ver en Espacio Cliente
                               </Button>
                             )}
