@@ -268,9 +268,11 @@ export const WhatsappSessionProvider: React.FC<{ children: React.ReactNode }> = 
       return;
     }
 
-    // Solo verificar cada 10 segundos SI ya hay una sesión activa
+    // Solo verificar cada 2 MINUTOS SI ya hay una sesión activa (reducido de 10s)
+    // Esto previene 429 rate limiting
     const intervalId = setInterval(() => {
-      if (snapshot?.state !== 'none' && snapshot?.state !== 'waiting_qr') {
+      // Solo hacer polling si la sesión está conectada (no en estado inicial o esperando QR)
+      if (snapshot?.state === 'ready' || snapshot?.state === 'syncing') {
         logger.log('🔍 Verificando estado de sesión activa...');
         simpleWaState()
           .then((state) => {
@@ -282,11 +284,15 @@ export const WhatsappSessionProvider: React.FC<{ children: React.ReactNode }> = 
               updateFromStatus({ state: 'syncing' });
             }
           })
-          .catch(() => {
-            // Ignorar errores silenciosamente
+          .catch((err) => {
+            // Si es 429, loguear advertencia
+            if (err?.response?.status === 429) {
+              logger.warn('🚫 Rate limit alcanzado en WhatsappSessionContext');
+            }
+            // Ignorar errores silenciosamente para no spammear logs
           });
       }
-    }, 10000);
+    }, 120000); // 2 minutos (aumentado de 10s para evitar rate limiting)
 
     return () => clearInterval(intervalId);
   }, [shouldEnableWhatsapp, snapshot?.state, snapshot?.ready, updateFromStatus]);

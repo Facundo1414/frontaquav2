@@ -3,11 +3,14 @@
 import { useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Upload, Download, CheckCircle2, Loader2, FileSpreadsheet, AlertCircle } from "lucide-react"
+import { Upload, Download, CheckCircle2, Loader2, FileSpreadsheet, AlertCircle, Copy, MessageSquare, Phone, CheckCheck } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Badge } from "@/components/ui/badge"
+import { Checkbox } from "@/components/ui/checkbox"
 import * as XLSX from 'xlsx'
 import { useGlobalContext } from '@/app/providers/context/GlobalContext'
 import { toast } from 'sonner'
+import { getPhonesByUFs } from '@/lib/api'
 
 interface PaymentPlanResult {
   uf: number
@@ -15,6 +18,16 @@ interface PaymentPlanResult {
   paymentPlanStatus?: string
   details?: string
   error?: string
+  // Nuevos campos
+  nombre?: string
+  telefono?: string
+  deuda?: string
+  mensaje?: string
+  waLink?: string
+  linkComprobante?: string
+  enviado?: boolean
+  estadoSimple?: string
+  puedeGenerarComprobante?: boolean
 }
 
 export default function VerificarPlanesPagoPage() {
@@ -27,7 +40,10 @@ export default function VerificarPlanesPagoPage() {
     withPlan: number
     withoutPlan: number
     errors: number
+    conTelefono?: number
+    enviados?: number
   } | null>(null)
+  const [enviados, setEnviados] = useState<Set<number>>(new Set())
 
   const { userId } = useGlobalContext()
 
@@ -81,7 +97,7 @@ export default function VerificarPlanesPagoPage() {
 
       toast.info(`Verificando ${ufs.length} cuentas...`)
 
-      // Llamar al backend
+      // 1. Llamar al backend para verificar planes de pago
       const token = localStorage.getItem('accessToken')
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'
       const response = await fetch(`${apiUrl}/api/process/verify-payment-plans`, {
@@ -98,18 +114,127 @@ export default function VerificarPlanesPagoPage() {
       }
 
       const data_response = await response.json()
-      setResults(data_response.results)
+      
+      // 2. Enriquecer con datos del Excel (nombre y teléfono)
+      const enrichedResults = data_response.results.map((r: PaymentPlanResult) => {
+        const excelRow = data.find((row: any) => {
+          const excelUf = row['unidad'] || row['Unidad'] || row['UNIDAD'] ||
+                         row['uf'] || row['UF'] || row['Uf'] || 
+                         row['cuenta'] || row['CUENTA'] || row['Cuenta'] ||
+                         row['Cuenta_Nro'] || row['cuenta_nro'] || row['CUENTA_NRO'] ||
+                         row['CuentaNro'] || row['cuentanro'] || row['CUENTANRO'] ||
+                         row['Account'] || row['account']
+          return Number(excelUf) === Number(r.uf)
+        })
+        
+        const nombre = excelRow?.['titular'] || excelRow?.['Titular'] || excelRow?.['TITULAR'] || 
+                      excelRow?.['nombre'] || excelRow?.['Nombre'] || excelRow?.['NOMBRE'] || 
+                      excelRow?.['cliente'] || excelRow?.['Cliente'] || excelRow?.['CLIENTE'] ||
+                      excelRow?.['Cliente_01'] || // Formato senddebts
+                      'Cliente'
+        
+        // Intentar obtener teléfono del Excel (columnas senddebts)
+        const telefonoExcel = excelRow?.['tel_clien'] || excelRow?.['tel_uni'] ||
+                             excelRow?.['telefono'] || excelRow?.['Telefono'] || excelRow?.['TELEFONO'] ||
+                             excelRow?.['phone'] || excelRow?.['Phone'] || null
+        
+        return {
+          ...r,
+          nombre,
+          telefonoExcel, // Guardar para usarlo después
+        }
+      })
+
+      // 3. Obtener teléfonos de la BD
+      toast.info('Consultando teléfonos en base de datos...')
+      const dbPhones = await getPhonesByUFs(ufs)
+      console.log('📞 Teléfonos de BD:', dbPhones)
+      
+      // 4. Normalizar teléfonos
+      const normalizePhone = (phone: any): string => {
+        if (!phone) return ''
+        // Convertir a string por si viene como número del Excel
+        const phoneStr = String(phone).trim()
+        // Limpiar espacios, guiones, paréntesis
+        const cleaned = phoneStr.replace(/[\s\-()]/g, '')
+        // Asegurar que empiece con +
+        if (!cleaned.startsWith('+')) {
+          // Si empieza con 54, agregar +
+          if (cleaned.startsWith('54')) {
+            return '+' + cleaned
+          }
+          // Si es número argentino sin código país, agregar +54
+          if (cleaned.length >= 10) {
+            return '+54' + cleaned
+          }
+        }
+        return cleaned
+      }
+      
+      // 5. Mapear todo y generar mensajes/links (priorizar BD, luego Excel)
+      const finalResults = enrichedResults.map((r: PaymentPlanResult) => {
+        // Priorizar BD, luego Excel
+        const telefonoOriginal = dbPhones[r.uf] || r.telefonoExcel || null
+        const telefonoNormalizado = telefonoOriginal ? normalizePhone(telefonoOriginal) : null
+        
+        console.log(`📞 UF ${r.uf}: BD=${dbPhones[r.uf]}, Excel=${r.telefonoExcel}, Final=${telefonoOriginal}`)
+        
+        // Determinar estado simple
+        let estadoSimple = 'Sin plan'
+        let puedeGenerarComprobante = false
+        
+        if (r.paymentPlanStatus?.includes('IMPAGAS')) {
+          estadoSimple = 'Tiene deuda'
+          puedeGenerarComprobante = true
+        } else if (r.paymentPlanStatus?.includes('activo')) {
+          estadoSimple = 'Al día'
+          puedeGenerarComprobante = true
+        }
+        
+        // Link de Espacio Cliente SIEMPRE (tenga deuda o no)
+        const linkComprobante = `https://www.aguascordobesas.com.ar/espacioClientes/seccion/gestionDeuda/consulta/${r.uf}`
+        
+        // Generar mensaje personalizado
+        const mensaje = `Hola ${r.nombre}, te contacto de Aguas Cordobesas respecto a tu cuenta ${r.uf}.
+
+${estadoSimple === 'Tiene deuda' ? '⚠️ Tenés cuotas de tu plan de pago impagas. ' : '✅ Tu plan de pago está activo. '}
+
+${linkComprobante ? `Podés descargar tu comprobante aquí: ${linkComprobante}\n\n` : ''}Por favor, comunicate para regularizar tu situación.
+
+🌐 Cclip - Al servicio de Aguas Cordobesas`
+        
+        // Generar link de WhatsApp SIEMPRE que haya teléfono
+        const waLink = telefonoNormalizado 
+          ? `https://wa.me/${telefonoNormalizado.replace(/\D/g, '')}?text=${encodeURIComponent(mensaje)}` 
+          : null
+        
+        return {
+          ...r,
+          telefono: telefonoOriginal,
+          mensaje,
+          waLink,
+          linkComprobante,
+          estadoSimple,
+          puedeGenerarComprobante,
+          enviado: false,
+        }
+      })
+      
+      setResults(finalResults)
 
       // Calcular estadísticas
-      const withPlan = data_response.results.filter((r: PaymentPlanResult) => r.hasPaymentPlan).length
-      const withoutPlan = data_response.results.filter((r: PaymentPlanResult) => !r.hasPaymentPlan && !r.error).length
-      const errors = data_response.results.filter((r: PaymentPlanResult) => r.error).length
+      const withPlan = finalResults.filter((r: PaymentPlanResult) => r.hasPaymentPlan).length
+      const withoutPlan = finalResults.filter((r: PaymentPlanResult) => !r.hasPaymentPlan && !r.error).length
+      const errors = finalResults.filter((r: PaymentPlanResult) => r.error).length
+      const conTelefono = finalResults.filter((r: PaymentPlanResult) => r.telefono).length
 
       setStats({
-        total: data_response.results.length,
+        total: finalResults.length,
         withPlan,
         withoutPlan,
         errors,
+        conTelefono,
+        enviados: 0,
       })
 
       toast.success('Verificación completada')
@@ -124,15 +249,37 @@ export default function VerificarPlanesPagoPage() {
   const downloadResults = () => {
     if (!results) return
 
-    // Convertir resultados a formato Excel
-    const dataToExport = results.map((r) => ({
+    // Excel SIMPLIFICADO con solo datos útiles
+    const dataToExport = results.map((r: any) => ({
       'UF': r.uf,
-      'Estado del Plan': r.paymentPlanStatus || (r.hasPaymentPlan ? 'Sí' : 'No'),
-      'Detalles': r.details || '',
-      'Error': r.error || '',
+      'Nombre': r.nombre || '',
+      'Teléfono': r.telefono || 'Sin teléfono',
+      'Estado': r.estadoSimple || 'Sin plan',
+      'Puede generar comprobante': r.puedeGenerarComprobante ? 'SÍ' : 'NO',
+      'Link Espacio Cliente': r.linkComprobante || '',
+      'Enviado': enviados.has(r.uf) ? 'SÍ' : 'NO',
+      'Link WhatsApp': r.waLink || '',
+      'Mensaje pre-armado': r.mensaje || '',
+      'OBSERVACIONES': '', // Columna para notas del usuario
     }))
 
     const ws = XLSX.utils.json_to_sheet(dataToExport)
+    
+    // Ajustar ancho de columnas
+    const colWidths = [
+      { wch: 10 },  // UF
+      { wch: 25 },  // Nombre
+      { wch: 18 },  // Teléfono
+      { wch: 15 },  // Estado
+      { wch: 22 },  // Puede generar comprobante
+      { wch: 60 },  // Link Espacio Cliente
+      { wch: 10 },  // Enviado
+      { wch: 40 },  // Link WhatsApp
+      { wch: 60 },  // Mensaje
+      { wch: 50 },  // OBSERVACIONES
+    ]
+    ws['!cols'] = colWidths
+
     const wb = XLSX.utils.book_new()
     XLSX.utils.book_append_sheet(wb, ws, 'Resultados')
 
@@ -140,7 +287,34 @@ export default function VerificarPlanesPagoPage() {
     const fileName = `planes_pago_${new Date().toISOString().split('T')[0]}.xlsx`
     XLSX.writeFile(wb, fileName)
 
-    toast.success('Resultados descargados')
+    toast.success('Excel descargado con links de WhatsApp y mensajes listos para usar')
+  }
+
+  const copiarMensaje = (mensaje: string, nombre: string) => {
+    navigator.clipboard.writeText(mensaje)
+    toast.success(`Mensaje de ${nombre} copiado al portapapeles`)
+  }
+
+  const toggleEnviado = (uf: number) => {
+    setEnviados(prev => {
+      const newSet = new Set(prev)
+      if (newSet.has(uf)) {
+        newSet.delete(uf)
+      } else {
+        newSet.add(uf)
+      }
+      
+      // Actualizar stats
+      if (stats) {
+        const wasChecked = newSet.has(uf)
+        setStats({
+          ...stats,
+          enviados: newSet.size
+        })
+      }
+      
+      return newSet
+    })
   }
 
   return (
@@ -202,11 +376,11 @@ export default function VerificarPlanesPagoPage() {
             </Button>
           )}
 
-          {processing && (
+          {(processing) && (
             <div className="flex items-center justify-center gap-3 py-8">
               <Loader2 className="w-6 h-6 animate-spin text-primary" />
               <span className="text-sm text-muted-foreground">
-                Consultando comprobantes service...
+                Consultando planes de pago y teléfonos...
               </span>
             </div>
           )}
@@ -222,7 +396,7 @@ export default function VerificarPlanesPagoPage() {
               <CardTitle>2. Resultados</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
                 <div className="bg-blue-50 dark:bg-blue-950 p-4 rounded-lg">
                   <div className="text-2xl font-bold text-blue-600">{stats.total}</div>
                   <div className="text-sm text-muted-foreground">Total</div>
@@ -231,9 +405,13 @@ export default function VerificarPlanesPagoPage() {
                   <div className="text-2xl font-bold text-green-600">{stats.withPlan}</div>
                   <div className="text-sm text-muted-foreground">Con Plan</div>
                 </div>
-                <div className="bg-orange-50 dark:bg-orange-950 p-4 rounded-lg">
-                  <div className="text-2xl font-bold text-orange-600">{stats.withoutPlan}</div>
-                  <div className="text-sm text-muted-foreground">Sin Plan</div>
+                <div className="bg-purple-50 dark:bg-purple-950 p-4 rounded-lg">
+                  <div className="text-2xl font-bold text-purple-600">{stats.conTelefono || 0}</div>
+                  <div className="text-sm text-muted-foreground">Con Teléfono</div>
+                </div>
+                <div className="bg-cyan-50 dark:bg-cyan-950 p-4 rounded-lg">
+                  <div className="text-2xl font-bold text-cyan-600">{stats.enviados || 0}</div>
+                  <div className="text-sm text-muted-foreground">Enviados</div>
                 </div>
                 <div className="bg-red-50 dark:bg-red-950 p-4 rounded-lg">
                   <div className="text-2xl font-bold text-red-600">{stats.errors}</div>
@@ -256,52 +434,146 @@ export default function VerificarPlanesPagoPage() {
             </CardContent>
           </Card>
 
-          {/* Preview de resultados */}
+          {/* Vista Optimizada para Envío Rápido */}
           <Card className="mt-6">
             <CardHeader>
-              <CardTitle>Vista Previa (Primeros 10)</CardTitle>
+              <CardTitle className="flex items-center gap-2">
+                <MessageSquare className="w-5 h-5" />
+                Vista de Envío Rápido
+              </CardTitle>
+              <p className="text-sm text-muted-foreground">
+                Haz clic en el botón de WhatsApp para abrir el chat con el mensaje pre-cargado, o copia el mensaje manualmente.
+              </p>
             </CardHeader>
-            <CardContent>
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b">
-                      <th className="text-left p-2">UF</th>
-                      <th className="text-left p-2">Estado del Plan</th>
-                      <th className="text-left p-2">Detalles</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {results.slice(0, 10).map((r, i) => (
-                      <tr key={i} className="border-b">
-                        <td className="p-2 font-mono">{r.uf}</td>
-                        <td className="p-2">
-                          {r.error ? (
-                            <span className="text-red-500">Error</span>
-                          ) : r.paymentPlanStatus === 'Plan de pago vencido' ? (
-                            <span className="text-red-500 font-semibold">Plan de pago vencido</span>
-                          ) : r.paymentPlanStatus === 'Plan de pago por vencer' ? (
-                            <span className="text-yellow-500 font-semibold">Plan de pago por vencer</span>
-                          ) : r.paymentPlanStatus === 'Sin plan de pago' ? (
-                            <span className="text-gray-500">Sin plan de pago</span>
-                          ) : r.hasPaymentPlan ? (
-                            <span className="text-green-500 font-semibold">SÍ</span>
-                          ) : (
-                            <span className="text-gray-500">NO</span>
+            <CardContent className="space-y-3">
+              {/* Filtros rápidos */}
+              <div className="flex gap-2 flex-wrap mb-4">
+                <Badge variant="outline" className="text-sm px-3 py-1">
+                  <Phone className="w-3 h-3 mr-1" />
+                  Con Teléfono: {results!.filter(r => r.telefono).length}
+                </Badge>
+                <Badge variant="outline" className="text-sm px-3 py-1">
+                  Con deuda: {results!.filter(r => r.estadoSimple === 'Tiene deuda').length}
+                </Badge>
+                <Badge variant="outline" className="text-sm px-3 py-1">
+                  Pendientes: {results!.filter(r => !enviados.has(r.uf)).length}
+                </Badge>
+              </div>
+
+              {/* Cards de clientes */}
+              <div className="space-y-3 max-h-[600px] overflow-y-auto">
+                {results!
+                  .sort((a, b) => {
+                    // Priorizar: con teléfono y deuda primero
+                    if (a.telefono && !b.telefono) return -1
+                    if (!a.telefono && b.telefono) return 1
+                    if (a.estadoSimple === 'Tiene deuda' && b.estadoSimple !== 'Tiene deuda') return -1
+                    if (a.estadoSimple !== 'Tiene deuda' && b.estadoSimple === 'Tiene deuda') return 1
+                    return 0
+                  })
+                  .map((r, i) => (
+                  <Card key={i} className={`${enviados.has(r.uf) ? 'opacity-50 bg-green-50 dark:bg-green-950/20' : ''}`}>
+                    <CardContent className="p-4">
+                      <div className="flex items-start gap-4">
+                        {/* Checkbox de enviado */}
+                        <div className="pt-1">
+                          <Checkbox
+                            checked={enviados.has(r.uf)}
+                            onCheckedChange={() => toggleEnviado(r.uf)}
+                            className="h-5 w-5"
+                          />
+                        </div>
+
+                        {/* Info del cliente */}
+                        <div className="flex-1 space-y-2">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <h3 className="font-semibold text-lg">{r.nombre}</h3>
+                              <p className="text-sm text-muted-foreground">UF: {r.uf}</p>
+                            </div>
+                            <div className="flex gap-2">
+                              {r.telefono && (
+                                <Badge variant="default" className="bg-green-600">
+                                  <Phone className="w-3 h-3 mr-1" />
+                                  Teléfono
+                                </Badge>
+                              )}
+                              {r.estadoSimple === 'Tiene deuda' && (
+                                <Badge variant="destructive">
+                                  Tiene deuda
+                                </Badge>
+                              )}
+                              {r.estadoSimple === 'Al día' && (
+                                <Badge variant="default" className="bg-blue-600">
+                                  Al día
+                                </Badge>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Teléfono */}
+                          {r.telefono && (
+                            <div className="flex items-center gap-2 text-sm">
+                              <Phone className="w-4 h-4" />
+                              <span className="font-mono">{r.telefono}</span>
+                            </div>
                           )}
-                        </td>
-                        <td className="p-2 text-xs text-muted-foreground">
-                          {r.details || r.error || '-'}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-                {results.length > 10 && (
-                  <p className="text-xs text-muted-foreground mt-2 text-center">
-                    ...y {results.length - 10} más. Descarga el Excel para ver todos.
-                  </p>
-                )}
+
+                          {/* Mensaje pre-formateado */}
+                          {r.mensaje && (
+                            <div className="bg-gray-50 dark:bg-gray-900 p-3 rounded-lg text-sm">
+                              <p className="whitespace-pre-wrap text-muted-foreground">{r.mensaje}</p>
+                            </div>
+                          )}
+
+                          {/* Acciones */}
+                          <div className="flex gap-2 flex-wrap">
+                            {r.linkComprobante && (
+                              <Button
+                                size="sm"
+                                variant="default"
+                                className="bg-blue-600 hover:bg-blue-700"
+                                onClick={() => window.open(r.linkComprobante!, '_blank')}
+                              >
+                                <Download className="w-4 h-4 mr-2" />
+                                Ver en Espacio Cliente
+                              </Button>
+                            )}
+                            {r.waLink && (
+                              <Button
+                                size="sm"
+                                className="bg-green-600 hover:bg-green-700"
+                                onClick={() => {
+                                  window.open(r.waLink!, '_blank')
+                                  toggleEnviado(r.uf)
+                                }}
+                              >
+                                <MessageSquare className="w-4 h-4 mr-2" />
+                                Enviar por WhatsApp
+                              </Button>
+                            )}
+                            {r.mensaje && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => copiarMensaje(r.mensaje!, r.nombre!)}
+                              >
+                                <Copy className="w-4 h-4 mr-2" />
+                                Copiar mensaje
+                              </Button>
+                            )}
+                            {!r.telefono && (
+                              <p className="text-sm text-amber-600 flex items-center gap-1">
+                                <AlertCircle className="w-4 h-4" />
+                                Sin teléfono registrado
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
               </div>
             </CardContent>
           </Card>

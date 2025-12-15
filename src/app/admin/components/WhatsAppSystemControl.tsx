@@ -69,10 +69,10 @@ export function WhatsAppSystemControl() {
       return
     }
 
-    // Poll cada 3 segundos (solo cuando es necesario)
+    // Poll cada 5 segundos (aumentado de 3s para reducir carga)
     const intervalId = setInterval(() => {
       loadStatus()
-    }, 3000)
+    }, 5000)
 
     return () => clearInterval(intervalId)
   }, [autoRefresh, status?.ready, status?.active, initiating, activating])

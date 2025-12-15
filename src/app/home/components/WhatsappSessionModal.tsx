@@ -238,13 +238,24 @@ export const WhatsappSessionModal: React.FC<WhatsappSessionModalProps> = ({ open
   useEffect(() => {
     if (!open || state !== 'waiting_qr') return
     
-    // Polling cada 10 segundos para obtener estado actualizado (incluyendo QRs nuevos)
+    let pollCount = 0;
+    const MAX_POLLS = 20; // Máximo 20 intentos = 5 minutos
+    
+    // Polling cada 15 segundos (reducido para evitar 429)
     const pollInterval = setInterval(async () => {
+      if (pollCount >= MAX_POLLS) {
+        logger.warn('⏹️ Máximo de polling alcanzado - deteniendo');
+        clearInterval(pollInterval);
+        return;
+      }
+      
+      pollCount++;
+      
       try {
         const { simpleWaState } = await import('@/lib/api/simpleWaApi')
         const st = await simpleWaState()
         
-        logger.log('🔍 Polling estado:', { 
+        logger.log(`🔍 Polling estado (${pollCount}/${MAX_POLLS}):`, { 
           ready: st.ready, 
           authenticated: st.authenticated,
           hasQR: !!st.qr,
@@ -259,6 +270,7 @@ export const WhatsappSessionModal: React.FC<WhatsappSessionModalProps> = ({ open
             state: st.ready ? 'ready' : 'syncing',
             qr: null, // Limpiar QR solo cuando está autenticado
           })
+          clearInterval(pollInterval); // Detener polling cuando conecta
         } else if (st.qr) {
           // Si hay un QR nuevo del backend, actualizarlo
           logger.log('📱 WhatsappSessionModal: QR detectado via polling, actualizando')
@@ -267,10 +279,15 @@ export const WhatsappSessionModal: React.FC<WhatsappSessionModalProps> = ({ open
             qr: st.qr,
           })
         }
-      } catch (e) {
-        console.error('❌ Error en polling de estado:', e)
+      } catch (e: any) {
+        console.error('❌ Error en polling de estado:', e);
+        // Si es 429, detener polling
+        if (e?.response?.status === 429) {
+          logger.error('🚫 Rate limit alcanzado - deteniendo polling del modal');
+          clearInterval(pollInterval);
+        }
       }
-    }, 10000) // Poll cada 10 segundos (reducido de 5s)
+    }, 15000) // Poll cada 15 segundos (aumentado de 10s para reducir carga)
     
     return () => clearInterval(pollInterval)
   }, [open, state, updateFromStatus])

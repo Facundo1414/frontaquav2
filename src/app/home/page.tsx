@@ -258,17 +258,7 @@ const handleClickFAQ = () => {
           color="bg-blue-600"
           badge="NUEVO"
         />
-        <RequiresPlan plan="PRO">
-          <ServiceCard
-            icon={<FileText className="w-6 h-6 text-white" />}
-            title="Generar Reportes de Deuda"
-            description="Genera PDFs individuales de intimación e instrucciones de pago"
-            onClick={() => setModalDevVisible(true)}
-            color="bg-indigo-500"
-            badge="EN DESARROLLO"
-            disabled
-          />
-        </RequiresPlan>
+
         <ServiceCard
           icon={<FileArchive className="w-6 h-6 text-white" />}
           title="Recuperar Archivos"
@@ -289,6 +279,14 @@ const handleClickFAQ = () => {
           description="Consulta dudas comunes sobre el uso de la plataforma"
           onClick={handleClickFAQ}
           color="bg-blue-500"
+        />
+        <ServiceCard
+          icon={<MessageCircle className="w-6 h-6 text-white" />}
+          title="Conversaciones WhatsApp"
+          description="Gestiona y responde mensajes de clientes en tiempo real"
+          onClick={() => router.push('/conversaciones')}
+          color="bg-green-500"
+          badge="NUEVO"
         />
         {isAdmin && (
           <ServiceCard

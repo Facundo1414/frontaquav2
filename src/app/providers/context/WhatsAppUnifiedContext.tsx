@@ -42,6 +42,7 @@ interface UnifiedWhatsAppStatus {
 
 interface WhatsAppUnifiedContextValue extends UnifiedWhatsAppStatus {
   refresh: () => void;
+  refreshStatus: () => Promise<void>;
 }
 
 const WhatsAppUnifiedContext = createContext<WhatsAppUnifiedContextValue | null>(null);
@@ -233,30 +234,21 @@ export function WhatsAppUnifiedProvider({ children }: { children: ReactNode }) {
     // Los usuarios normales NO necesitan saber el estado del sistema
     if (!isAdmin) return;
 
-    // 🔥 CRITICAL: Limpiar intervalo anterior si existe
+    // � NO hacer polling automático - solo bajo demanda
+    // El polling solo debe activarse cuando:
+    // 1. El usuario está en la página de WhatsApp (/home con modal abierto)
+    // 2. O cuando hay una operación activa que necesita verificar estado
+    
+    // El fetchSystemStatus se llamará solo cuando:
+    // - useWhatsAppUnified().refreshStatus() sea llamado explícitamente
+    // - Un componente necesite verificar el estado manualmente
+    
+    logger.log('📵 Polling automático deshabilitado - solo consultas bajo demanda');
+
+    // 🔥 CRITICAL: Limpiar cualquier intervalo anterior
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
       intervalRef.current = null;
-    }
-
-    // ✅ OPTIMIZACIÓN: Solo verificar si ya hay sesión activa
-    // No hacer llamada inicial automática
-    if (status.ready || status.authenticated) {
-      logger.log('🔍 Verificando estado de WhatsApp (sesión activa detectada)...');
-      fetchRef.current();
-    }
-
-    // Usar intervalo base de 30s, o el delay de retry si hay errores
-    const pollInterval = retryCount > 0 ? retryDelay : 30000; // 30 segundos
-    intervalRef.current = setInterval(() => {
-      // Solo verificar si hay sesión activa
-      if (status.ready || status.authenticated) {
-        fetchRef.current();
-      }
-    }, pollInterval);
-
-    if (process.env.NODE_ENV === 'development') {
-      logger.log(`⏱️ Polling iniciado con intervalo de ${pollInterval / 1000}s`);
     }
 
     return () => {
@@ -264,20 +256,31 @@ export function WhatsAppUnifiedProvider({ children }: { children: ReactNode }) {
         clearInterval(intervalRef.current);
         intervalRef.current = null;
       }
-      if (process.env.NODE_ENV === 'development') {
-        logger.log('⏹️ Polling detenido');
+    };
+
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
       }
     };
-  }, [isAdmin, retryCount, retryDelay, status.ready, status.authenticated]);
+  }, [isAdmin]);
+
+  // Método manual para refrescar estado cuando sea necesario
+  const refreshStatus = useCallback(async () => {
+    if (isAdmin) {
+      await fetchSystemStatus();
+    }
+  }, [isAdmin, fetchSystemStatus]);
 
   const refresh = useCallback(() => {
-    if (!isAdmin) {
+    if (isAdmin) {
       fetchSystemStatus();
     }
   }, [isAdmin, fetchSystemStatus]);
 
   return (
-    <WhatsAppUnifiedContext.Provider value={{ ...status, refresh }}>
+    <WhatsAppUnifiedContext.Provider value={{ ...status, refresh, refreshStatus }}>
       {children}
     </WhatsAppUnifiedContext.Provider>
   );
