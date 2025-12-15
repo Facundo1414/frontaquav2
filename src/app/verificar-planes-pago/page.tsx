@@ -151,25 +151,35 @@ export default function VerificarPlanesPagoPage() {
       const dbPhones = await getPhonesByUFs(ufs)
       console.log('📞 Teléfonos de BD:', dbPhones)
       
-      // 4. Normalizar teléfonos
-      const normalizePhone = (phone: any): string => {
-        if (!phone) return ''
+      // 4. Normalizar teléfonos (formato WhatsApp: +549...)
+      const normalizePhone = (phone: any): string | null => {
+        if (!phone) return null
+        
         // Convertir a string por si viene como número del Excel
         const phoneStr = String(phone).trim()
-        // Limpiar espacios, guiones, paréntesis
-        const cleaned = phoneStr.replace(/[\s\-()]/g, '')
-        // Asegurar que empiece con +
-        if (!cleaned.startsWith('+')) {
-          // Si empieza con 54, agregar +
-          if (cleaned.startsWith('54')) {
-            return '+' + cleaned
-          }
-          // Si es número argentino sin código país, agregar +54
-          if (cleaned.length >= 10) {
-            return '+54' + cleaned
-          }
+        
+        // Extraer solo dígitos
+        let digits = phoneStr.replace(/[^0-9]/g, '')
+        
+        // Remover leading 00 (prefijo internacional usado a veces)
+        if (digits.startsWith('00')) {
+          digits = digits.substring(2)
         }
-        return cleaned
+        
+        // Validar longitud (8-15 dígitos según estándar internacional)
+        if (digits.length < 8 || digits.length > 15) {
+          console.warn(`⚠️ Teléfono inválido (longitud ${digits.length}):`, phoneStr)
+          return null
+        }
+        
+        // Si no empieza con 54 (Argentina), agregarlo
+        if (!digits.startsWith('54')) {
+          // Asumimos que es un número argentino sin código de país
+          digits = '54' + digits
+        }
+        
+        // Retornar en formato E.164 con +
+        return '+' + digits
       }
       
       // 5. Mapear todo y generar mensajes/links (priorizar BD, luego Excel)
@@ -211,7 +221,7 @@ ${linkComprobante ? `Podés descargar tu comprobante aquí: ${linkComprobante}\n
         
         return {
           ...r,
-          telefono: telefonoOriginal,
+          telefono: telefonoNormalizado || null, // ✅ Guardar teléfono normalizado con formato +54...
           mensaje,
           waLink,
           linkComprobante,
