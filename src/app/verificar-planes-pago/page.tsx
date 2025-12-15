@@ -21,6 +21,7 @@ interface PaymentPlanResult {
   // Nuevos campos
   nombre?: string
   telefono?: string
+  telefonoExcel?: string
   deuda?: string
   mensaje?: string
   waLink?: string
