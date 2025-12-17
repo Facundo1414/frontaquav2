@@ -135,9 +135,40 @@ export default function VerificarPlanesPagoPage() {
                       'Cliente'
         
         // Intentar obtener teléfono del Excel (columnas senddebts)
-        const telefonoExcel = excelRow?.['tel_clien'] || excelRow?.['tel_uni'] ||
-                             excelRow?.['telefono'] || excelRow?.['Telefono'] || excelRow?.['TELEFONO'] ||
-                             excelRow?.['phone'] || excelRow?.['Phone'] || null
+        // Validar ambas columnas: tel_uni y tel_clien (ambas pueden tener números reales)
+        const candidatos = [
+          excelRow?.['tel_uni'],   // Primera prioridad
+          excelRow?.['tel_clien'], // Segunda prioridad (también puede tener números reales)
+          excelRow?.['telefono'],
+          excelRow?.['Telefono'], 
+          excelRow?.['TELEFONO'],
+          excelRow?.['phone'],
+          excelRow?.['Phone']
+        ]
+        
+        // Buscar el primer candidato que sea un teléfono válido
+        let telefonoExcel = null
+        for (const candidato of candidatos) {
+          if (!candidato) continue
+          const str = String(candidato).trim()
+          // Ignorar valores inválidos:
+          // - Muy cortos (menos de 5 caracteres)
+          // - Marcadores como "S/T", "sin", "n/a"
+          // - Patrones con espacios entre dígitos como "3 4 5 6" (NO son teléfonos)
+          // - Placeholders comunes como "400000"
+          // - Números con menos de 7 dígitos
+          // - Números que solo contienen 0s y 4s
+          if (str.length < 5 || 
+              str.match(/^(s\/t|sin|n\/a|na)$/i) || 
+              str.match(/^\d\s+\d/) || // "4 5 6" o "3 4" - estos NO son teléfonos
+              str === '400000' ||      // Placeholder común
+              str.replace(/\D/g, '').length < 7 || // Menos de 7 dígitos
+              /^[04]+$/.test(str.replace(/\D/g, ''))) { // Solo 0s y 4s como "400000"
+            continue
+          }
+          telefonoExcel = candidato
+          break
+        }
         
         return {
           ...r,
