@@ -1,9 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Upload, Download, CheckCircle2, Loader2, FileSpreadsheet, AlertCircle, Copy, MessageSquare, Phone, CheckCheck } from "lucide-react"
+import { Upload, Download, CheckCircle2, Loader2, FileSpreadsheet, AlertCircle, Copy, MessageSquare, Phone, CheckCheck, RefreshCw } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -45,8 +45,111 @@ export default function VerificarPlanesPagoPage() {
     enviados?: number
   } | null>(null)
   const [enviados, setEnviados] = useState<Set<number>>(new Set())
+  const [editingPhone, setEditingPhone] = useState<Record<number, string>>({})
 
   const { userId } = useGlobalContext()
+
+  // Cargar datos del localStorage al iniciar
+  useEffect(() => {
+    const savedResults = localStorage.getItem('verificar-planes-results')
+    const savedStats = localStorage.getItem('verificar-planes-stats')
+    const savedEnviados = localStorage.getItem('verificar-planes-enviados')
+    
+    if (savedResults) {
+      try {
+        setResults(JSON.parse(savedResults))
+        toast.info('Datos anteriores cargados', { duration: 3000 })
+      } catch (e) {
+        console.error('Error cargando resultados:', e)
+      }
+    }
+    
+    if (savedStats) {
+      try {
+        setStats(JSON.parse(savedStats))
+      } catch (e) {
+        console.error('Error cargando stats:', e)
+      }
+    }
+    
+    if (savedEnviados) {
+      try {
+        setEnviados(new Set(JSON.parse(savedEnviados)))
+      } catch (e) {
+        console.error('Error cargando enviados:', e)
+      }
+    }
+  }, [])
+
+  // Guardar datos en localStorage cuando cambien
+  useEffect(() => {
+    if (results) {
+      localStorage.setItem('verificar-planes-results', JSON.stringify(results))
+    }
+  }, [results])
+
+  useEffect(() => {
+    if (stats) {
+      localStorage.setItem('verificar-planes-stats', JSON.stringify(stats))
+    }
+  }, [stats])
+
+  useEffect(() => {
+    localStorage.setItem('verificar-planes-enviados', JSON.stringify(Array.from(enviados)))
+  }, [enviados])
+
+  // Función para normalizar teléfonos (formato WhatsApp: +549...)
+  const normalizePhone = (phone: any): string | null => {
+    if (!phone) return null
+    
+    // Convertir a string por si viene como número del Excel
+    const phoneStr = String(phone).trim()
+    
+    // Casos especiales: placeholders comunes
+    if (phoneStr.match(/^(s\/t|sin|n\/a|400000)$/i)) {
+      return null
+    }
+    
+    // Si tiene múltiples números separados, tomar el primero
+    if (phoneStr.includes('/')) {
+      const firstNumber = phoneStr.split('/')[0].trim()
+      return normalizePhone(firstNumber) // Recursivo con el primero
+    }
+    
+    // Extraer solo dígitos
+    let digits = phoneStr.replace(/[^0-9]/g, '')
+    
+    // Remover leading 00 (prefijo internacional usado a veces)
+    if (digits.startsWith('00')) {
+      digits = digits.substring(2)
+    }
+    
+    // 🆕 NORMALIZACIÓN INTELIGENTE: Números cortos (6-7 dígitos)
+    // Asumir que son teléfonos fijos de Córdoba sin código de área
+    if (digits.length >= 6 && digits.length <= 7) {
+      console.log(`📞 Número corto detectado: ${phoneStr} → Agregando código 351`)
+      digits = '351' + digits
+    }
+    
+    // Validar longitud (8-15 dígitos según estándar internacional)
+    if (digits.length < 8 || digits.length > 15) {
+      console.warn(`⚠️ Teléfono inválido (longitud ${digits.length}):`, phoneStr)
+      return null
+    }
+    
+    // Si ya tiene código de país (54), remover
+    const withoutCountryCode = digits.startsWith('54')
+      ? digits.substring(2)
+      : digits
+    
+    // Agregar 9 si no lo tiene (celulares argentinos)
+    const withNine = withoutCountryCode.startsWith('9')
+      ? withoutCountryCode
+      : `9${withoutCountryCode}`
+    
+    // Formato final: +549XXXXXXXXXX (sin espacios para WhatsApp)
+    return `+54${withNine}`
+  }
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -60,6 +163,17 @@ export default function VerificarPlanesPagoPage() {
         toast.error('Por favor selecciona un archivo Excel (.xlsx o .xls)')
       }
     }
+  }
+
+  const limpiarCache = () => {
+    localStorage.removeItem('verificar-planes-results')
+    localStorage.removeItem('verificar-planes-stats')
+    localStorage.removeItem('verificar-planes-enviados')
+    setResults(null)
+    setStats(null)
+    setEnviados(new Set())
+    setFile(null)
+    toast.success('Datos limpiados correctamente')
   }
 
   const processFile = async () => {
@@ -135,15 +249,16 @@ export default function VerificarPlanesPagoPage() {
                       'Cliente'
         
         // Intentar obtener teléfono del Excel (columnas senddebts)
-        // Validar ambas columnas: tel_uni y tel_clien (ambas pueden tener números reales)
+        // ⚠️ IMPORTANTE: tel_uni es MÁS CONFIABLE que tel_clien
+        // tel_clien a veces contiene datos basura como "1 2 3" o "4 ultima"
         const candidatos = [
-          excelRow?.['tel_uni'],   // Primera prioridad
-          excelRow?.['tel_clien'], // Segunda prioridad (también puede tener números reales)
+          excelRow?.['tel_uni'],   // Primera prioridad - MÁS CONFIABLE
           excelRow?.['telefono'],
           excelRow?.['Telefono'], 
           excelRow?.['TELEFONO'],
           excelRow?.['phone'],
-          excelRow?.['Phone']
+          excelRow?.['Phone'],
+          excelRow?.['tel_clien'], // Última prioridad - puede tener basura
         ]
         
         // Buscar el primer candidato que sea un teléfono válido
@@ -182,38 +297,7 @@ export default function VerificarPlanesPagoPage() {
       const dbPhones = await getPhonesByUFs(ufs)
       console.log('📞 Teléfonos de BD:', dbPhones)
       
-      // 4. Normalizar teléfonos (formato WhatsApp: +549...)
-      const normalizePhone = (phone: any): string | null => {
-        if (!phone) return null
-        
-        // Convertir a string por si viene como número del Excel
-        const phoneStr = String(phone).trim()
-        
-        // Extraer solo dígitos
-        let digits = phoneStr.replace(/[^0-9]/g, '')
-        
-        // Remover leading 00 (prefijo internacional usado a veces)
-        if (digits.startsWith('00')) {
-          digits = digits.substring(2)
-        }
-        
-        // Validar longitud (8-15 dígitos según estándar internacional)
-        if (digits.length < 8 || digits.length > 15) {
-          console.warn(`⚠️ Teléfono inválido (longitud ${digits.length}):`, phoneStr)
-          return null
-        }
-        
-        // Si no empieza con 54 (Argentina), agregarlo
-        if (!digits.startsWith('54')) {
-          // Asumimos que es un número argentino sin código de país
-          digits = '54' + digits
-        }
-        
-        // Retornar en formato E.164 con +
-        return '+' + digits
-      }
-      
-      // 5. Mapear todo y generar mensajes/links (priorizar BD, luego Excel)
+      // 4. Mapear todo y generar mensajes/links (priorizar BD, luego Excel)
       const finalResults = enrichedResults.map((r: PaymentPlanResult) => {
         // Priorizar BD, luego Excel
         const telefonoOriginal = dbPhones[r.uf] || r.telefonoExcel || null
@@ -267,6 +351,7 @@ Se puede pagar por Mercado Pago, Rapipago y Pago facil
       const withoutPlan = finalResults.filter((r: PaymentPlanResult) => !r.hasPaymentPlan && !r.error).length
       const errors = finalResults.filter((r: PaymentPlanResult) => r.error).length
       const conTelefono = finalResults.filter((r: PaymentPlanResult) => r.telefono).length
+      const sinTelefono = finalResults.filter((r: PaymentPlanResult) => !r.telefono && !r.error).length
 
       setStats({
         total: finalResults.length,
@@ -276,6 +361,13 @@ Se puede pagar por Mercado Pago, Rapipago y Pago facil
         conTelefono,
         enviados: 0,
       })
+
+      // 🆕 Mostrar advertencia si hay registros sin teléfono
+      if (sinTelefono > 0) {
+        toast.warning(`⚠️ ${sinTelefono} cliente(s) sin teléfono válido. Puedes corregirlos manualmente en la base de datos.`, {
+          duration: 8000
+        })
+      }
 
       toast.success('Verificación completada')
     } catch (error: any) {
@@ -293,12 +385,12 @@ Se puede pagar por Mercado Pago, Rapipago y Pago facil
     const dataToExport = results.map((r: any) => ({
       'UF': r.uf,
       'Nombre': r.nombre || '',
-      'Teléfono': r.telefono || 'Sin teléfono',
+      'Teléfono': r.telefono || '⚠️ SIN TELÉFONO - CORREGIR',
       'Estado': r.estadoSimple || 'Sin plan',
       'Puede generar comprobante': r.puedeGenerarComprobante ? 'SÍ' : 'NO',
       'Link Espacio Cliente': r.linkComprobante || '',
       'Enviado': enviados.has(r.uf) ? 'SÍ' : 'NO',
-      'Link WhatsApp': r.waLink || '',
+      'Link WhatsApp': r.waLink || '⚠️ Sin teléfono',
       'Mensaje pre-armado': r.mensaje || '',
       'OBSERVACIONES': '', // Columna para notas del usuario
     }))
@@ -309,7 +401,7 @@ Se puede pagar por Mercado Pago, Rapipago y Pago facil
     const colWidths = [
       { wch: 10 },  // UF
       { wch: 25 },  // Nombre
-      { wch: 18 },  // Teléfono
+      { wch: 25 },  // Teléfono (más ancho para advertencia)
       { wch: 15 },  // Estado
       { wch: 22 },  // Puede generar comprobante
       { wch: 60 },  // Link Espacio Cliente
@@ -327,7 +419,14 @@ Se puede pagar por Mercado Pago, Rapipago y Pago facil
     const fileName = `planes_pago_${new Date().toISOString().split('T')[0]}.xlsx`
     XLSX.writeFile(wb, fileName)
 
-    toast.success('Excel descargado con links de WhatsApp y mensajes listos para usar')
+    const sinTelefono = results.filter((r: any) => !r.telefono).length
+    if (sinTelefono > 0) {
+      toast.success(`Excel descargado. ⚠️ ${sinTelefono} cliente(s) marcados como "SIN TELÉFONO" requieren corrección manual.`, {
+        duration: 8000
+      })
+    } else {
+      toast.success('Excel descargado con links de WhatsApp y mensajes listos para usar')
+    }
   }
 
   const copiarMensaje = (mensaje: string, nombre: string) => {
@@ -395,17 +494,81 @@ Se puede pagar por Mercado Pago, Rapipago y Pago facil
     })
   }
 
+  const updatePhoneForClient = (uf: number, newPhone: string) => {
+    // Actualizar el teléfono en los resultados
+    if (!results) return
+    
+    const normalized = normalizePhone(newPhone)
+    if (!normalized) {
+      toast.error('Teléfono inválido. Formato: 351XXXXXXX o 3513XXXXXX')
+      return
+    }
+    
+    const updatedResults = results.map(r => {
+      if (r.uf === uf) {
+        const mensaje = r.mensaje || generarMensaje(r.nombre!, r.deuda!)
+        const waLink = `https://wa.me/${normalized.substring(1)}?text=${encodeURIComponent(mensaje)}`
+        return {
+          ...r,
+          telefono: normalized,
+          waLink,
+          mensaje
+        }
+      }
+      return r
+    })
+    
+    setResults(updatedResults)
+    
+    // Actualizar stats
+    if (stats) {
+      const withPhone = updatedResults.filter(r => r.telefono).length
+      setStats({
+        ...stats,
+        conTelefono: withPhone
+      })
+    }
+    
+    // Limpiar el estado de edición
+    setEditingPhone(prev => {
+      const newState = { ...prev }
+      delete newState[uf]
+      return newState
+    })
+    
+    toast.success('Teléfono actualizado correctamente')
+  }
+
+  const generarMensaje = (nombre: string, deuda: string) => {
+    return `Hola ${nombre}, te envío tu comprobante actualizado de la CUOTA PLAN DE PAGOS.\nPor favor, realiza el pago antes del vencimiento.\nSe puede pagar por Mercado Pago, Rapipago y Pago facil\n\n🌐 Cclip  •  Al servicio de Aguas Cordobesas.`
+  }
+
   return (
     <div className="container mx-auto py-8 px-4 max-w-6xl">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2 flex items-center gap-3">
-          <FileSpreadsheet className="w-8 h-8 text-blue-500" />
-          Verificar Planes de Pago
-        </h1>
-        <p className="text-muted-foreground">
-          Carga un archivo Excel con UFs y verifica automáticamente qué cuentas tienen planes de pago vigentes
-        </p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold mb-2 flex items-center gap-3">
+              <FileSpreadsheet className="w-8 h-8 text-blue-500" />
+              Verificar Planes de Pago
+            </h1>
+            <p className="text-muted-foreground">
+              Carga un archivo Excel con UFs y verifica automáticamente qué cuentas tienen planes de pago vigentes
+            </p>
+          </div>
+          {(results || stats) && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={limpiarCache}
+              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+            >
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Limpiar y Empezar de Nuevo
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Instrucciones */}
@@ -589,13 +752,36 @@ Se puede pagar por Mercado Pago, Rapipago y Pago facil
                             </div>
                           </div>
 
-                          {/* Teléfono */}
-                          {r.telefono && (
-                            <div className="flex items-center gap-2 text-sm">
-                              <Phone className="w-4 h-4" />
+                          {/* Teléfono - Editable si no existe */}
+                          <div className="flex items-center gap-2 text-sm">
+                            <Phone className="w-4 h-4" />
+                            {r.telefono ? (
                               <span className="font-mono">{r.telefono}</span>
-                            </div>
-                          )}
+                            ) : (
+                              <div className="flex items-center gap-2">
+                                <input
+                                  type="text"
+                                  placeholder="Ingresar teléfono (ej: 3514123456)"
+                                  className="px-3 py-2 border-2 border-amber-400 bg-amber-50 dark:bg-amber-950 dark:border-amber-600 rounded-lg text-sm flex-1 min-w-[220px] focus:border-amber-500 focus:ring-2 focus:ring-amber-200 dark:focus:ring-amber-900 transition-all placeholder:text-amber-600/50 dark:placeholder:text-amber-400/50"
+                                  value={editingPhone[r.uf] || ''}
+                                  onChange={(e) => setEditingPhone(prev => ({ ...prev, [r.uf]: e.target.value }))}
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter' && editingPhone[r.uf]) {
+                                      updatePhoneForClient(r.uf, editingPhone[r.uf])
+                                    }
+                                  }}
+                                />
+                                <Button
+                                  size="sm"
+                                  className="bg-amber-500 hover:bg-amber-600 text-white"
+                                  disabled={!editingPhone[r.uf]}
+                                  onClick={() => updatePhoneForClient(r.uf, editingPhone[r.uf])}
+                                >
+                                  Guardar
+                                </Button>
+                              </div>
+                            )}
+                          </div>
 
                           {/* Mensaje pre-formateado */}
                           {r.mensaje && (
@@ -649,12 +835,6 @@ Se puede pagar por Mercado Pago, Rapipago y Pago facil
                                 <Copy className="w-4 h-4 mr-2" />
                                 Copiar mensaje
                               </Button>
-                            )}
-                            {!r.telefono && (
-                              <p className="text-sm text-amber-600 flex items-center gap-1">
-                                <AlertCircle className="w-4 h-4" />
-                                Sin teléfono registrado
-                              </p>
                             )}
                           </div>
                         </div>
