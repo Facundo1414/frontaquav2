@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Upload, Download, CheckCircle2, Loader2, FileSpreadsheet, AlertCircle, Copy, MessageSquare, Phone, CheckCheck, RefreshCw, Trash2, Edit3 } from "lucide-react"
@@ -93,6 +93,9 @@ export default function VerificarPlanesPagoPage() {
   // ⚠️ NO inicializar sentCount con datos guardados - solo cuenta envíos nuevos en esta sesión
   const [sentCount, setSentCount] = useState(0)
   const [currentVariantId, setCurrentVariantId] = useState<number | null>(null)
+  
+  // 🔄 Referencia a la ventana de WhatsApp para reutilizarla
+  const whatsappWindowRef = React.useRef<Window | null>(null)
 
   const { userId } = useGlobalContext()
 
@@ -674,6 +677,27 @@ Se puede pagar por Mercado Pago, Rapipago y Pago facil
     return `Hola ${nombre}, te envío tu comprobante actualizado de la CUOTA PLAN DE PAGOS.\nPor favor, realiza el pago antes del vencimiento.\nSe puede pagar por Mercado Pago, Rapipago y Pago facil\n\n🌐 Cclip  •  Al servicio de Aguas Cordobesas.`
   }
 
+  // 🔄 Función para abrir WhatsApp reutilizando la misma pestaña
+  const abrirWhatsApp = (waLink: string, uf: number) => {
+    // Intentar reutilizar la ventana existente
+    if (whatsappWindowRef.current && !whatsappWindowRef.current.closed) {
+      // La ventana existe y está abierta - cambiar su ubicación
+      whatsappWindowRef.current.location.href = waLink
+      whatsappWindowRef.current.focus()
+    } else {
+      // Abrir nueva ventana y guardar referencia
+      whatsappWindowRef.current = window.open(waLink, 'whatsapp_window')
+    }
+    
+    // Marcar como enviado
+    toggleEnviado(uf)
+    
+    // Mostrar toast informativo
+    toast.success('WhatsApp abierto. Vuelve aquí para continuar con el siguiente cliente.', {
+      duration: 3000
+    })
+  }
+
   return (
     <div className="container mx-auto py-8 px-4 max-w-6xl">
       {/* Header */}
@@ -1009,10 +1033,7 @@ Se puede pagar por Mercado Pago, Rapipago y Pago facil
                               <Button
                                 size="sm"
                                 className="bg-green-600 hover:bg-green-700"
-                                onClick={() => {
-                                  window.open(r.waLink!, '_blank')
-                                  toggleEnviado(r.uf)
-                                }}
+                                onClick={() => abrirWhatsApp(r.waLink!, r.uf)}
                               >
                                 <MessageSquare className="w-4 h-4 mr-2" />
                                 Enviar por WhatsApp
