@@ -70,10 +70,10 @@ export function useSendWithWhatsAppCheck() {
             setState("error");
             toast.warning(`⚠️ ${msg}`, {
               description: reason?.includes("horario")
-                ? "Los mensajes se envían de 9:00 a 16:00 hs"
+                ? "Los mensajes se envían de 8:00 a 16:00 hs"
                 : reason?.includes("Límite")
-                ? "Volvé mañana para más mensajes"
-                : undefined,
+                  ? "Volvé mañana para más mensajes"
+                  : undefined,
             });
             return;
           }

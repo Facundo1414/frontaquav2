@@ -45,45 +45,40 @@ export function StepVerifyWhatsApp() {
 
   /**
    * Normalizar y formatear número de teléfono
-   * Acepta: 3513479404, +543513479404, 543513479404
-   * Retorna: +543513479404 (formato internacional Argentina)
+   * Acepta: 3513479404, +543513479404, 543513479404, +5493513479404
+   * Retorna: +5493513479404 (formato internacional Argentina con 9)
+   * 
+   * ⚠️ IMPORTANTE: WhatsApp requiere el formato +549 (con el 9 después del 54)
    */
   const normalizePhone = (phone: string): string | null => {
     if (!phone) return null
     
     // Limpiar espacios, guiones, paréntesis
-    const cleaned = phone.replace(/[\s\-()]/g, '')
+    let cleaned = phone.replace(/[\s\-()]/g, '')
     
     // Solo dígitos
-    const digits = cleaned.replace(/\D/g, '')
+    let digits = cleaned.replace(/\D/g, '')
     
     // Validar longitud (mínimo 8 dígitos)
     if (digits.length < 8) return null
     
-    // Si ya tiene + al inicio, retornar
-    if (cleaned.startsWith('+')) return cleaned
-    
-    // Si tiene 10 dígitos (ej: 3513479404), agregar código país Argentina
-    if (digits.length === 10) {
-      return `+54${digits}`
+    // Remover leading 00 (prefijo internacional usado a veces)
+    if (digits.startsWith('00')) {
+      digits = digits.substring(2)
     }
     
-    // Si tiene 12 dígitos y empieza con 54 (ej: 543513479404)
-    if (digits.length === 12 && digits.startsWith('54')) {
-      return `+${digits}`
-    }
+    // Si ya tiene código de país (54), remover
+    const withoutCountryCode = digits.startsWith('54')
+      ? digits.substring(2)
+      : digits
     
-    // Si tiene 13 dígitos y empieza con 549 (formato móvil con 9)
-    if (digits.length === 13 && digits.startsWith('549')) {
-      return `+${digits}`
-    }
+    // Agregar 9 si no lo tiene (celulares argentinos)
+    const withNine = withoutCountryCode.startsWith('9')
+      ? withoutCountryCode
+      : `9${withoutCountryCode}`
     
-    // Otros casos: retornar con + si tiene más de 10 dígitos
-    if (digits.length > 10) {
-      return `+${digits}`
-    }
-    
-    return `+54${digits}`
+    // Formato final: +549XXXXXXXXXX (sin espacios para WhatsApp)
+    return `+54${withNine}`
   }
 
   const handleVerify = async () => {
@@ -136,8 +131,9 @@ export function StepVerifyWhatsApp() {
         let source = rawPhone ? 'database' : 'excel'
         
         // Prioridad 2: Teléfono del Excel
+        // ⚠️ IMPORTANTE: tel_uni es MÁS CONFIABLE que tel_clien
         if (!rawPhone) {
-          rawPhone = record.tel_clien || record.tel_uni || record.telefono
+          rawPhone = record.tel_uni || record.telefono || record.tel_clien
         }
         
         logger.log(`Registro UF ${uf} (${record.Cliente_01}):`)

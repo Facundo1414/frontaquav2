@@ -1,8 +1,10 @@
 'use client'
 import dynamic from 'next/dynamic'
+import { useState } from 'react'
 import { ProximosVencerProvider, useProximosVencerContext } from '../providers/context/ProximosVencerContext'
 import { Card, CardContent } from '@/components/ui/card'
 import { AlertCircle, Loader2 } from 'lucide-react'
+import { JobRecoveryNotification } from '@/components/JobRecoveryNotification'
 
 // 🚀 Lazy load de componentes pesados
 const StepsSidebarProximosVencer = dynamic(() => import('./components/StepsSidebarProximosVencer').then(mod => ({ default: mod.StepsSidebarProximosVencer })), {
@@ -63,10 +65,30 @@ function StepContent({ step }: { step: number }) {
 }
 
 function Content() {
-  const { activeStep } = useProximosVencerContext()
+  const { activeStep, setActiveStep } = useProximosVencerContext()
+  const [showRecoveryNotification, setShowRecoveryNotification] = useState(true)
+
+  const handleRecoverJob = (jobId: string, progress: number) => {
+    // Determinar paso según progreso
+    if (progress >= 66) {
+      setActiveStep(2) // Download
+    } else if (progress >= 33) {
+      setActiveStep(1) // Send
+    }
+    setShowRecoveryNotification(false)
+  }
 
   return (
     <div className="min-h-screen px-6 py-4 space-y-4 max-w-[1600px] mx-auto">
+      {/* Notificación de recuperación */}
+      {showRecoveryNotification && (
+        <JobRecoveryNotification
+          jobType="proximos_vencer"
+          onRecover={handleRecoverJob}
+          onDismiss={() => setShowRecoveryNotification(false)}
+        />
+      )}
+      
       {/* 🧪 Banner de prueba - Más compacto */}
       <div className="bg-amber-50 border-l-4 border-amber-500 p-3 rounded-r-lg">
         <div className="flex items-center gap-2">

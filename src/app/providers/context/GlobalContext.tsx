@@ -2,6 +2,8 @@
 'use client'
 import { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { tokenManager } from '@/lib/tokenManager';
+import { useWebSocket } from '@/hooks/useWebSocket';
+import type { Socket } from 'socket.io-client';
 
 interface GlobalContextType {
   //excelFileByUser: { data: ExcelRow[]; fileName: string; isSentOrUsed: boolean } | null;
@@ -15,6 +17,8 @@ interface GlobalContextType {
   setUsernameGlobal: (username: string) => void;
   userId: string; // 🆕 User ID (UID) from Supabase
   setUserId: (id: string) => void;
+  socket: Socket | null; // 🆕 WebSocket global
+  connected: boolean; // 🆕 Estado de conexión
 }
 
 const GlobalContext = createContext<GlobalContextType | undefined>(undefined);
@@ -25,6 +29,9 @@ export const GlobalProvider = ({ children }: { children: ReactNode }) => {
   const [refreshToken, setRefreshTokenState] = useState<string>('');
   const [usernameGlobal, setUsernameGlobal] = useState('');
   const [userId, setUserId] = useState<string>(''); // 🆕 User ID state
+
+  // 🆕 WebSocket global inicializado UNA VEZ al montar el provider
+  const { socket, connected } = useWebSocket();
 
   // Sincronizar accessToken con localStorage al cargar la app
   useEffect(() => {
@@ -67,6 +74,30 @@ export const GlobalProvider = ({ children }: { children: ReactNode }) => {
     else localStorage.removeItem('userId');
   }, [userId]);
 
+  // 🆕 Suscribir automáticamente al usuario cuando el socket esté conectado
+  useEffect(() => {
+    if (!socket || !connected || !userId) {
+      if (!socket) console.log('⏳ [GlobalContext] Socket no inicializado aún');
+      if (!connected) console.log('⏳ [GlobalContext] Socket no conectado aún');
+      if (!userId) console.log('⏳ [GlobalContext] UserId no disponible aún');
+      return;
+    }
+
+    console.log('✅ [GlobalContext] Suscribiendo usuario al WebSocket:', userId);
+    console.log('🆔 [GlobalContext] Socket ID:', socket.id);
+    console.log('🔌 [GlobalContext] Socket connected:', socket.connected);
+    console.log('📡 [GlobalContext] Emitiendo whatsapp:subscribe...');
+    
+    // ✅ Callback como tercer parámetro para recibir acknowledgment
+    socket.emit('whatsapp:subscribe', { userId }, (response: any) => {
+      console.log('✅ [GlobalContext] Suscripción confirmada:', response);
+    });
+
+    return () => {
+      console.log('🔌 [GlobalContext] Usuario desconectado del WebSocket');
+    };
+  }, [socket, connected, userId]);
+
   // Función mejorada para setear tokens
   const setAccessToken = (token: string) => {
     setAccessTokenState(token);
@@ -106,6 +137,8 @@ export const GlobalProvider = ({ children }: { children: ReactNode }) => {
         setUsernameGlobal,
         userId, // 🆕 Export userId
         setUserId, // 🆕 Export setUserId
+        socket, // 🆕 Export socket global
+        connected, // 🆕 Export estado de conexión
       }}
     >
       {children}

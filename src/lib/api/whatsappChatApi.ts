@@ -41,8 +41,20 @@ export interface SendReplyPayload {
 
 export interface SendTemplatePayload {
   templateName: string;
-  languageCode: string;
-  components?: any[];
+  params?: string[];
+}
+
+export interface WhatsAppTemplate {
+  id: string;
+  name: string;
+  language: string;
+  status: string;
+  category: string;
+  components: Array<{
+    type: string;
+    text?: string;
+    parameters?: any[];
+  }>;
 }
 
 export const whatsappChatApi = {
@@ -79,13 +91,21 @@ export const whatsappChatApi = {
     return data;
   },
 
+  // Obtener templates aprobados
+  getTemplates: async () => {
+    const { data } = await api.get("/whatsapp-chat/templates", {
+      headers: withAuth(),
+    });
+    return data as WhatsAppTemplate[];
+  },
+
   // Enviar template (fuera de ventana de 24hs)
   sendTemplate: async (
     conversationId: string,
     payload: SendTemplatePayload
   ) => {
     const { data } = await api.post(
-      `/whatsapp-chat/conversations/${conversationId}/template`,
+      `/whatsapp-chat/conversations/${conversationId}/send-template`,
       payload,
       {
         headers: withAuth(),
@@ -98,6 +118,18 @@ export const whatsappChatApi = {
   archiveConversation: async (conversationId: string) => {
     const { data } = await api.post(
       `/whatsapp-chat/conversations/${conversationId}/archive`,
+      {},
+      {
+        headers: withAuth(),
+      }
+    );
+    return data;
+  },
+
+  // Marcar conversación como leída
+  markAsRead: async (conversationId: string) => {
+    const { data } = await api.post(
+      `/whatsapp-chat/conversations/${conversationId}/mark-read`,
       {},
       {
         headers: withAuth(),

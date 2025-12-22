@@ -110,7 +110,7 @@ export function WhatsAppUnifiedProvider({ children }: { children: ReactNode }) {
         const data = response.data.data;
 
         const maxPerDay = parseInt(process.env.NEXT_PUBLIC_MAX_MESSAGES_PER_DAY || '300');
-        const workStart = parseInt(process.env.NEXT_PUBLIC_WORKING_HOURS_START || '9');
+        const workStart = parseInt(process.env.NEXT_PUBLIC_WORKING_HOURS_START || '8');
         const workEnd = parseInt(process.env.NEXT_PUBLIC_WORKING_HOURS_END || '16');
 
         const currentHour = new Date().getHours();

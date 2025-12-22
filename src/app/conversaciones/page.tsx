@@ -1,56 +1,58 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { io, Socket } from "socket.io-client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { MessageCircle, Clock, CheckCheck, Check, Send, Archive, Search, AlertCircle, MoreVertical, Paperclip, Smile, Mic, User } from "lucide-react";
+import { MessageCircle, Clock, CheckCheck, Check, Send, Archive, Search, AlertCircle, Home, Filter, Wifi, WifiOff, User, Calendar, DollarSign } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
-import { whatsappChatApi, Conversation, Message } from "@/lib/api/whatsappChatApi";
+import { whatsappChatApi, Conversation, Message, WhatsAppTemplate } from "@/lib/api/whatsappChatApi";
 import { toast } from "sonner";
 import { getAccessToken } from "@/utils/authToken";
 import { useGlobalContext } from "@/app/providers/context/GlobalContext";
+import { useRouter } from "next/navigation";
 
 export default function ConversacionesPage() {
-  const { userId } = useGlobalContext();
+  const router = useRouter();
+  const { userId, socket, connected } = useGlobalContext();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [replyText, setReplyText] = useState("");
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-  const socketRef = useRef<Socket | null>(null);
+  const [filterType, setFilterType] = useState<"all" | "unread" | "active" | "expired">("all");
+  const [showClientPanel, setShowClientPanel] = useState(false);
+  const [showTemplateModal, setShowTemplateModal] = useState(false);
+  const [templates, setTemplates] = useState<WhatsAppTemplate[]>([]);
+  const [selectedTemplate, setSelectedTemplate] = useState<WhatsAppTemplate | null>(null);
+  const [loadingTemplates, setLoadingTemplates] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Inicializar WebSocket
+  // Cargar templates cuando se abre el modal
   useEffect(() => {
-    const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
-    const token = getAccessToken();
-    
-    if (!token || !userId) {
-      toast.error("No se encontró token de autenticación");
-      return;
+    if (showTemplateModal && templates.length === 0) {
+      loadTemplates();
     }
+  }, [showTemplateModal]);
 
-    const socket = io(API_URL, {
-      auth: { token },
-      transports: ["websocket", "polling"],
-    });
+  // Suscribirse a eventos de WhatsApp cuando el socket esté conectado
+  useEffect(() => {
+    if (!socket || !connected || !userId) return;
 
-    socket.on("connect", () => {
-      console.log("✅ Conectado al servidor de chat");
-      console.log("📡 Suscribiendo al usuario:", userId);
-      
-      // Suscribirse al canal de WhatsApp del usuario
-      socket.emit("whatsapp:subscribe", { userId });
-      console.log("✅ Evento de suscripción enviado");
-    });
+    console.log("✅ [Conversaciones] Socket ya conectado en GlobalContext");
+    console.log("🆔 Socket ID:", socket.id);
 
-    socket.on("new_message", (message: Message) => {
+    // Debug: Escuchar CUALQUIER evento
+    const handleAnyEvent = (eventName: string, ...args: any[]) => {
+      console.log(`🔔 Evento recibido: ${eventName}`, args);
+    };
+    socket.onAny(handleAnyEvent);
+
+    const handleNewMessage = (message: Message) => {
       console.log("📨 Nuevo mensaje recibido:", message);
       
       // Actualizar lista de conversaciones
@@ -82,9 +84,9 @@ export default function ConversacionesPage() {
         // Notificar sobre nuevo mensaje en otra conversación
         toast.info(`Nuevo mensaje de ${conversations.find(c => c.id === message.conversation_id)?.client_name || 'un cliente'}`);
       }
-    });
+    };
 
-    socket.on("message_status", (status: any) => {
+    const handleMessageStatus = (status: any) => {
       console.log("📊 Estado de mensaje actualizado:", status);
       setMessages((prev) =>
         prev.map((msg) =>
@@ -93,18 +95,17 @@ export default function ConversacionesPage() {
             : msg
         )
       );
-    });
+    };
 
-    socket.on("disconnect", () => {
-      console.log("❌ Desconectado del servidor de chat");
-    });
-
-    socketRef.current = socket;
+    socket.on("new_message", handleNewMessage);
+    socket.on("message_status", handleMessageStatus);
 
     return () => {
-      socket.disconnect();
+      socket.off("new_message", handleNewMessage);
+      socket.off("message_status", handleMessageStatus);
+      socket.offAny(handleAnyEvent);
     };
-  }, [userId]);
+  }, [socket, connected, userId, selectedConversation]);
 
   // Cargar conversaciones iniciales
   useEffect(() => {
@@ -115,6 +116,19 @@ export default function ConversacionesPage() {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  // Shortcuts de teclado
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && selectedConversation) {
+        setSelectedConversation(null);
+        setMessages([]);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [selectedConversation]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -149,12 +163,58 @@ export default function ConversacionesPage() {
     }
   };
 
-  const markAsRead = (conversationId: string) => {
-    setConversations((prev) =>
-      prev.map((conv) =>
-        conv.id === conversationId ? { ...conv, unread_count: 0 } : conv
-      )
-    );
+  const markAsRead = async (conversationId: string) => {
+    try {
+      // Actualizar en el backend
+      await whatsappChatApi.markAsRead(conversationId);
+      
+      // Actualizar estado local
+      setConversations((prev) =>
+        prev.map((conv) =>
+          conv.id === conversationId ? { ...conv, unread_count: 0 } : conv
+        )
+      );
+    } catch (error) {
+      console.error("Error marcando como leído:", error);
+    }
+  };
+
+  const loadTemplates = async () => {
+    setLoadingTemplates(true);
+    try {
+      const templatesData = await whatsappChatApi.getTemplates();
+      setTemplates(templatesData);
+    } catch (error) {
+      console.error("Error cargando templates:", error);
+      toast.error("Error al cargar templates");
+    } finally {
+      setLoadingTemplates(false);
+    }
+  };
+
+  const sendTemplate = async () => {
+    if (!selectedConversation || !selectedTemplate) {
+      toast.error("Por favor, selecciona una plantilla");
+      return;
+    }
+
+    try {
+      await whatsappChatApi.sendTemplate(selectedConversation.id, {
+        templateName: selectedTemplate.name,
+        params: [], // TODO: Agregar extracción de parámetros si el template los requiere
+      });
+      
+      toast.success("Plantilla enviada correctamente");
+      setSelectedTemplate(null);
+      setShowTemplateModal(false);
+      
+      // Recargar mensajes
+      const msgs = await whatsappChatApi.getMessages(selectedConversation.id, 1, 50);
+      setMessages(msgs);
+    } catch (error) {
+      console.error("Error enviando plantilla:", error);
+      toast.error("Error al enviar plantilla");
+    }
   };
 
   const sendReply = async () => {
@@ -220,11 +280,30 @@ export default function ConversacionesPage() {
       .slice(0, 2);
   };
 
-  const filteredConversations = conversations.filter(
-    (conv) =>
+  const filteredConversations = conversations.filter((conv) => {
+    // Filtro de búsqueda
+    const matchesSearch =
       conv.client_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      conv.client_phone?.includes(searchTerm)
-  );
+      conv.client_phone?.includes(searchTerm);
+
+    if (!matchesSearch) return false;
+
+    // Filtros por tipo
+    const isWithinWindow = conv.conversation_window_expires_at
+      ? new Date(conv.conversation_window_expires_at) > new Date()
+      : false;
+
+    switch (filterType) {
+      case "unread":
+        return conv.unread_count > 0;
+      case "active":
+        return isWithinWindow;
+      case "expired":
+        return !isWithinWindow;
+      default:
+        return true;
+    }
+  });
 
   const isWithinWindow = selectedConversation?.conversation_window_expires_at
     ? new Date(selectedConversation.conversation_window_expires_at) > new Date()
@@ -250,6 +329,15 @@ export default function ConversacionesPage() {
         {/* Header */}
         <div className="h-[60px] px-4 bg-[#202C33] flex items-center justify-between">
           <div className="flex items-center gap-3">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => router.push('/home')}
+              className="text-[#AEBAC1] hover:text-white hover:bg-[#2A3942] rounded-full"
+              title="Volver al home"
+            >
+              <Home className="h-5 w-5" />
+            </Button>
             <div className="w-10 h-10 rounded-full bg-[#00A884] flex items-center justify-center">
               <MessageCircle className="h-5 w-5 text-white" />
             </div>
@@ -257,8 +345,18 @@ export default function ConversacionesPage() {
               Chats
             </h1>
           </div>
-          <div className="flex items-center gap-6 text-[#AEBAC1]">
-            <MoreVertical className="h-5 w-5 cursor-pointer hover:text-white" />
+          <div className="flex items-center gap-2">
+            {connected ? (
+              <div className="flex items-center gap-1 text-green-400" title="Conectado">
+                <Wifi className="h-4 w-4" />
+                <span className="text-xs">En línea</span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-1 text-red-400" title="Desconectado">
+                <WifiOff className="h-4 w-4" />
+                <span className="text-xs">Sin conexión</span>
+              </div>
+            )}
           </div>
         </div>
 
@@ -278,6 +376,42 @@ export default function ConversacionesPage() {
               {totalUnread} sin leer
             </div>
           )}
+        </div>
+
+        {/* Filtros */}
+        <div className="px-3 py-2 bg-[#111B21] flex gap-2 border-b border-[#2A3942]">
+          <Button
+            variant={filterType === "all" ? "default" : "ghost"}
+            size="sm"
+            onClick={() => setFilterType("all")}
+            className={`text-xs h-7 ${filterType === "all" ? "bg-[#00A884] hover:bg-[#06CF9C]" : "text-[#8696A0] hover:text-white hover:bg-[#2A3942]"}`}
+          >
+            Todas
+          </Button>
+          <Button
+            variant={filterType === "unread" ? "default" : "ghost"}
+            size="sm"
+            onClick={() => setFilterType("unread")}
+            className={`text-xs h-7 ${filterType === "unread" ? "bg-[#00A884] hover:bg-[#06CF9C]" : "text-[#8696A0] hover:text-white hover:bg-[#2A3942]"}`}
+          >
+            No leídos {totalUnread > 0 && `(${totalUnread})`}
+          </Button>
+          <Button
+            variant={filterType === "active" ? "default" : "ghost"}
+            size="sm"
+            onClick={() => setFilterType("active")}
+            className={`text-xs h-7 ${filterType === "active" ? "bg-[#00A884] hover:bg-[#06CF9C]" : "text-[#8696A0] hover:text-white hover:bg-[#2A3942]"}`}
+          >
+            Activas
+          </Button>
+          <Button
+            variant={filterType === "expired" ? "default" : "ghost"}
+            size="sm"
+            onClick={() => setFilterType("expired")}
+            className={`text-xs h-7 ${filterType === "expired" ? "bg-[#00A884] hover:bg-[#06CF9C]" : "text-[#8696A0] hover:text-white hover:bg-[#2A3942]"}`}
+          >
+            Expiradas
+          </Button>
         </div>
 
         {/* Lista */}
@@ -344,7 +478,9 @@ export default function ConversacionesPage() {
       {/* Panel de Mensajes */}
       <div className="flex-1 flex flex-col">
         {selectedConversation ? (
-          <>
+          <div className="flex h-full">
+            {/* Área de Chat */}
+            <div className="flex-1 flex flex-col">
             {/* Header del Chat */}
             <div className="h-[60px] px-4 bg-[#202C33] flex items-center justify-between">
               <div className="flex items-center gap-3">
@@ -368,11 +504,19 @@ export default function ConversacionesPage() {
                     Ventana expirada
                   </div>
                 )}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setShowClientPanel(!showClientPanel)}
+                  className="text-[#AEBAC1] hover:text-white hover:bg-[#2A3942] rounded-full"
+                  title="Info del cliente"
+                >
+                  <User className="h-5 w-5" />
+                </Button>
                 <Archive 
                   className="h-5 w-5 cursor-pointer hover:text-white" 
                   onClick={() => archiveConversation(selectedConversation.id)}
                 />
-                <MoreVertical className="h-5 w-5 cursor-pointer hover:text-white" />
               </div>
             </div>
 
@@ -451,20 +595,6 @@ export default function ConversacionesPage() {
             <div className="px-4 py-3 bg-[#202C33] border-t border-[#2A3942] flex-shrink-0">
               {isWithinWindow ? (
                 <div className="flex items-center gap-2">
-                  <Button 
-                    variant="ghost" 
-                    size="icon"
-                    className="text-[#8696A0] hover:text-white hover:bg-[#2A3942] rounded-full"
-                  >
-                    <Smile className="h-6 w-6" />
-                  </Button>
-                  <Button 
-                    variant="ghost" 
-                    size="icon"
-                    className="text-[#8696A0] hover:text-white hover:bg-[#2A3942] rounded-full"
-                  >
-                    <Paperclip className="h-5 w-5" />
-                  </Button>
                   <Input
                     value={replyText}
                     onChange={(e) => setReplyText(e.target.value)}
@@ -477,54 +607,246 @@ export default function ConversacionesPage() {
                     }}
                     className="flex-1 bg-[#2A3942] border-none text-[#E9EDEF] placeholder:text-[#8696A0] focus-visible:ring-0 focus-visible:ring-offset-0 rounded-lg h-10"
                   />
-                  {replyText.trim() ? (
-                    <Button
-                      onClick={sendReply}
-                      className="bg-[#00A884] hover:bg-[#06CF9C] rounded-full h-10 w-10 p-0"
-                    >
-                      <Send className="h-5 w-5" />
-                    </Button>
-                  ) : (
-                    <Button 
-                      variant="ghost" 
-                      size="icon"
-                      className="text-[#8696A0] hover:text-white hover:bg-[#2A3942] rounded-full"
-                    >
-                      <Mic className="h-5 w-5" />
-                    </Button>
-                  )}
+                  <Button
+                    onClick={sendReply}
+                    disabled={!replyText.trim()}
+                    className="bg-[#00A884] hover:bg-[#06CF9C] disabled:opacity-50 disabled:cursor-not-allowed rounded-full h-10 w-10 p-0"
+                  >
+                    <Send className="h-5 w-5" />
+                  </Button>
                 </div>
               ) : (
-                <div className="text-center py-3 bg-[#182229] rounded-lg border border-red-900/30">
-                  <AlertCircle className="h-6 w-6 mx-auto mb-2 text-red-400" />
-                  <p className="text-red-400 font-medium text-sm">
-                    La ventana de 24hs expiró
-                  </p>
-                  <p className="text-xs text-[#8696A0] mt-1">
-                    Solo puedes usar templates aprobados ($0.047 por mensaje)
-                  </p>
+                <div className="space-y-3">
+                  <div className="text-center py-3 bg-[#182229] rounded-lg border border-red-900/30">
+                    <AlertCircle className="h-6 w-6 mx-auto mb-2 text-red-400" />
+                    <p className="text-red-400 font-medium text-sm">
+                      La ventana de 24hs expiró
+                    </p>
+                    <p className="text-xs text-[#8696A0] mt-1">
+                      Solo puedes usar templates aprobados ($0.047 por mensaje)
+                    </p>
+                  </div>
+                  <Button
+                    onClick={() => setShowTemplateModal(true)}
+                    className="w-full bg-[#00A884] hover:bg-[#00A884]/90 text-white"
+                  >
+                    Enviar Plantilla Aprobada
+                  </Button>
                 </div>
               )}
             </div>
-          </>
+            </div>
+
+            {/* Panel de Información del Cliente */}
+            {showClientPanel && (
+              <div className="w-[320px] bg-[#111B21] border-l border-[#2A3942] flex flex-col">
+                {/* Header del Panel */}
+                <div className="h-[60px] px-4 bg-[#202C33] flex items-center justify-between border-b border-[#2A3942]">
+                  <h3 className="text-base font-medium text-[#E9EDEF]">Información del Cliente</h3>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setShowClientPanel(false)}
+                    className="text-[#8696A0] hover:text-white hover:bg-[#2A3942]"
+                  >
+                    <AlertCircle className="h-5 w-5 rotate-45" />
+                  </Button>
+                </div>
+
+                {/* Contenido del Panel */}
+                <ScrollArea className="flex-1 p-4">
+                  <div className="space-y-4">
+                    {/* Avatar y nombre */}
+                    <div className="text-center pb-4 border-b border-[#2A3942]">
+                      <div className="w-20 h-20 rounded-full bg-[#6B7C85] flex items-center justify-center text-white font-medium text-2xl mx-auto mb-3">
+                        {getInitials(selectedConversation.client_name)}
+                      </div>
+                      <h4 className="text-lg font-medium text-[#E9EDEF] mb-1">
+                        {selectedConversation.client_name}
+                      </h4>
+                      <p className="text-sm text-[#8696A0]">
+                        {selectedConversation.client_phone}
+                      </p>
+                    </div>
+
+                    {/* Información de la cuenta */}
+                    {selectedConversation.metadata?.client_account && (
+                      <div className="bg-[#202C33] rounded-lg p-3 space-y-2">
+                        <div className="flex items-center gap-2 text-[#8696A0]">
+                          <User className="h-4 w-4" />
+                          <span className="text-xs font-medium">N° de Cuenta</span>
+                        </div>
+                        <p className="text-[#E9EDEF] font-mono text-sm pl-6">
+                          {selectedConversation.metadata.client_account}
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Última deuda enviada */}
+                    {selectedConversation.metadata?.last_debt_sent && (
+                      <div className="bg-[#202C33] rounded-lg p-3 space-y-2">
+                        <div className="flex items-center gap-2 text-[#8696A0]">
+                          <DollarSign className="h-4 w-4" />
+                          <span className="text-xs font-medium">Última Deuda Enviada</span>
+                        </div>
+                        <p className="text-[#E9EDEF] text-sm pl-6">
+                          {format(new Date(selectedConversation.metadata.last_debt_sent), "d 'de' MMMM 'de' yyyy", {
+                            locale: es,
+                          })}
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Estado de la ventana */}
+                    <div className="bg-[#202C33] rounded-lg p-3 space-y-2">
+                      <div className="flex items-center gap-2 text-[#8696A0]">
+                        <Clock className="h-4 w-4" />
+                        <span className="text-xs font-medium">Ventana de 24hs</span>
+                      </div>
+                      <div className="pl-6">
+                        {isWithinWindow ? (
+                          <div className="text-sm">
+                            <p className="text-green-400 font-medium mb-1">✓ Activa</p>
+                            <p className="text-[#8696A0] text-xs">
+                              Expira {formatDistanceToNow(new Date(selectedConversation.conversation_window_expires_at!), {
+                                addSuffix: true,
+                                locale: es,
+                              })}
+                            </p>
+                          </div>
+                        ) : (
+                          <div className="text-sm">
+                            <p className="text-red-400 font-medium mb-1">✗ Expirada</p>
+                            <p className="text-[#8696A0] text-xs">
+                              Solo puedes usar templates aprobados
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Fecha de inicio de conversación */}
+                    <div className="bg-[#202C33] rounded-lg p-3 space-y-2">
+                      <div className="flex items-center gap-2 text-[#8696A0]">
+                        <Calendar className="h-4 w-4" />
+                        <span className="text-xs font-medium">Última Actividad</span>
+                      </div>
+                      <p className="text-[#E9EDEF] text-sm pl-6">
+                        {format(new Date(selectedConversation.last_message_at), "d 'de' MMMM 'de' yyyy 'a las' HH:mm", {
+                          locale: es,
+                        })}
+                      </p>
+                    </div>
+                  </div>
+                </ScrollArea>
+              </div>
+            )}
+          </div>
         ) : (
           <div className="flex-1 flex items-center justify-center bg-[#0B141A]">
             <div className="text-center">
-              <div className="w-80 mx-auto mb-6">
-                <div className="w-72 h-72 mx-auto rounded-full border-8 border-[#202C33] bg-[#111B21] flex items-center justify-center">
-                  <MessageCircle className="h-32 w-32 text-[#8696A0] opacity-20" />
-                </div>
-              </div>
-              <h2 className="text-[32px] font-light text-[#E9EDEF] mb-3">
-                WhatsApp Business
+              <MessageCircle className="h-24 w-24 mx-auto mb-4 text-[#8696A0] opacity-30" />
+              <h2 className="text-2xl font-medium text-[#E9EDEF] mb-2">
+                Selecciona una conversación
               </h2>
-              <p className="text-sm text-[#8696A0] max-w-md mx-auto leading-5">
-                Selecciona una conversación para ver los mensajes o inicia un nuevo chat.
+              <p className="text-sm text-[#8696A0] max-w-md mx-auto">
+                Elige un chat de la lista para ver los mensajes
               </p>
             </div>
           </div>
         )}
       </div>
+
+      {/* Modal de confirmación para envío de plantilla */}
+      {showTemplateModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setShowTemplateModal(false)}>
+          <div className="bg-[#202C33] rounded-lg max-w-2xl w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-start justify-between">
+              <div className="flex items-start space-x-3">
+                <AlertCircle className="h-6 w-6 text-yellow-400 flex-shrink-0 mt-0.5" />
+                <div>
+                  <h3 className="text-lg font-semibold text-[#E9EDEF] mb-2">
+                    Enviar Plantilla Aprobada
+                  </h3>
+                  <div className="space-y-1 text-xs text-[#8696A0]">
+                    <p>⚠️ <strong className="text-yellow-400">Cobrado</strong> si excedes 400 mensajes/mes · 💰 <strong>$0.047 USD</strong></p>
+                  </div>
+                </div>
+              </div>
+              <button onClick={() => setShowTemplateModal(false)} className="text-[#8696A0] hover:text-white">✕</button>
+            </div>
+
+            {/* Lista de templates */}
+            <div className="space-y-3">
+              <label className="text-sm font-medium text-[#E9EDEF]">
+                Selecciona una plantilla:
+              </label>
+              
+              {loadingTemplates ? (
+                <div className="text-center py-8 text-[#8696A0]">Cargando plantillas...</div>
+              ) : templates.length === 0 ? (
+                <div className="text-center py-8 text-[#8696A0]">
+                  <p>No hay plantillas aprobadas disponibles</p>
+                  <p className="text-xs mt-2">Crea y aprueba plantillas en Meta Business Manager</p>
+                </div>
+              ) : (
+                <div className="space-y-2 max-h-60 overflow-y-auto">
+                  {templates.map((template) => (
+                    <button
+                      key={template.id}
+                      onClick={() => setSelectedTemplate(template)}
+                      className={`w-full text-left p-3 rounded-lg border transition-colors ${
+                        selectedTemplate?.id === template.id
+                          ? "bg-[#00A884]/10 border-[#00A884] text-[#E9EDEF]"
+                          : "bg-[#2A3942] border-[#8696A0]/20 text-[#8696A0] hover:border-[#8696A0]/50"
+                      }`}
+                    >
+                      <div className="font-medium text-sm">{template.name}</div>
+                      <div className="text-xs opacity-70">{template.category} · {template.language}</div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Preview del template seleccionado */}
+            {selectedTemplate && (
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-[#E9EDEF]">
+                  Vista previa:
+                </label>
+                <div className="bg-[#2A3942] rounded-lg p-4 border border-[#8696A0]/20">
+                  {selectedTemplate.components.map((component, idx) => (
+                    <div key={idx} className="text-sm text-[#E9EDEF] whitespace-pre-wrap">
+                      {component.text || ""}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="flex space-x-3 pt-2">
+              <Button
+                onClick={() => {
+                  setShowTemplateModal(false);
+                  setSelectedTemplate(null);
+                }}
+                variant="outline"
+                className="flex-1 border-[#8696A0]/30 text-[#8696A0] hover:bg-[#2A3942]"
+              >
+                Cancelar
+              </Button>
+              <Button
+                onClick={sendTemplate}
+                disabled={!selectedTemplate}
+                className="flex-1 bg-[#00A884] hover:bg-[#00A884]/90 text-white disabled:opacity-50"
+              >
+                Confirmar y Enviar
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <style jsx>{`
         @keyframes slideIn {

@@ -67,7 +67,7 @@ export function ContactAdvisorButton({
           </button>
           
           <p className="text-xs text-gray-500 mt-3">
-            Te responderemos en horario de 9:00 a 16:00 hs
+            Te responderemos en horario de 8:00 a 16:00 hs
           </p>
         </div>
       </div>

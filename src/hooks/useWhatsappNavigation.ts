@@ -30,63 +30,16 @@ export function useWhatsappNavigation() {
   const isReady = !!snapshot?.ready;
 
   /**
-   * Navega a la ruta especificada validando sesión WhatsApp según el modo del usuario
+   * Navega a la ruta especificada (sin validaciones - ahora usa WhatsApp Cloud API)
    * @param targetPath - Ruta de destino (/senddebts, /proximos-vencer, etc.)
-   * @param setModalVisible - Callback para mostrar modal de QR si es necesario (NO USADO, mantener por compatibilidad)
+   * @param setModalVisible - Callback (no usado, mantener por compatibilidad)
    */
   const navigateWithWhatsappCheck = useCallback(
-    (targetPath: string, setModalVisible: (v: boolean) => void) => {
-      // CASO 1: Modo personal - TODOS (incluido admin) deben usar su sesión personal
-      if (userMode === "personal") {
-        if (!isReady) {
-          // Toast genérico para cualquier usuario (admin o no) - NO redirigir, NO abrir modal
-          toast.warning(
-            "⚠️ Necesitás iniciar sesión de WhatsApp personal. Usá el botón 'Conectar WhatsApp' en el inicio.",
-            {
-              duration: 6000,
-            }
-          );
-          return;
-        }
-        router.push(targetPath);
-        return;
-      }
-
-      // CASO 2: Modo sistema - requiere WhatsApp del sistema (celular prepago)
-      if (userMode === "system") {
-        // Si NO está listo el sistema
-        if (!isReady) {
-          // Si es admin: redirigir a admin para conectar el sistema
-          if (isAdmin) {
-            toast.error(
-              "❌ Deberás iniciar sesión al WhatsApp del sistema para continuar. Redirigiendo al panel de admin...",
-              {
-                duration: 5000,
-              }
-            );
-            router.push("/admin");
-            return;
-          }
-
-          // Si es usuario normal: solo avisar, NO tiene acceso a admin
-          toast.error(
-            "❌ El administrador deberá iniciar sesión al WhatsApp del sistema para continuar. Contactá al administrador.",
-            {
-              duration: 6000,
-            }
-          );
-          return;
-        }
-
-        // Sistema listo: redirige directo
-        router.push(targetPath);
-        return;
-      }
-
-      // Fallback: modo sistema por defecto
+    (targetPath: string, setModalVisible?: (v: boolean) => void) => {
+      // Con WhatsApp Cloud API no se requiere validación de sesión
       router.push(targetPath);
     },
-    [userMode, isAdmin, isReady, router]
+    [router]
   );
 
   return {

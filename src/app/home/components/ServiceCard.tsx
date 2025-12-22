@@ -20,6 +20,11 @@ export function ServiceCard({
   badge,
   disabled = false,
 }: ServiceCardProps) {
+  // Determinar el color del badge según el contenido
+  const badgeColor = badge?.includes('SIN LEER') 
+    ? 'bg-red-500 text-white' 
+    : 'bg-yellow-400 text-yellow-900';
+
   return (
     <motion.div
       whileHover={{ scale: disabled ? 1 : 1.03 }}
@@ -31,7 +36,7 @@ export function ServiceCard({
         className={`relative grid grid-rows-[auto_auto_1fr] gap-0 items-center justify-items-center text-center px-5 py-8 text-white ${color} transition-all duration-200 hover:shadow-lg h-[160px] ${disabled ? 'pointer-events-none' : ''}`}
       >
         {badge && (
-          <span className="absolute -top-2 -right-2 px-2 py-1 bg-yellow-400 text-yellow-900 text-xs font-bold rounded-full shadow-md animate-pulse">
+          <span className={`absolute -top-2 -right-2 px-2 py-1 text-xs font-bold rounded-full shadow-md ${badgeColor} ${badge.includes('SIN LEER') ? 'animate-bounce' : 'animate-pulse'}`}>
             {badge}
           </span>
         )}

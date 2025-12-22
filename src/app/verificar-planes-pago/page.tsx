@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Upload, Download, CheckCircle2, Loader2, FileSpreadsheet, AlertCircle, Copy, MessageSquare, Phone, CheckCheck, RefreshCw } from "lucide-react"
+import { Upload, Download, CheckCircle2, Loader2, FileSpreadsheet, AlertCircle, Copy, MessageSquare, Phone, CheckCheck, RefreshCw, Trash2, Edit3 } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -11,6 +11,8 @@ import * as XLSX from 'xlsx'
 import { useGlobalContext } from '@/app/providers/context/GlobalContext'
 import { toast } from 'sonner'
 import { getPhonesByUFs } from '@/lib/api'
+import { MessageVariantSelector } from '@/lib/whatsapp-anti-ban'
+import { AntiBanPanel } from './components/AntiBanPanel'
 
 interface PaymentPlanResult {
   uf: number
@@ -29,13 +31,28 @@ interface PaymentPlanResult {
   enviado?: boolean
   estadoSimple?: string
   puedeGenerarComprobante?: boolean
+  variantId?: number // 🛡️ ID de variante de mensaje usada
 }
 
 export default function VerificarPlanesPagoPage() {
   const [file, setFile] = useState<File | null>(null)
   const [uploading, setUploading] = useState(false)
   const [processing, setProcessing] = useState(false)
-  const [results, setResults] = useState<PaymentPlanResult[] | null>(null)
+  
+  // 🔄 Cargar results desde localStorage al inicializar
+  const [results, setResults] = useState<PaymentPlanResult[] | null>(() => {
+    const saved = localStorage.getItem('verificar-planes-results')
+    if (saved) {
+      try {
+        return JSON.parse(saved)
+      } catch (e) {
+        return null
+      }
+    }
+    return null
+  })
+  
+  // 🔄 Cargar stats desde localStorage al inicializar
   const [stats, setStats] = useState<{
     total: number
     withPlan: number
@@ -43,43 +60,48 @@ export default function VerificarPlanesPagoPage() {
     errors: number
     conTelefono?: number
     enviados?: number
-  } | null>(null)
-  const [enviados, setEnviados] = useState<Set<number>>(new Set())
+  } | null>(() => {
+    const saved = localStorage.getItem('verificar-planes-stats')
+    if (saved) {
+      try {
+        return JSON.parse(saved)
+      } catch (e) {
+        return null
+      }
+    }
+    return null
+  })
+  
+  // 🔄 Cargar enviados desde localStorage al inicializar (lazy initialization)
+  const [enviados, setEnviados] = useState<Set<number>>(() => {
+    const saved = localStorage.getItem('verificar-planes-enviados')
+    if (saved) {
+      try {
+        const arr = JSON.parse(saved)
+        return new Set(arr)
+      } catch (e) {
+        console.error('Error cargando enviados:', e)
+        return new Set()
+      }
+    }
+    return new Set()
+  })
+  
   const [editingPhone, setEditingPhone] = useState<Record<number, string>>({})
+  
+  // 🛡️ Estado para el sistema anti-ban
+  // ⚠️ NO inicializar sentCount con datos guardados - solo cuenta envíos nuevos en esta sesión
+  const [sentCount, setSentCount] = useState(0)
+  const [currentVariantId, setCurrentVariantId] = useState<number | null>(null)
 
   const { userId } = useGlobalContext()
 
-  // Cargar datos del localStorage al iniciar
+  // Mostrar notificación si hay datos previos cargados
   useEffect(() => {
-    const savedResults = localStorage.getItem('verificar-planes-results')
-    const savedStats = localStorage.getItem('verificar-planes-stats')
-    const savedEnviados = localStorage.getItem('verificar-planes-enviados')
-    
-    if (savedResults) {
-      try {
-        setResults(JSON.parse(savedResults))
-        toast.info('Datos anteriores cargados', { duration: 3000 })
-      } catch (e) {
-        console.error('Error cargando resultados:', e)
-      }
+    if (results && results.length > 0) {
+      toast.info('Datos anteriores cargados', { duration: 3000 })
     }
-    
-    if (savedStats) {
-      try {
-        setStats(JSON.parse(savedStats))
-      } catch (e) {
-        console.error('Error cargando stats:', e)
-      }
-    }
-    
-    if (savedEnviados) {
-      try {
-        setEnviados(new Set(JSON.parse(savedEnviados)))
-      } catch (e) {
-        console.error('Error cargando enviados:', e)
-      }
-    }
-  }, [])
+  }, []) // Solo al montar
 
   // Guardar datos en localStorage cuando cambien
   useEffect(() => {
@@ -95,7 +117,8 @@ export default function VerificarPlanesPagoPage() {
   }, [stats])
 
   useEffect(() => {
-    localStorage.setItem('verificar-planes-enviados', JSON.stringify(Array.from(enviados)))
+    const enviadosArray = Array.from(enviados)
+    localStorage.setItem('verificar-planes-enviados', JSON.stringify(enviadosArray))
   }, [enviados])
 
   // Función para normalizar teléfonos (formato WhatsApp: +549...)
@@ -180,6 +203,24 @@ export default function VerificarPlanesPagoPage() {
     if (!file || !userId) return
 
     setProcessing(true)
+    
+    // 🔄 PRESERVAR datos anteriores antes de limpiar
+    const previousResults = results || []
+    const previousEnviados = new Set(enviados)
+    
+    // Crear un mapa de modificaciones previas del usuario
+    const userModifications = new Map<number, {
+      telefono?: string | null,
+      enviado?: boolean
+    }>()
+    
+    previousResults.forEach((r: PaymentPlanResult) => {
+      userModifications.set(r.uf, {
+        telefono: r.telefono,
+        enviado: previousEnviados.has(r.uf)
+      })
+    })
+    
     setResults(null)
     setStats(null)
 
@@ -271,14 +312,12 @@ export default function VerificarPlanesPagoPage() {
           // - Marcadores como "S/T", "sin", "n/a"
           // - Patrones con espacios entre dígitos como "3 4 5 6" (NO son teléfonos)
           // - Placeholders comunes como "400000"
-          // - Números con menos de 7 dígitos
-          // - Números que solo contienen 0s y 4s
+          // - Números con menos de 6 dígitos (reducido de 7 para permitir fijos sin código)
           if (str.length < 5 || 
               str.match(/^(s\/t|sin|n\/a|na)$/i) || 
               str.match(/^\d\s+\d/) || // "4 5 6" o "3 4" - estos NO son teléfonos
               str === '400000' ||      // Placeholder común
-              str.replace(/\D/g, '').length < 7 || // Menos de 7 dígitos
-              /^[04]+$/.test(str.replace(/\D/g, ''))) { // Solo 0s y 4s como "400000"
+              str.replace(/\D/g, '').length < 6) { // Menos de 6 dígitos
             continue
           }
           telefonoExcel = candidato
@@ -295,15 +334,31 @@ export default function VerificarPlanesPagoPage() {
       // 3. Obtener teléfonos de la BD
       toast.info('Consultando teléfonos en base de datos...')
       const dbPhones = await getPhonesByUFs(ufs)
-      console.log('📞 Teléfonos de BD:', dbPhones)
+      console.log('📞 Teléfonos de BD obtenidos:', Object.keys(dbPhones).length)
       
-      // 4. Mapear todo y generar mensajes/links (priorizar BD, luego Excel)
+      // 4. Mapear todo y generar mensajes/links (priorizar modificaciones del usuario > BD > Excel)
       const finalResults = enrichedResults.map((r: PaymentPlanResult) => {
-        // Priorizar BD, luego Excel
-        const telefonoOriginal = dbPhones[r.uf] || r.telefonoExcel || null
+        const userMod = userModifications.get(r.uf)
+        
+        // 🔄 Prioridad: Modificación del usuario > BD > Excel
+        const telefonoBD = dbPhones[r.uf] || null
+        const telefonoExcel = r.telefonoExcel || null
+        const telefonoOriginal = userMod?.telefono !== undefined 
+          ? userMod.telefono 
+          : (telefonoBD || telefonoExcel)
         const telefonoNormalizado = telefonoOriginal ? normalizePhone(telefonoOriginal) : null
         
-        console.log(`📞 UF ${r.uf}: BD=${dbPhones[r.uf]}, Excel=${r.telefonoExcel}, Final=${telefonoOriginal}`)
+        // Logging detallado para debugging
+        if (!telefonoNormalizado && (telefonoBD || telefonoExcel)) {
+          console.warn(`⚠️ UF ${r.uf}: Teléfono original presente pero normalización falló`)
+          console.warn(`   - BD: ${telefonoBD}`)
+          console.warn(`   - Excel: ${telefonoExcel}`)
+          console.warn(`   - Original seleccionado: ${telefonoOriginal}`)
+        } else if (telefonoBD && telefonoExcel && telefonoBD !== telefonoExcel) {
+          console.log(`✅ UF ${r.uf}: Usando BD (${telefonoBD}) en lugar de Excel (${telefonoExcel})`)
+        } else if (!telefonoBD && !telefonoExcel) {
+          console.log(`ℹ️ UF ${r.uf}: Sin teléfono en BD ni Excel`)
+        }
         
         // Determinar estado simple
         let estadoSimple = 'Sin plan'
@@ -320,12 +375,8 @@ export default function VerificarPlanesPagoPage() {
         // Link de Espacio Cliente SIEMPRE (tenga deuda o no)
         const linkComprobante = `https://www.aguascordobesas.com.ar/espacioClientes/seccion/gestionDeuda/consulta/${r.uf}`
         
-        // Generar mensaje personalizado
-        const mensaje = `Hola ${r.nombre}, te envio tu comprobante actualizado de la CUOTA PLAN DE PAGOS.
-Por favor, realiza el pago antes del vencimiento.
-Se puede pagar por Mercado Pago, Rapipago y Pago facil
-
-🌐 Cclip 🔹 Al servicio de Aguas Cordobesas.`
+        // 🛡️ Generar mensaje VARIABLE usando el sistema anti-ban
+        const { text: mensaje, variantId } = MessageVariantSelector.getNextVariant(r.nombre || 'Cliente')
         
         // Generar link de WhatsApp SIEMPRE que haya teléfono
         const waLink = telefonoNormalizado 
@@ -341,8 +392,21 @@ Se puede pagar por Mercado Pago, Rapipago y Pago facil
           estadoSimple,
           puedeGenerarComprobante,
           enviado: false,
+          variantId, // 🛡️ Guardar ID de variante usada
         }
       })
+      
+      // 🔄 RESTAURAR checkboxes de enviados
+      const newEnviadosSet = new Set<number>()
+      finalResults.forEach((r: PaymentPlanResult) => {
+        const userMod = userModifications.get(r.uf)
+        if (userMod?.enviado) {
+          newEnviadosSet.add(r.uf)
+        }
+      })
+      
+      setEnviados(newEnviadosSet)
+      // ⚠️ NO actualizar sentCount aquí - solo cuenta envíos nuevos en esta sesión
       
       setResults(finalResults)
 
@@ -359,7 +423,7 @@ Se puede pagar por Mercado Pago, Rapipago y Pago facil
         withoutPlan,
         errors,
         conTelefono,
-        enviados: 0,
+        enviados: newEnviadosSet.size, // 🔄 Usar el conteo correcto de enviados restaurados
       })
 
       // 🆕 Mostrar advertencia si hay registros sin teléfono
@@ -367,6 +431,23 @@ Se puede pagar por Mercado Pago, Rapipago y Pago facil
         toast.warning(`⚠️ ${sinTelefono} cliente(s) sin teléfono válido. Puedes corregirlos manualmente en la base de datos.`, {
           duration: 8000
         })
+      }
+
+      // 🔄 Mostrar mensaje si se restauraron modificaciones previas
+      if (newEnviadosSet.size > 0 || userModifications.size > 0) {
+        const modificacionesRestauradas = []
+        if (newEnviadosSet.size > 0) {
+          modificacionesRestauradas.push(`${newEnviadosSet.size} enviado(s)`)
+        }
+        const telefonosEditados = Array.from(userModifications.values()).filter(m => m.telefono !== undefined).length
+        if (telefonosEditados > 0) {
+          modificacionesRestauradas.push(`${telefonosEditados} teléfono(s) editado(s)`)
+        }
+        if (modificacionesRestauradas.length > 0) {
+          toast.info(`✅ Restauradas tus modificaciones: ${modificacionesRestauradas.join(', ')}`, {
+            duration: 5000
+          })
+        }
       }
 
       toast.success('Verificación completada')
@@ -473,17 +554,28 @@ Se puede pagar por Mercado Pago, Rapipago y Pago facil
   }
 
   const toggleEnviado = (uf: number) => {
+    // 🛡️ Actualizar contador de envíos y variante actual
+    const result = results?.find(r => r.uf === uf)
+    
     setEnviados(prev => {
       const newSet = new Set(prev)
-      if (newSet.has(uf)) {
+      const wasChecked = newSet.has(uf)
+      
+      if (wasChecked) {
         newSet.delete(uf)
+        // Si se desmarca, decrementar contador
+        setSentCount(c => Math.max(0, c - 1))
       } else {
         newSet.add(uf)
+        // Si se marca como enviado, incrementar contador y actualizar variante
+        setSentCount(c => c + 1)
+        if (result?.variantId) {
+          setCurrentVariantId(result.variantId)
+        }
       }
       
       // Actualizar stats
       if (stats) {
-        const wasChecked = newSet.has(uf)
         setStats({
           ...stats,
           enviados: newSet.size
@@ -506,13 +598,24 @@ Se puede pagar por Mercado Pago, Rapipago y Pago facil
     
     const updatedResults = results.map(r => {
       if (r.uf === uf) {
-        const mensaje = r.mensaje || generarMensaje(r.nombre!, r.deuda!)
-        const waLink = `https://wa.me/${normalized.substring(1)}?text=${encodeURIComponent(mensaje)}`
+        // Generar mensaje usando la info existente (mantener el formato original)
+        const mensaje = r.mensaje || `Hola ${r.nombre}, te envio tu comprobante actualizado de la CUOTA PLAN DE PAGOS.
+Por favor, realiza el pago antes del vencimiento.
+Se puede pagar por Mercado Pago, Rapipago y Pago facil
+
+🌐 Cclip 🔹 Al servicio de Aguas Cordobesas.`
+        
+        // Generar link de WhatsApp con el formato correcto (sin el +, solo dígitos)
+        const waLink = `https://wa.me/${normalized.replace(/\D/g, '')}?text=${encodeURIComponent(mensaje)}`
+        
+        // ✅ MANTENER TODAS las propiedades originales
         return {
           ...r,
           telefono: normalized,
           waLink,
-          mensaje
+          mensaje,
+          // Estas propiedades ya están en ...r pero las mencionamos explícitamente para claridad
+          // estadoSimple, puedeGenerarComprobante, linkComprobante, etc. se mantienen
         }
       }
       return r
@@ -537,6 +640,34 @@ Se puede pagar por Mercado Pago, Rapipago y Pago facil
     })
     
     toast.success('Teléfono actualizado correctamente')
+  }
+
+  const deletePhoneForClient = (uf: number) => {
+    if (!results) return
+    
+    const updatedResults = results.map(r => {
+      if (r.uf === uf) {
+        return {
+          ...r,
+          telefono: undefined,
+          waLink: undefined,
+        }
+      }
+      return r
+    })
+    
+    setResults(updatedResults)
+    
+    // Actualizar stats
+    if (stats) {
+      const withPhone = updatedResults.filter(r => r.telefono).length
+      setStats({
+        ...stats,
+        conTelefono: withPhone
+      })
+    }
+    
+    toast.success('Teléfono eliminado correctamente')
   }
 
   const generarMensaje = (nombre: string, deuda: string) => {
@@ -631,6 +762,18 @@ Se puede pagar por Mercado Pago, Rapipago y Pago facil
       {/* Resultados */}
       {stats && results && (
         <>
+          {/* Panel Anti-Ban */}
+          <div className="mt-6">
+            <AntiBanPanel 
+              sentCount={sentCount}
+              totalClients={results.filter(r => r.telefono).length}
+              currentVariantId={currentVariantId}
+              onTimerComplete={() => {
+                toast.info('✅ Listo para el próximo envío', { duration: 3000 })
+              }}
+            />
+          </div>
+
           {/* Estadísticas */}
           <Card className="mt-6">
             <CardHeader>
@@ -730,7 +873,14 @@ Se puede pagar por Mercado Pago, Rapipago y Pago facil
                           <div className="flex items-center justify-between">
                             <div>
                               <h3 className="font-semibold text-lg">{r.nombre}</h3>
-                              <p className="text-sm text-muted-foreground">UF: {r.uf}</p>
+                              <p className="text-sm text-muted-foreground">
+                                UF: {r.uf} 
+                                {r.variantId && (
+                                  <span className="ml-2 text-xs text-purple-600 dark:text-purple-400">
+                                    • Variante #{r.variantId}
+                                  </span>
+                                )}
+                              </p>
                             </div>
                             <div className="flex gap-2">
                               {r.telefono && (
@@ -755,8 +905,28 @@ Se puede pagar por Mercado Pago, Rapipago y Pago facil
                           {/* Teléfono - Editable si no existe */}
                           <div className="flex items-center gap-2 text-sm">
                             <Phone className="w-4 h-4" />
-                            {r.telefono ? (
-                              <span className="font-mono">{r.telefono}</span>
+                            {r.telefono && !editingPhone[r.uf] ? (
+                              <div className="flex items-center gap-2">
+                                <span className="font-mono">{r.telefono}</span>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="h-7 w-7 p-0 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                                  onClick={() => setEditingPhone(prev => ({ ...prev, [r.uf]: r.telefono!.replace('+54', '') }))}
+                                  title="Editar teléfono"
+                                >
+                                  <Edit3 className="w-3 h-3" />
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="h-7 w-7 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                                  onClick={() => deletePhoneForClient(r.uf)}
+                                  title="Eliminar teléfono"
+                                >
+                                  <Trash2 className="w-3 h-3" />
+                                </Button>
+                              </div>
                             ) : (
                               <div className="flex items-center gap-2">
                                 <input
@@ -769,6 +939,13 @@ Se puede pagar por Mercado Pago, Rapipago y Pago facil
                                     if (e.key === 'Enter' && editingPhone[r.uf]) {
                                       updatePhoneForClient(r.uf, editingPhone[r.uf])
                                     }
+                                    if (e.key === 'Escape') {
+                                      setEditingPhone(prev => {
+                                        const newState = { ...prev }
+                                        delete newState[r.uf]
+                                        return newState
+                                      })
+                                    }
                                   }}
                                 />
                                 <Button
@@ -779,6 +956,21 @@ Se puede pagar por Mercado Pago, Rapipago y Pago facil
                                 >
                                   Guardar
                                 </Button>
+                                {r.telefono && (
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => {
+                                      setEditingPhone(prev => {
+                                        const newState = { ...prev }
+                                        delete newState[r.uf]
+                                        return newState
+                                      })
+                                    }}
+                                  >
+                                    Cancelar
+                                  </Button>
+                                )}
                               </div>
                             )}
                           </div>

@@ -4,3 +4,4 @@ export * from "./processApi";
 export * from "./simpleWaApi";
 export * from "./comprobanteApi";
 export * from "./clientsApi";
+export * from "./jobsApi";

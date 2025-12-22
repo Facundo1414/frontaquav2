@@ -4,8 +4,6 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useGlobalContext } from '@/app/providers/context/GlobalContext'
 import { adminAPI } from '@/utils/admin-api'
-import { ServiceStatus } from './components/ServiceStatus'
-import { WhatsAppSystemControl } from './components/WhatsAppSystemControl'
 import { toast } from 'sonner'
 
 // Leer ADMIN_UID desde variables de entorno
@@ -48,10 +46,10 @@ export default function AdminDashboard() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
+      <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-blue-500 border-opacity-75 mx-auto mb-4"></div>
-          <p className="text-gray-300 text-lg">Cargando panel de administración...</p>
+          <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-900 text-lg font-medium">Cargando panel de administración...</p>
         </div>
       </div>
     )
@@ -83,37 +81,11 @@ export default function AdminDashboard() {
 
       {/* Dashboard Content - Ancho completo */}
       <main className="px-6 pb-10">
-        {/* WhatsApp System Control */}
-        <div className="mb-8">
-          <WhatsAppSystemControl />
-        </div>
-
         {/* System Management Cards */}
         <div className="mb-8">
           <h2 className="text-2xl font-bold text-gray-900 mb-4">🛠️ Administración del Sistema</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {/* Services Management Card - NEW */}
-            <div 
-              onClick={() => router.push('/admin/services')}
-              className="bg-white rounded-lg shadow-md p-6 border border-gray-200 hover:shadow-lg hover:border-indigo-400 transition-all duration-200 cursor-pointer group"
-            >
-              <div className="flex items-start justify-between mb-4">
-                <div className="bg-indigo-100 p-3 rounded-lg group-hover:bg-indigo-200 transition-colors">
-                  <svg className="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01" />
-                  </svg>
-                </div>
-                <span className="text-gray-400 group-hover:text-indigo-600 transition-colors">→</span>
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-2 group-hover:text-indigo-600 transition-colors">
-                Gestión de Servicios
-              </h3>
-              <p className="text-gray-600 text-sm">
-                Logs en tiempo real, restart manual, health checks detallados y export de logs
-              </p>
-            </div>
-
-            {/* Tutorial Documentation Card - NEW */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Tutorial Documentation Card */}
             <div 
               onClick={() => router.push('/admin/tutorial')}
               className="bg-white rounded-lg shadow-md p-6 border border-gray-200 hover:shadow-lg hover:border-teal-400 transition-all duration-200 cursor-pointer group"
@@ -176,24 +148,24 @@ export default function AdminDashboard() {
               </p>
             </div>
 
-            {/* Railway Metrics Card */}
+            {/* Conversaciones Card */}
             <div 
-              onClick={() => router.push('/admin/railway')}
-              className="bg-white rounded-lg shadow-md p-6 border border-gray-200 hover:shadow-lg hover:border-purple-400 transition-all duration-200 cursor-pointer group"
+              onClick={() => router.push('/admin/conversaciones')}
+              className="bg-white rounded-lg shadow-md p-6 border border-gray-200 hover:shadow-lg hover:border-blue-400 transition-all duration-200 cursor-pointer group"
             >
               <div className="flex items-start justify-between mb-4">
-                <div className="bg-purple-100 p-3 rounded-lg group-hover:bg-purple-200 transition-colors">
-                  <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                <div className="bg-blue-100 p-3 rounded-lg group-hover:bg-blue-200 transition-colors">
+                  <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                   </svg>
                 </div>
-                <span className="text-gray-400 group-hover:text-purple-600 transition-colors">→</span>
+                <span className="text-gray-400 group-hover:text-blue-600 transition-colors">→</span>
               </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-2 group-hover:text-purple-600 transition-colors">
-                Métricas Railway
+              <h3 className="text-xl font-semibold text-gray-900 mb-2 group-hover:text-blue-600 transition-colors">
+                Conversaciones WhatsApp
               </h3>
               <p className="text-gray-600 text-sm">
-                Monitorea costos, deployments y recursos de los servicios en Railway
+                Gestiona conversaciones y chats de WhatsApp Cloud API
               </p>
             </div>
           </div>

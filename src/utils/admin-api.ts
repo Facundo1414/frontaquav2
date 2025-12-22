@@ -22,8 +22,6 @@ import { useState } from "react";
 // Leer ADMIN_UID desde variables de entorno
 const ADMIN_UID = process.env.NEXT_PUBLIC_ADMIN_UID || "";
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
-const WHATSAPP_WORKER_URL =
-  process.env.NEXT_PUBLIC_WHATSAPP_WORKER_URL || "http://localhost:3010";
 
 if (!ADMIN_UID) {
   console.error("⚠️ NEXT_PUBLIC_ADMIN_UID not set in environment variables");
@@ -79,54 +77,8 @@ export const adminAPI = {
     return adminFetch("/admin/dashboard");
   },
 
-  async getServices() {
-    return adminFetch("/admin/services");
-  },
-
   async getHealth() {
     return adminFetch("/admin/health");
-  },
-
-  /**
-   * Services Management
-   */
-  services: {
-    // Info
-    async getAllInfo() {
-      return adminFetch("/admin/services/info");
-    },
-
-    async getInfo(serviceId: string) {
-      return adminFetch(`/admin/services/info/${serviceId}`);
-    },
-
-    // Logs
-    async getLogs(serviceId?: string, limit: number = 100) {
-      const params = new URLSearchParams();
-      if (serviceId) params.append("service", serviceId);
-      params.append("limit", limit.toString());
-
-      return adminFetch(`/admin/services/logs?${params.toString()}`);
-    },
-
-    // Restart
-    async restart(serviceId: string) {
-      return adminFetch(`/admin/services/restart/${serviceId}`, {
-        method: "POST",
-      });
-    },
-
-    // Export
-    async exportLogs(serviceId: string) {
-      return adminFetch(`/admin/services/export/${serviceId}`);
-    },
-
-    // Clear
-    async clearLogs(serviceId: string) {
-      return adminFetch(`/admin/services/logs/clear/${serviceId}`, {
-        method: "POST",
-      });
-    },
   },
 
   /**
@@ -228,77 +180,43 @@ export const adminAPI = {
   },
 
   /**
-   * WhatsApp System Control
+   * WhatsApp System Control (Prepago - Baileys)
    */
   whatsappSystem: {
-    /**
-     * Obtener estado del sistema WhatsApp
-     */
     async getStatus() {
-      return adminFetch("/wa/system/status");
+      return adminFetch("/admin/whatsapp/status");
     },
 
-    /**
-     * Activar sistema WhatsApp (cargar en memoria)
-     */
     async activate() {
-      return adminFetch("/wa/system/activate", { method: "POST" });
+      return adminFetch("/admin/whatsapp/activate", { method: "POST" });
     },
 
-    /**
-     * Desactivar sistema WhatsApp (liberar memoria)
-     */
     async deactivate() {
-      return adminFetch("/wa/system/deactivate", { method: "POST" });
+      return adminFetch("/admin/whatsapp/deactivate", { method: "POST" });
     },
 
-    /**
-     * Inicializar sistema WhatsApp (genera QR si es necesario)
-     */
     async init() {
-      return adminFetch("/wa/system/init", { method: "POST" });
+      return adminFetch("/admin/whatsapp/init", { method: "POST" });
     },
 
-    /**
-     * Obtener QR code actual
-     */
-    async getQR() {
-      return adminFetch("/wa/system/qr");
-    },
-
-    /**
-     * Cerrar sesión del sistema
-     */
     async logout() {
-      return adminFetch("/wa/system/logout", { method: "POST" });
+      return adminFetch("/admin/whatsapp/logout", { method: "POST" });
     },
 
-    /**
-     * Guardar sesión manualmente en Supabase
-     */
     async saveSession() {
-      return adminFetch("/wa/system/save-session", { method: "POST" });
+      return adminFetch("/admin/whatsapp/save-session", { method: "POST" });
     },
 
-    /**
-     * Obtener configuración de horario laboral
-     */
-    async getWorkingHoursConfig() {
-      return adminFetch("/wa/system/working-hours");
-    },
-
-    /**
-     * Habilitar horario laboral (9-16hs)
-     */
     async enableWorkingHours() {
-      return adminFetch("/wa/system/working-hours/enable", { method: "POST" });
+      return adminFetch("/admin/whatsapp/working-hours/enable", {
+        method: "POST",
+      });
     },
 
-    /**
-     * Deshabilitar horario laboral (24/7)
-     */
     async disableWorkingHours() {
-      return adminFetch("/wa/system/working-hours/disable", { method: "POST" });
+      return adminFetch("/admin/whatsapp/working-hours/disable", {
+        method: "POST",
+      });
     },
   },
 };

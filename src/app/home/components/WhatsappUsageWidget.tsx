@@ -26,8 +26,9 @@ export function WhatsappUsageWidget() {
 
   const fetchQuota = async () => {
     try {
-      const token = localStorage.getItem('token')
+      const token = localStorage.getItem('accessToken')
       if (!token) {
+        console.log('No access token found')
         setLoading(false)
         return
       }
@@ -40,7 +41,10 @@ export function WhatsappUsageWidget() {
 
       if (response.ok) {
         const result = await response.json()
+        console.log('Quota fetched:', result.data)
         setQuota(result.data)
+      } else {
+        console.error('Failed to fetch quota:', response.status, response.statusText)
       }
     } catch (error) {
       console.error('Error fetching quota:', error)
@@ -171,21 +175,57 @@ export function WhatsappUsageWidget() {
 
           {/* Excedente (si aplica) */}
           {quota.isExceeded && (
-            <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-3">
-              <div className="flex items-center gap-2 mb-1">
-                <TrendingUp className="w-4 h-4 text-amber-600" />
-                <span className="text-xs font-semibold text-amber-900">Mensajes adicionales</span>
+            <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-3">
+              <div className="flex items-center gap-2 mb-2">
+                <TrendingUp className="w-4 h-4 text-red-600" />
+                <span className="text-xs font-semibold text-red-900">⚠️ Límite excedido</span>
               </div>
-              <p className="text-sm text-amber-800">
-                {quota.overageMessages} mensajes × $0.05 = <span className="font-bold">${quota.overageCost.toFixed(2)} USD</span>
+              <p className="text-sm text-red-800 mb-2">
+                Has enviado <span className="font-bold">{quota.used} mensajes</span> este mes.
               </p>
-              <p className="text-xs text-amber-700 mt-1">
-                Se cobrará en tu próxima factura
-              </p>
+              <div className="bg-white/60 rounded p-2 border border-red-200">
+                <p className="text-xs text-gray-700 mb-1">
+                  Mensajes incluidos: <span className="font-semibold">{quota.quota}</span>
+                </p>
+                <p className="text-xs text-gray-700 mb-1">
+                  Mensajes adicionales: <span className="font-semibold text-red-700">{quota.overageMessages}</span> × $0.05
+                </p>
+                <div className="border-t border-gray-300 mt-2 pt-2">
+                  <p className="text-sm font-bold text-red-900">
+                    Cargo adicional: ${quota.overageCost.toFixed(2)} USD
+                  </p>
+                  <p className="text-xs text-gray-600 mt-1">
+                    Se agregará a tu próxima factura
+                  </p>
+                </div>
+              </div>
             </div>
           )}
 
-          <p className="text-xs text-gray-600 text-center mt-2">
+          {/* Información de sobrecargo - SIEMPRE visible */}
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-2">
+            <div className="flex items-center gap-2 mb-1">
+              <MessageCircle className="w-3 h-3 text-blue-600" />
+              <span className="text-xs font-semibold text-blue-900">Información de cobros</span>
+            </div>
+            <div className="space-y-1">
+              <p className="text-xs text-blue-800">
+                • <span className="font-semibold">400 mensajes incluidos</span> en tu plan mensual
+              </p>
+              <p className="text-xs text-blue-800">
+                • Mensajes adicionales: <span className="font-semibold">$0.05 USD c/u</span>
+              </p>
+              <p className="text-xs text-blue-700 mt-2 pt-2 border-t border-blue-200">
+                {quota.isExceeded ? (
+                  <>💰 Total a pagar este mes: <span className="font-bold">${quota.overageCost.toFixed(2)} USD</span> extra</>
+                ) : (
+                  <>✅ No tienes cargos adicionales este mes</>
+                )}
+              </p>
+            </div>
+          </div>
+
+          <p className="text-xs text-gray-600 text-center">
             Plan PRO: 400 mensajes/mes incluidos
           </p>
         </div>

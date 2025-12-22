@@ -11,38 +11,10 @@ interface SendDebtsGuardProps {
 }
 
 /**
- * Guard component para validar sesión WhatsApp antes de acceder a SendDebts
- * Evita que usuarios modo personal sin sesión accedan directamente vía URL
+ * Guard component para SendDebts (simplificado - ahora usa WhatsApp Cloud API)
+ * No requiere validación de sesión WhatsApp
  */
 export function SendDebtsGuard({ children }: SendDebtsGuardProps) {
-  const router = useRouter()
-  const { userMode, isReady } = useWhatsappNavigation()
-  const [checking, setChecking] = useState(true)
-
-  useEffect(() => {
-    // Validar solo si usa modo personal
-    if (userMode === 'personal') {
-      if (!isReady) {
-        toast.error('❌ Necesitás conectar tu WhatsApp personal primero', {
-          duration: 4000,
-        })
-        router.push('/home')
-        return
-      }
-    }
-
-    // Usuario modo sistema o personal con sesión activa: permitir acceso
-    setChecking(false)
-  }, [userMode, isReady, router])
-
-  if (checking) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-screen gap-4">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
-        <p className="text-muted-foreground">Verificando sesión...</p>
-      </div>
-    )
-  }
-
+  // Con WhatsApp Cloud API no se requiere validación de sesión
   return <>{children}</>
 }

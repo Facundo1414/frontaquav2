@@ -38,15 +38,13 @@ export function StepSend() {
   } = useSendDebtsContext()
   const { userId } = useGlobalContext()
 
-  const [message, setMessage] = useState(`Hola \${clientName}, te envio tu comprobante actualizado de la CUOTA PLAN DE PAGOS.
+  const [message, setMessage] = useState(`Hola \${clientName}, te informamos que tu cuota del plan de pagos tiene fecha de vencimiento.
 
-📄 El PDF incluye un instructivo con todas las opciones de pago disponibles.
+📄 Adjuntamos tu comprobante actualizado con el detalle completo e información de medios de pago disponibles.
 
-🤖 Este número es automático. Para consultas personalizadas, TOCÁ EL BOTÓN VERDE de WhatsApp dentro del PDF instructivo para hablar con tu asesor.
+💬 Para consultas sobre tu cuenta, puedes responder este mensaje.
 
-Por favor, realiza el pago antes del vencimiento.
-
-🌐 Cclip 🔹 Al servicio de Aguas Cordobesas.`);
+🌐 Cclip • Al servicio de Aguas Cordobesas.`);
 
   const [loading, setLoading] = useState(false)
   const [jobId, setJobId] = useState<string | null>(null)

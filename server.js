@@ -29,7 +29,7 @@ app.prepare().then(() => {
     console.log(`> Ready on http://0.0.0.0:${port}`);
     console.log(`🚀 Frontend Next.js running on port ${port}`);
     
-    // Configurar auto-shutdown para horario laboral (9-16, lunes a viernes)
+    // Configurar auto-shutdown para horario laboral (8-16, lunes a viernes)
     if (!dev) {
       scheduleBusinessHoursShutdown(16);
     }

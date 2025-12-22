@@ -34,13 +34,13 @@ export default function StepSendProximosVencer() {
 
   // Actualizar el mensaje cuando cambien los días de anticipación
   useEffect(() => {
-    setMessage(`Hola \${clientName}, tienes cuotas de tu plan de pagos que vencen en los próximos días. 
+    setMessage(`Hola \${clientName}, te informamos que tu cuota del plan de pagos vence en los próximos ${diasAnticipacion} días. 
 
-Te envío el PDF actualizado con un instructivo que incluye todas las opciones de pago disponibles.
+📄 Adjuntamos tu comprobante con el detalle completo e información de medios de pago disponibles.
 
-Por favor, realiza el pago antes del vencimiento.
+💬 Para consultas sobre tu cuenta, puedes responder este mensaje.
 
-🌐 Cclip 🔹 Al servicio de Aguas Cordobesas.`);
+🌐 Cclip • Al servicio de Aguas Cordobesas.`);
   }, []); // Solo una vez al montar
 
   const [loading, setLoading] = useState(false)

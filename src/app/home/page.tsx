@@ -2,65 +2,46 @@
 
 import {  useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Filter, Upload, UploadCloud, Download, MessageCircle, Bell, FileText, Users, Check, Send, Clock, FileArchive, Database, HelpCircle, Settings } from 'lucide-react'
-import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Filter, MessageCircle, Check, Send, Clock, FileArchive, Database, HelpCircle, Settings } from 'lucide-react'
 import { ServiceCard } from './components/ServiceCard'
 import { ModalEnDesarrollo } from './components/modal-en-desarrollo'
-import { WhatsappSessionModal } from './components/WhatsappSessionModal'
 import { WhatsappUsageWidget } from './components/WhatsappUsageWidget'
-import { WhatsappModeSelector } from './components/WhatsappModeSelector'
 import { WhatsAppCloudAPINoticeModal, useWhatsAppCloudAPINotice } from './components/WhatsAppCloudAPINoticeModal'
-import { useWhatsappSessionContext } from '@/app/providers/context/whatsapp/WhatsappSessionContext'
 import { useGlobalContext } from '@/app/providers/context/GlobalContext'
-import { simpleWaState } from '@/lib/api/simpleWaApi'
 import { RequiresPlan } from '@/components/subscription'
-import { toast } from 'sonner'
 import { useWhatsappNavigation } from '@/hooks/useWhatsappNavigation'
+import { useUnreadMessages } from '@/hooks/useUnreadMessages'
 
 
 export default function HomePage() {
   const router = useRouter()
-  const [modalVisible, setModalVisible] = useState(false)
   const [modalDevVisible, setModalDevVisible] = useState(false)
   
   // Hook para el modal de aviso WhatsApp Cloud API
   const { showNotice, setShowNotice } = useWhatsAppCloudAPINotice()
   
-  // Consumimos el snapshot global (estado único)
-  const { snapshot, updateFromStatus } = useWhatsappSessionContext() as any
   const { userId } = useGlobalContext()
   
   // Hook centralizado para navegación con validación WhatsApp
-  const { navigateWithWhatsappCheck, userMode, isReady, isAdmin } = useWhatsappNavigation()
-  
-  // Estado efectivo del snapshot
-  const effectiveState = snapshot?.state || 'none'
-  
-  // Estado local para el selector de modo (sincronizado con localStorage)
-  const [localUserMode, setLocalUserMode] = useState<'system' | 'personal'>(userMode)
+  const { navigateWithWhatsappCheck, isAdmin } = useWhatsappNavigation()
 
-  const handleWhatsAppModeChange = (mode: 'system' | 'personal') => {
-    setLocalUserMode(mode)
-  }
-
-  const handleConnectWhatsApp = () => {
-    setModalVisible(true)
-  }
+  // Hook para obtener mensajes sin leer
+  const { unreadCount } = useUnreadMessages()
 
   const handleClick = () => {
-    navigateWithWhatsappCheck('/senddebts', setModalVisible)
+    navigateWithWhatsappCheck('/senddebts')
   }
 
   const handleClickProximosVencer = () => {
-    navigateWithWhatsappCheck('/proximos-vencer', setModalVisible)
+    navigateWithWhatsappCheck('/proximos-vencer')
   }
 
-const handleClickFiltrarClientes = () => {
-  // No necesita sesión WhatsApp, va directo al filtro
-  router.push('/filtrar-clientes')
-}
+  const handleClickFiltrarClientes = () => {
+    // No necesita sesión WhatsApp, va directo al filtro
+    router.push('/filtrar-clientes')
+  }
 
-const handleClickVerificarPlanesPago = () => {
+  const handleClickVerificarPlanesPago = () => {
   // Nueva funcionalidad para verificar planes de pago vigentes
   router.push('/verificar-planes-pago')
 }
@@ -123,92 +104,12 @@ const handleClickFAQ = () => {
         <img src="/logoWater.png" alt="Logo" className="h-32 object-contain relative z-10" />
       </div>
 
-      {/* Banner Usuario modo personal SIN sesión */}
-      {userMode === 'personal' && !isReady && (
-        <div className="mb-6 rounded-lg border-2 border-yellow-300 bg-yellow-50 p-4 shadow-sm">
-          <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-            <div className="flex items-start gap-3 flex-1">
-              <MessageCircle className="w-5 h-5 text-yellow-700 mt-0.5 flex-shrink-0" />
-              <div>
-                <p className="font-semibold text-yellow-900">Tu WhatsApp personal no está conectado</p>
-                <p className="text-sm text-yellow-700">
-                  Conectá tu sesión para poder enviar mensajes desde tu número personal.
-                </p>
-              </div>
-            </div>
-            <button
-              onClick={() => setModalVisible(true)}
-              className="px-4 py-2 bg-yellow-600 text-white text-sm font-medium rounded-md hover:bg-yellow-700 transition-colors whitespace-nowrap"
-            >
-              Conectar ahora
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Banner Admin cuando sistema NO está conectado */}
-      {isAdmin && userMode === 'system' && !isReady && (
-        <div className="mb-6 rounded-lg border-2 border-red-300 bg-red-50 p-4 shadow-sm">
-          <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-            <div className="flex items-start gap-3 flex-1">
-              <MessageCircle className="w-5 h-5 text-red-700 mt-0.5 flex-shrink-0" />
-              <div>
-                <p className="font-semibold text-red-900">El WhatsApp del sistema no está conectado</p>
-                <p className="text-sm text-red-700">
-                  Necesitás conectar el celular prepago para que los usuarios puedan enviar mensajes.
-                </p>
-              </div>
-            </div>
-            <button
-              onClick={() => router.push('/admin')}
-              className="px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-md hover:bg-red-700 transition-colors whitespace-nowrap"
-            >
-              Ir a Panel Admin
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Banner WhatsApp conectado - Solo modo personal */}
-      {userMode === 'personal' && isReady && (
-        <div className="mb-6 rounded-lg border-2 border-green-300 bg-gradient-to-r from-green-50 to-emerald-50 p-4 shadow-sm">
-          <div className="flex items-center gap-3">
-            <div className="flex-shrink-0">
-              <div className="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center">
-                <MessageCircle className="w-5 h-5 text-white" />
-              </div>
-            </div>
-            <div className="flex-1">
-              <p className="font-semibold text-green-900">WhatsApp conectado</p>
-              <p className="text-sm text-green-700">Tu sesión está activa y lista para enviar mensajes</p>
-            </div>
-            <div className="flex-shrink-0">
-              <span className="px-3 py-1 bg-green-600 text-white text-xs font-bold rounded-full">
-                ✓ ACTIVO
-              </span>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Widget de Estado del Sistema WhatsApp - Todos los usuarios */}
-      {/* TEMPORALMENTE DESHABILITADO */}
-      {/* {userId && (
+      {/* Widget de Cuota de Mensajes WhatsApp Cloud API */}
+      {userId && (
         <div className="mb-6">
           <WhatsappUsageWidget />
         </div>
-      )} */}
-
-      {/* Selector de Modo WhatsApp - Todos los usuarios */}
-      {/* TEMPORALMENTE DESHABILITADO */}
-      {/* {userId && (
-        <div className="mb-6">
-          <WhatsappModeSelector 
-            onModeChange={handleWhatsAppModeChange}
-            onConnectClick={handleConnectWhatsApp}
-          />
-        </div>
-      )} */}
+      )}
 
       {/* Servicios Header */}
       <div className="text-center mb-10">
@@ -228,8 +129,6 @@ const handleClickFAQ = () => {
             description="Envía comprobantes vencidos a clientes con plan de pago"
             onClick={handleClick}
             color="bg-teal-500"
-            disabled
-            badge="DESHABILITADO"
           />
         </RequiresPlan>
         <RequiresPlan plan="PRO">
@@ -239,8 +138,6 @@ const handleClickFAQ = () => {
             description="Avisa a clientes con plan de pago próximos a vencer"
             onClick={handleClickProximosVencer}
             color="bg-orange-500"
-            disabled
-            badge="DESHABILITADO"
           />
         </RequiresPlan>
         <ServiceCard
@@ -286,7 +183,7 @@ const handleClickFAQ = () => {
           description="Gestiona y responde mensajes de clientes en tiempo real"
           onClick={() => router.push('/conversaciones')}
           color="bg-green-500"
-          badge="NUEVO"
+          badge={unreadCount > 0 ? `${unreadCount} SIN LEER` : "NUEVO"}
         />
         {isAdmin && (
           <ServiceCard
@@ -313,15 +210,6 @@ const handleClickFAQ = () => {
         onOpenChange={setShowNotice} 
       />
 
-      {/* Modal WhatsApp unificado - Solo modo personal */}
-      {userMode === 'personal' && (
-        <WhatsappSessionModal
-          open={modalVisible}
-          onOpenChange={setModalVisible}
-          token={getAccessToken() || ''}
-          autoCloseOnAuth
-        />
-      )}
     </div>
   )
 }

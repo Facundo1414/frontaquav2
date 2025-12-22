@@ -42,12 +42,8 @@ export default function AdminTutorialPage() {
       </Alert>
 
       {/* Tabs */}
-      <Tabs defaultValue="panel" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3 lg:grid-cols-4 gap-2">
-          <TabsTrigger value="panel" className="flex items-center gap-2">
-            <Settings className="h-4 w-4" />
-            Panel de Servicios
-          </TabsTrigger>
+      <Tabs defaultValue="whatsapp" className="space-y-6">
+        <TabsList className="grid w-full grid-cols-3 gap-2">
           <TabsTrigger value="whatsapp" className="flex items-center gap-2">
             <MessageCircle className="h-4 w-4" />
             WhatsApp API
@@ -62,128 +58,7 @@ export default function AdminTutorialPage() {
           </TabsTrigger>
         </TabsList>
 
-        {/* Tab 1: Panel de Servicios */}
-        <TabsContent value="panel" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Settings className="h-6 w-6 text-blue-600" />
-                Guía Rápida: Panel de Servicios
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {/* Acceso rápido */}
-              <div>
-                <h3 className="text-xl font-semibold mb-3 flex items-center gap-2">
-                  <Zap className="h-5 w-5 text-yellow-500" />
-                  Acceso Rápido
-                </h3>
-                <Alert className="bg-green-50 border-green-200">
-                  <CheckCircle className="h-4 w-4 text-green-600" />
-                  <AlertDescription className="text-green-900">
-                    <strong>URL:</strong> <code className="bg-green-100 px-2 py-1 rounded">/admin/services</code> 
-                    <br />O desde el dashboard admin → Card "Gestión de Servicios"
-                  </AlertDescription>
-                </Alert>
-              </div>
-
-              {/* Vista general */}
-              <div>
-                <h3 className="text-xl font-semibold mb-3">1. Vista General de Servicios</h3>
-                <p className="text-gray-700 mb-3">
-                  Al entrar, verás 4 cards con información de cada servicio (Backend API, Baileys Worker, Comprobante Worker, Frontend).
-                </p>
-                <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-                  <p className="font-semibold mb-2">Información mostrada:</p>
-                  <ul className="space-y-2 text-sm">
-                    <li className="flex items-center gap-2">
-                      <CheckCircle className="h-4 w-4 text-green-600" />
-                      <span><strong>Status:</strong> Running (verde), Stopped (rojo), Unknown (gris)</span>
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <Clock className="h-4 w-4 text-blue-600" />
-                      <span><strong>Uptime:</strong> Tiempo desde último restart</span>
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <Zap className="h-4 w-4 text-yellow-600" />
-                      <span><strong>CPU:</strong> Porcentaje de uso de CPU</span>
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <BarChart className="h-4 w-4 text-purple-600" />
-                      <span><strong>Memory:</strong> Uso de memoria en MB</span>
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <AlertTriangle className="h-4 w-4 text-orange-600" />
-                      <span><strong>Restarts:</strong> Contador de reinicios</span>
-                    </li>
-                  </ul>
-                </div>
-              </div>
-
-              {/* Ver logs */}
-              <div>
-                <h3 className="text-xl font-semibold mb-3">2. Ver Logs en Tiempo Real</h3>
-                <div className="space-y-3">
-                  <p className="text-gray-700">
-                    <strong>Paso 1:</strong> Click en cualquier card de servicio
-                  </p>
-                  <p className="text-gray-700">
-                    <strong>Paso 2:</strong> Se abrirá el terminal de logs en la parte inferior
-                  </p>
-                  <div className="bg-gray-900 text-gray-100 p-4 rounded-lg font-mono text-xs">
-                    <div className="flex items-center justify-between mb-2 border-b border-gray-700 pb-2">
-                      <span>📋 Logs: Backend API</span>
-                      <span className="text-gray-400">[Todos ▼]</span>
-                    </div>
-                    <div className="space-y-1">
-                      <div className="text-blue-400">14:30:25 [INFO]  Processing request</div>
-                      <div className="text-blue-400">14:30:26 [INFO]  Database query executed</div>
-                      <div className="text-yellow-400">14:30:27 [WARN]  Cache miss</div>
-                      <div className="text-red-400">14:30:28 [ERROR] Failed to connect to external service</div>
-                      <div className="text-blue-400">14:30:29 [INFO]  User authenticated</div>
-                    </div>
-                  </div>
-                  <Alert className="bg-blue-50 border-blue-200">
-                    <AlertDescription className="text-blue-900 text-sm">
-                      <strong>Características:</strong>
-                      <ul className="list-disc ml-5 mt-2 space-y-1">
-                        <li>🔄 Auto-actualización cada 2 segundos</li>
-                        <li>📜 Auto-scroll a los logs más recientes</li>
-                        <li>🎨 Colores por nivel: INFO (azul), WARN (amarillo), ERROR (rojo), DEBUG (gris)</li>
-                      </ul>
-                    </AlertDescription>
-                  </Alert>
-                </div>
-              </div>
-
-              {/* Filtrar y exportar */}
-              <div>
-                <h3 className="text-xl font-semibold mb-3">3. Filtrar y Exportar Logs</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-                    <p className="font-semibold mb-2">🔍 Filtros disponibles:</p>
-                    <ul className="space-y-1 text-sm">
-                      <li>• <strong>Todos:</strong> Ver todos los logs</li>
-                      <li>• <strong>Errors:</strong> Solo errores (rojo)</li>
-                      <li>• <strong>Warnings:</strong> Solo advertencias (amarillo)</li>
-                      <li>• <strong>Info:</strong> Solo información (azul)</li>
-                      <li>• <strong>Debug:</strong> Solo debug (gris)</li>
-                    </ul>
-                  </div>
-                  <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-                    <p className="font-semibold mb-2">💾 Exportar logs:</p>
-                    <p className="text-sm mb-2">Click en botón "Export" para descargar un archivo .txt con todos los logs.</p>
-                    <code className="text-xs bg-gray-200 px-2 py-1 rounded block">
-                      backend-logs-2025-01-15.txt
-                    </code>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Tab 2: WhatsApp API */}
+        {/* Tab 1: WhatsApp API */}
         <TabsContent value="whatsapp" className="space-y-6">
           <Card>
             <CardHeader>
@@ -330,7 +205,7 @@ export default function AdminTutorialPage() {
           </Card>
         </TabsContent>
 
-        {/* Tab 3: Monitoreo PYSE */}
+        {/* Tab 2: Monitoreo PYSE */}
         <TabsContent value="pyse" className="space-y-6">
           <Card>
             <CardHeader>
@@ -637,20 +512,19 @@ export default function AdminTutorialPage() {
                 <h3 className="text-xl font-semibold mb-3">🔧 Resolución de Problemas Comunes</h3>
                 <div className="space-y-3">
                   <div className="bg-red-50 p-4 rounded-lg border border-red-200">
-                    <p className="font-semibold mb-2 text-red-900">❌ WhatsApp desconectado</p>
+                    <p className="font-semibold mb-2 text-red-900">❌ WhatsApp Cloud API no envía mensajes</p>
                     <ol className="list-decimal ml-5 space-y-1 text-sm text-gray-700">
-                      <li>Ve a <code className="bg-red-100 px-1 rounded">/admin/services</code></li>
-                      <li>Verifica que "Baileys Worker" esté activo</li>
-                      <li>Si está detenido, reinicia manualmente</li>
-                      <li>Escanea el QR code en el widget de WhatsApp</li>
-                      <li>Espera 10-15 segundos a que conecte</li>
+                      <li>Verifica las credenciales en <code className="bg-red-100 px-1 rounded">/whatsapp/config</code></li>
+                      <li>Asegúrate de tener conversaciones disponibles en tu cuota</li>
+                      <li>Revisa el estado en el navbar (badge de WhatsApp)</li>
+                      <li>Verifica el log de conversaciones en <code className="bg-red-100 px-1 rounded">/admin/conversaciones</code></li>
                     </ol>
                   </div>
 
                   <div className="bg-orange-50 p-4 rounded-lg border border-orange-200">
                     <p className="font-semibold mb-2 text-orange-900">⚠️ PYSE no responde / Errores 500</p>
                     <ol className="list-decimal ml-5 space-y-1 text-sm text-gray-700">
-                      <li>Verifica horario: PYSE funciona de 9:00 a 16:00 hs (L-V)</li>
+                      <li>Verifica horario: PYSE funciona de 8:00 a 16:00 hs (L-V)</li>
                       <li>Si estás fuera de horario, espera a que abra</li>
                       <li>Revisa límites de cuota en el widget PYSE</li>
                       <li>Si superaste el límite diario, espera al día siguiente</li>
@@ -661,25 +535,17 @@ export default function AdminTutorialPage() {
                   <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
                     <p className="font-semibold mb-2 text-yellow-900">⚠️ PDFs no se generan</p>
                     <ol className="list-decimal ml-5 space-y-1 text-sm text-gray-700">
-                      <li>Ve a <code className="bg-yellow-100 px-1 rounded">/admin/services</code></li>
-                      <li>Verifica que "Comprobante Worker" esté activo</li>
-                      <li>Revisa logs del servicio (buscar errores en rojo)</li>
+                      <li>Verifica que el servicio de comprobantes esté activo</li>
                       <li>Si ves "comprobante debe ser seleccionado", el sistema reintenta automáticamente (hasta 3 veces)</li>
                       <li>Si persiste, puede ser problema de PYSE (ver punto anterior)</li>
                     </ol>
                   </div>
 
                   <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
-                    <p className="font-semibold mb-2 text-blue-900">🔄 Servicios lentos / Alto uso de CPU</p>
+                    <p className="font-semibold mb-2 text-blue-900">🔄 Backend lento o alto uso de recursos</p>
                     <ol className="list-decimal ml-5 space-y-1 text-sm text-gray-700">
-                      <li>Ve a <code className="bg-blue-100 px-1 rounded">/admin/railway</code> (si token válido)</li>
-                      <li>Verifica uso de CPU/Memory de cada servicio</li>
-                      <li>Si un servicio supera 80% CPU constantemente:
-                        <ul className="list-disc ml-5 mt-1">
-                          <li>Reinicia el servicio desde <code className="bg-blue-100 px-1 rounded">/admin/services</code></li>
-                          <li>Revisa logs para identificar problema</li>
-                        </ul>
-                      </li>
+                      <li>Revisa las métricas en <code className="bg-blue-100 px-1 rounded">/admin/supabase</code></li>
+                      <li>Verifica el uso de storage y database</li>
                       <li>Considera reducir concurrencia si hay muchos procesos paralelos</li>
                     </ol>
                   </div>
@@ -690,19 +556,19 @@ export default function AdminTutorialPage() {
               <div>
                 <h3 className="text-xl font-semibold mb-3">💾 Backup y Recuperación</h3>
                 <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-                  <p className="font-semibold mb-3">📁 Archivos temporales importantes:</p>
+                  <p className="font-semibold mb-3">📁 Archivos importantes:</p>
                   <ul className="space-y-2 text-sm text-gray-700">
                     <li>
-                      <strong>Sesiones WhatsApp Baileys:</strong>
+                      <strong>Sesiones WhatsApp Cloud API:</strong>
                       <br />
-                      <code className="text-xs bg-gray-200 px-2 py-1 rounded">API WHATSAPP/baileys-worker/sessions/</code>
+                      <code className="text-xs bg-gray-200 px-2 py-1 rounded">Supabase → wa_sessions</code>
                       <br />
-                      <span className="text-xs text-gray-600">Contiene carpetas con UUID de sesión. Backup periódico recomendado.</span>
+                      <span className="text-xs text-gray-600">Gestión automática de sesiones en base de datos.</span>
                     </li>
                     <li>
                       <strong>PDFs temporales:</strong>
                       <br />
-                      <code className="text-xs bg-gray-200 px-2 py-1 rounded">API WHATSAPP/whatsapp-worker/pdfTemporales/</code>
+                      <code className="text-xs bg-gray-200 px-2 py-1 rounded">API COMPROBANTES/comprobante-worker/pdfTemporales/</code>
                       <br />
                       <span className="text-xs text-gray-600">Se limpian automáticamente después de enviar. No requiere backup.</span>
                     </li>
@@ -716,7 +582,7 @@ export default function AdminTutorialPage() {
 
                 <Alert className="mt-3 bg-blue-50 border-blue-200">
                   <AlertDescription className="text-blue-900 text-sm">
-                    <strong>💡 Tip:</strong> Para restaurar sesión WhatsApp, copia la carpeta de sesión guardada a <code className="bg-blue-100 px-1 rounded">sessions/</code> y reinicia el Baileys Worker.
+                    <strong>💡 Tip:</strong> Las conversaciones de WhatsApp se guardan automáticamente en Supabase (tabla wa_conversations).
                   </AlertDescription>
                 </Alert>
               </div>
@@ -728,11 +594,11 @@ export default function AdminTutorialPage() {
                   <div className="bg-green-50 p-3 rounded-lg border border-green-200">
                     <p className="font-semibold text-sm mb-2">✅ Hacer</p>
                     <ul className="text-xs space-y-1 text-gray-700">
-                      <li>• Revisar logs periódicamente en <code className="bg-green-100 px-1 rounded">/admin/services</code></li>
                       <li>• Monitorear uso PYSE en <code className="bg-green-100 px-1 rounded">/admin/pyse-usage</code></li>
-                      <li>• Backup semanal de sesiones WhatsApp</li>
+                      <li>• Revisar conversaciones en <code className="bg-green-100 px-1 rounded">/admin/conversaciones</code></li>
                       <li>• Validar Excel antes de procesar (usar plantilla)</li>
                       <li>• Enviar mensajes en lotes pequeños (100-200)</li>
+                      <li>• Verificar cuota de WhatsApp Cloud API disponible</li>
                     </ul>
                   </div>
                   <div className="bg-red-50 p-3 rounded-lg border border-red-200">
@@ -742,7 +608,7 @@ export default function AdminTutorialPage() {
                       <li>• Enviar más de 500 WhatsApp simultáneos</li>
                       <li>• Compartir credenciales WhatsApp Cloud API</li>
                       <li>• Exceder límites de cuota PYSE</li>
-                      <li>• Reiniciar servicios durante procesamiento</li>
+                      <li>• Enviar mensajes sin verificar estado de ventana 24h</li>
                     </ul>
                   </div>
                 </div>
@@ -750,15 +616,15 @@ export default function AdminTutorialPage() {
 
               {/* Enlaces rápidos */}
               <div>
-                <h3 className="text-xl font-semibold mb-3">🔗 Enlaces Rápidos</h3>
+                <h3 className="text-xl font-semibold mb-3">🔗 Enlaces Rápidos del Panel Admin</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
                     <p className="font-semibold text-sm mb-2">🔧 Administración</p>
                     <ul className="text-xs space-y-1">
-                      <li>• <code className="bg-blue-100 px-1 rounded">/admin/services</code> - Gestión de servicios</li>
-                      <li>• <code className="bg-blue-100 px-1 rounded">/admin/pyse-usage</code> - Monitoreo PYSE</li>
-                      <li>• <code className="bg-blue-100 px-1 rounded">/admin/railway</code> - Métricas Railway</li>
                       <li>• <code className="bg-blue-100 px-1 rounded">/admin/tutorial</code> - Esta guía</li>
+                      <li>• <code className="bg-blue-100 px-1 rounded">/admin/subscriptions</code> - Gestión suscripciones</li>
+                      <li>• <code className="bg-blue-100 px-1 rounded">/admin/supabase</code> - Métricas Supabase</li>
+                      <li>• <code className="bg-blue-100 px-1 rounded">/admin/conversaciones</code> - Chats WhatsApp</li>
                     </ul>
                   </div>
                   <div className="bg-green-50 p-3 rounded-lg border border-green-200">
@@ -768,6 +634,7 @@ export default function AdminTutorialPage() {
                       <li>• <code className="bg-green-100 px-1 rounded">/senddebts</code> - Envío de deudas</li>
                       <li>• <code className="bg-green-100 px-1 rounded">/proximos-vencer</code> - Envío preventivo</li>
                       <li>• <code className="bg-green-100 px-1 rounded">/clientes-database</code> - Base de datos</li>
+                      <li>• <code className="bg-green-100 px-1 rounded">/whatsapp/config</code> - Config WhatsApp</li>
                     </ul>
                   </div>
                 </div>

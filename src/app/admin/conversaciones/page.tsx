@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -21,6 +22,7 @@ import {
   TrendingUp,
   AlertCircle,
   CheckCircle,
+  ArrowLeft,
 } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
@@ -49,6 +51,7 @@ interface UserStats {
 }
 
 export default function AdminConversacionesPage() {
+  const router = useRouter();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [users, setUsers] = useState<UserData[]>([]);
   const [selectedUser, setSelectedUser] = useState<string>("all");
@@ -62,12 +65,12 @@ export default function AdminConversacionesPage() {
   const loadData = async () => {
     try {
       setLoading(true);
-      const [conversationsData, usersData] = await Promise.all([
-        whatsappChatApi.getConversations("active", 1, 1000),
-        loadUsers(),
-      ]);
+      const conversationsData = await whatsappChatApi.getConversations("active", 1, 1000);
       setConversations(conversationsData);
-      setUsers(usersData);
+      
+      // Extraer usuarios únicos y obtener sus display names
+      const uniqueUsers = await fetchUsersWithDisplayNames(conversationsData);
+      setUsers(uniqueUsers);
     } catch (error) {
       console.error("Error cargando datos:", error);
       toast.error("Error al cargar datos");
@@ -76,16 +79,49 @@ export default function AdminConversacionesPage() {
     }
   };
 
-  const loadUsers = async (): Promise<UserData[]> => {
+  const fetchUsersWithDisplayNames = async (conversations: Conversation[]): Promise<UserData[]> => {
+    const uniqueUserIds = Array.from(
+      new Set(conversations.map(conv => conv.initiated_by_user_id).filter(Boolean))
+    );
+
+    if (uniqueUserIds.length === 0) return [];
+
     try {
-      const { data } = await api.get("/users", {
-        headers: { Authorization: `Bearer ${getAccessToken()}` },
-      });
-      return data;
+      // Hacer solicitud al backend para obtener usuarios
+      const { data } = await api.post(
+        '/admin/users/by-ids',
+        { userIds: uniqueUserIds },
+        { headers: { Authorization: `Bearer ${getAccessToken()}` } }
+      );
+
+      return data.map((user: any) => ({
+        id: user.id,
+        email: user.email,
+        name: user.display_name || user.email,
+      }));
     } catch (error) {
-      console.error("Error cargando usuarios:", error);
-      return [];
+      console.error('Error obteniendo usuarios:', error);
+      return extractUniqueUsers(conversations);
     }
+  };
+
+  const extractUniqueUsers = (conversations: Conversation[]): UserData[] => {
+    const userMap = new Map<string, UserData>();
+    
+    conversations.forEach(conv => {
+      if (conv.initiated_by_user_id && !userMap.has(conv.initiated_by_user_id)) {
+        // Crear un nombre más legible del UID (primeros y últimos caracteres)
+        const shortId = conv.initiated_by_user_id.slice(0, 8) + '...' + conv.initiated_by_user_id.slice(-4);
+        
+        userMap.set(conv.initiated_by_user_id, {
+          id: conv.initiated_by_user_id,
+          email: shortId,
+          name: `Display name (${shortId})`,
+        });
+      }
+    });
+    
+    return Array.from(userMap.values());
   };
 
   const filteredConversations = conversations.filter((conv) => {
@@ -141,6 +177,14 @@ export default function AdminConversacionesPage() {
     <div className="p-6 space-y-6 bg-gray-50 min-h-screen">
       {/* Header */}
       <div>
+        <Button
+          variant="ghost"
+          onClick={() => router.push('/admin')}
+          className="mb-4"
+        >
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Volver al Panel
+        </Button>
         <h1 className="text-3xl font-bold flex items-center gap-3 text-gray-900">
           <MessageCircle className="h-8 w-8 text-blue-600" />
           Monitoreo de Conversaciones - Admin

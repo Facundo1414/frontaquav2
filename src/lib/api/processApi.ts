@@ -2,7 +2,7 @@ import { getAccessToken } from "../../utils/authToken";
 import api from "./axiosInstance";
 import { parseExcelBlobWithIndexMapping } from "../../utils/parseExcelBlob";
 import { getFileByName } from "./uploadApi";
-import { logger } from '@/lib/logger';
+import { logger } from "@/lib/logger";
 
 export const sendAndScrape = async (
   fileName: string,
@@ -108,7 +108,7 @@ export const sendProximosVencer = async (
 
   try {
     const response = await api.post(
-      "/whatsapp/send-proximos-vencer",
+      "/wa/send-proximos-vencer",
       {
         users: users,
         diasAnticipacion: diasAnticipacion,

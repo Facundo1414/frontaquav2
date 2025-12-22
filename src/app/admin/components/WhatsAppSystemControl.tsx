@@ -514,7 +514,7 @@ export function WhatsAppSystemControl() {
               <h3 className="text-sm font-semibold text-gray-900">Restricción de Horario</h3>
               <p className="text-xs text-gray-500 mt-1">
                 {status?.workingHoursEnabled 
-                  ? '🔒 Solo 9:00-16:00 hs - Fuera de horario no se envían mensajes'
+                  ? '🔒 Solo 8:00-16:00 hs - Fuera de horario no se envían mensajes'
                   : '🔓 24/7 habilitado - Envíos permitidos a cualquier hora'}
               </p>
             </div>

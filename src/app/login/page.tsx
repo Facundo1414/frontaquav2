@@ -120,10 +120,10 @@ export default function LoginPage() {
             <h4 className="font-semibold text-white">Horario de Servicio</h4>
           </div>
           <p className="text-sm text-white/90">
-            Los servicios están disponibles de <strong>Lunes a Viernes</strong> de <strong>9:00 a 16:00 hs</strong>
+            Los servicios están disponibles de <strong>Lunes a Viernes</strong> de <strong>8:00 a 16:00 hs</strong>
           </p>
           <p className="text-xs text-white/75 mt-2">
-            Fuera de este horario, puede iniciar sesión pero algunos servicios podrían estar limitados.
+            Fuera de este horario, no se podrá ingresar al sistema.
           </p>
         </motion.div>
 

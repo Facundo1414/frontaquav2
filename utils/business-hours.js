@@ -24,7 +24,7 @@ function scheduleBusinessHoursShutdown(shutdownHour = 16) {
     // Programar shutdown
     setTimeout(() => {
       console.log(`🔴 [${serviceName}] Auto-shutdown: Fin del horario laboral (${shutdownHour}:00)`);
-      console.log(`🔴 [${serviceName}] Próximo inicio: mañana a las 9:00 AM`);
+      console.log(`🔴 [${serviceName}] Próximo inicio: mañana a las 8:00 AM`);
       process.exit(0);
     }, msUntilShutdown);
     
@@ -49,7 +49,7 @@ function scheduleBusinessHoursShutdown(shutdownHour = 16) {
 }
 
 /**
- * Verifica si estamos en horario laboral (9-16, lunes a viernes)
+ * Verifica si estamos en horario laboral (8-16, lunes a viernes)
  */
 function isBusinessHours() {
   const timezone = process.env.TZ || 'America/Argentina/Cordoba';
@@ -70,7 +70,7 @@ function isBusinessHours() {
     const weekday = parts.find(p => p.type === 'weekday')?.value || '';
     
     const isWeekend = weekday === 'Sat' || weekday === 'Sun';
-    const isWorkingHour = hour >= 9 && hour < 16;
+    const isWorkingHour = hour >= 8 && hour < 16;
     
     return !isWeekend && isWorkingHour;
   } catch (error) {

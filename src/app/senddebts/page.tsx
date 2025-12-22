@@ -1,11 +1,12 @@
 'use client'
 import dynamic from 'next/dynamic'
-import { Suspense } from 'react'
+import { Suspense, useState } from 'react'
 import { SendDebtsProvider, useSendDebtsContext } from '../providers/context/SendDebtsContext'
 import { SendDebtsGuard } from './components/SendDebtsGuard'
 import { Card, CardContent } from '@/components/ui/card'
 import { Loader2 } from 'lucide-react'
 import { StepIndicator, Step } from './components/StepIndicator'
+import { JobRecoveryNotification } from '@/components/JobRecoveryNotification'
 import {
   SkeletonUploadFile,
   SkeletonSend,
@@ -87,6 +88,17 @@ function StepContent({ step }: { step: number }) {
 
 function Content() {
   const { activeStep, setActiveStep } = useSendDebtsContext()
+  const [showRecoveryNotification, setShowRecoveryNotification] = useState(true)
+
+  const handleRecoverJob = (jobId: string, progress: number) => {
+    // Determinar paso según progreso
+    if (progress >= 66) {
+      setActiveStep(2) // Download
+    } else if (progress >= 33) {
+      setActiveStep(1) // Send
+    }
+    setShowRecoveryNotification(false)
+  }
 
   // Calcular estado de cada paso dinamicamente
   const stepsWithStatus: Step[] = SEND_DEBTS_STEPS.map((step, index) => {
@@ -100,6 +112,15 @@ function Content() {
 
   return (
     <div className="min-h-screen px-6 py-4 space-y-4 max-w-[1600px] mx-auto">
+      {/* Notificación de recuperación */}
+      {showRecoveryNotification && (
+        <JobRecoveryNotification
+          jobType="senddebts"
+          onRecover={handleRecoverJob}
+          onDismiss={() => setShowRecoveryNotification(false)}
+        />
+      )}
+      
       {/* Indicador de pasos horizontal */}
       <div className="sticky top-0 z-10 bg-background pb-2">
         <StepIndicator steps={stepsWithStatus} currentStep={activeStep} totalProgress={totalProgress} />
