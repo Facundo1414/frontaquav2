@@ -312,7 +312,7 @@ export default function StepSendProximosVencer() {
     setStatus(null)
 
     try {
-      const result = await sendAndScrapeProximosVencer(fileNameFiltered, message, diasAnticipacion)
+      const result = await sendAndScrapeProximosVencer(fileNameFiltered as string, message, diasAnticipacion)
       
       // 🚨 Si el archivo temporal ya no existe, resetear y volver al paso 0
       if (result.fileNotFound) {

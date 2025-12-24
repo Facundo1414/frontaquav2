@@ -162,7 +162,7 @@ export default function ConversacionesPage() {
               if (data.conversationId) {
                 const conv = conversations.find(c => c.id === data.conversationId);
                 if (conv) {
-                  handleSelectConversation(conv);
+                  setSelectedConversation(conv);
                 }
               }
             }
