@@ -30,6 +30,8 @@ import { toast } from "sonner";
 import api from "@/lib/api/axiosInstance";
 import { getAccessToken } from "@/utils/authToken";
 import { PageHeader } from "@/components/PageHeader";
+import { BotResponsesModal } from "@/components/whatsapp/BotResponsesModal";
+import { Bot } from "lucide-react";
 
 interface UserData {
   id: string;
@@ -176,15 +178,25 @@ export default function AdminConversacionesPage() {
   return (
     <div className="p-6 space-y-6 bg-gray-50 min-h-screen">
       {/* Header */}
-      <PageHeader
-        title="Monitoreo de Conversaciones"
-        description="Vista en tiempo real de todas las conversaciones de WhatsApp"
-        icon={MessageCircle}
-        breadcrumbs={[
-          { label: 'Admin', href: '/admin' },
-          { label: 'Conversaciones' }
-        ]}
-      />
+      <div className="flex justify-between items-start">
+        <PageHeader
+          title="Monitoreo de Conversaciones"
+          description="Vista en tiempo real de todas las conversaciones de WhatsApp"
+          icon={MessageCircle}
+          breadcrumbs={[
+            { label: 'Admin', href: '/admin' },
+            { label: 'Conversaciones' }
+          ]}
+        />
+        <BotResponsesModal
+          trigger={
+            <Button variant="outline" className="gap-2">
+              <Bot className="h-4 w-4" />
+              Ver respuestas del bot
+            </Button>
+          }
+        />
+      </div>
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">

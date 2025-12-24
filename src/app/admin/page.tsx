@@ -178,6 +178,27 @@ export default function AdminDashboard() {
                 Gestiona conversaciones y chats de WhatsApp Cloud API
               </p>
             </div>
+
+            {/* Bot Templates Card */}
+            <div 
+              onClick={() => router.push('/admin/bot-templates')}
+              className="bg-white rounded-lg shadow-md p-6 border border-gray-200 hover:shadow-lg hover:border-indigo-400 transition-all duration-200 cursor-pointer group"
+            >
+              <div className="flex items-start justify-between mb-4">
+                <div className="bg-indigo-100 p-3 rounded-lg group-hover:bg-indigo-200 transition-colors">
+                  <svg className="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                  </svg>
+                </div>
+                <span className="text-gray-400 group-hover:text-indigo-600 transition-colors">→</span>
+              </div>
+              <h3 className="text-xl font-semibold text-gray-900 mb-2 group-hover:text-indigo-600 transition-colors">
+                🤖 Bot WhatsApp
+              </h3>
+              <p className="text-gray-600 text-sm">
+                Configura respuestas automáticas, plantillas y palabras clave del bot
+              </p>
+            </div>
           </div>
         </div>
       </main>

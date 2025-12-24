@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,43 @@ import { toast } from "sonner";
 import { getAccessToken } from "@/utils/authToken";
 import { useGlobalContext } from "@/app/providers/context/GlobalContext";
 import { useRouter } from "next/navigation";
+import { BotResponsesModal } from "@/components/whatsapp/BotResponsesModal";
+import { HelpCircle } from "lucide-react";
+
+// Componente para mostrar countdown de tiempo restante
+function CountdownTimer({ expiresAt }: { expiresAt: string }) {
+  const [timeLeft, setTimeLeft] = useState<string>("");
+  
+  useEffect(() => {
+    const calculateTimeLeft = () => {
+      const now = new Date();
+      const expires = new Date(expiresAt);
+      const diff = expires.getTime() - now.getTime();
+      
+      if (diff <= 0) {
+        setTimeLeft("Expirado");
+        return;
+      }
+      
+      const hours = Math.floor(diff / (1000 * 60 * 60));
+      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      
+      if (hours > 0) {
+        setTimeLeft(`${hours}h ${minutes}m`);
+      } else {
+        const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+        setTimeLeft(`${minutes}m ${seconds}s`);
+      }
+    };
+    
+    calculateTimeLeft();
+    const interval = setInterval(calculateTimeLeft, 1000);
+    
+    return () => clearInterval(interval);
+  }, [expiresAt]);
+  
+  return <span>{timeLeft}</span>;
+}
 
 export default function ConversacionesPage() {
   const router = useRouter();
@@ -33,6 +70,7 @@ export default function ConversacionesPage() {
   const [botEnabled, setBotEnabled] = useState(true);
   const [assignedUserId, setAssignedUserId] = useState<string | null>(null);
   const [loadingBotStatus, setLoadingBotStatus] = useState(false);
+  const [sending, setSending] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Cargar templates cuando se abre el modal
@@ -100,12 +138,54 @@ export default function ConversacionesPage() {
       );
     };
 
+    // 🔔 Alerta cuando un cliente solicita hablar con asesor
+    const handleAsesorAlert = (data: any) => {
+      console.log("🔔 Alerta de asesor recibida:", data);
+      
+      // Actualizar el estado del bot si es la conversación actual
+      if (selectedConversation && data.conversationId === selectedConversation.id) {
+        setBotEnabled(false);
+      }
+      
+      // Actualizar la lista de conversaciones para reflejar el cambio
+      loadConversations();
+      
+      // Mostrar toast prominente
+      toast.warning(
+        `🔔 Cliente solicita asesor\n📱 ${data.clientPhone}`,
+        {
+          duration: 10000, // 10 segundos
+          action: {
+            label: "Ver chat",
+            onClick: () => {
+              // Si hay conversationId, seleccionar esa conversación
+              if (data.conversationId) {
+                const conv = conversations.find(c => c.id === data.conversationId);
+                if (conv) {
+                  handleSelectConversation(conv);
+                }
+              }
+            }
+          }
+        }
+      );
+
+      // Reproducir sonido de notificación (opcional)
+      try {
+        const audio = new Audio('/notification.mp3');
+        audio.volume = 0.5;
+        audio.play().catch(() => {}); // Ignorar si no puede reproducir
+      } catch (e) {}
+    };
+
     socket.on("new_message", handleNewMessage);
     socket.on("message_status", handleMessageStatus);
+    socket.on("asesor:alert", handleAsesorAlert);
 
     return () => {
       socket.off("new_message", handleNewMessage);
       socket.off("message_status", handleMessageStatus);
+      socket.off("asesor:alert", handleAsesorAlert);
       socket.offAny(handleAnyEvent);
     };
   }, [socket, connected, userId, selectedConversation]);
@@ -295,7 +375,7 @@ export default function ConversacionesPage() {
   };
 
   const sendReply = async () => {
-    if (!selectedConversation || !replyText.trim()) return;
+    if (!selectedConversation || !replyText.trim() || sending) return;
 
     const isWithinWindow = selectedConversation.conversation_window_expires_at
       ? new Date(selectedConversation.conversation_window_expires_at) > new Date()
@@ -307,14 +387,16 @@ export default function ConversacionesPage() {
     }
 
     try {
+      setSending(true);
       await whatsappChatApi.sendReply(selectedConversation.id, {
         content: replyText,
       });
       setReplyText("");
-      toast.success("Mensaje enviado");
     } catch (error: any) {
       console.error("Error enviando mensaje:", error);
       toast.error(error.response?.data?.message || "Error al enviar mensaje");
+    } finally {
+      setSending(false);
     }
   };
 
@@ -373,6 +455,16 @@ export default function ConversacionesPage() {
     ? new Date(selectedConversation.conversation_window_expires_at) > new Date()
     : false;
 
+  // Detectar si estamos esperando respuesta del cliente
+  // (último mensaje fue saliente/template y no hay ventana activa)
+  const isWaitingForClientResponse = selectedConversation && !isWithinWindow && 
+    selectedConversation.last_message_direction === 'outgoing';
+
+  // Estado de la conversación para mostrar en UI
+  const conversationStatus: 'active' | 'waiting' | 'expired' = 
+    isWithinWindow ? 'active' : 
+    isWaitingForClientResponse ? 'waiting' : 'expired';
+
   const totalUnread = conversations.reduce((sum, conv) => sum + conv.unread_count, 0);
 
   if (loading) {
@@ -410,6 +502,18 @@ export default function ConversacionesPage() {
             </h1>
           </div>
           <div className="flex items-center gap-2">
+            <BotResponsesModal
+              trigger={
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="text-[#AEBAC1] hover:text-white hover:bg-[#2A3942] rounded-full"
+                  title="Ver respuestas automáticas del bot"
+                >
+                  <HelpCircle className="h-5 w-5" />
+                </Button>
+              }
+            />
             {connected ? (
               <div className="flex items-center gap-1 text-green-400" title="Conectado">
                 <Wifi className="h-4 w-4" />
@@ -487,7 +591,14 @@ export default function ConversacionesPage() {
             </div>
           ) : (
             <div>
-              {filteredConversations.map((conv) => (
+              {filteredConversations.map((conv) => {
+                // Calcular estado de cada conversación
+                const convIsWithinWindow = conv.conversation_window_expires_at
+                  ? new Date(conv.conversation_window_expires_at) > new Date()
+                  : false;
+                const convIsWaiting = !convIsWithinWindow && conv.last_message_direction === 'outgoing';
+                
+                return (
                 <div
                   key={conv.id}
                   onClick={() => loadMessages(conv)}
@@ -496,9 +607,18 @@ export default function ConversacionesPage() {
                   }`}
                 >
                   <div className="flex items-start gap-3">
-                    {/* Avatar */}
-                    <div className="w-12 h-12 rounded-full bg-[#6B7C85] flex items-center justify-center text-white font-medium flex-shrink-0">
-                      {getInitials(conv.client_name)}
+                    {/* Avatar con indicador de estado */}
+                    <div className="relative">
+                      <div className="w-12 h-12 rounded-full bg-[#6B7C85] flex items-center justify-center text-white font-medium flex-shrink-0">
+                        {getInitials(conv.client_name)}
+                      </div>
+                      {/* Indicador de estado */}
+                      <div className={`absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full border-2 border-[#111B21] flex items-center justify-center ${
+                        convIsWithinWindow ? 'bg-green-500' : convIsWaiting ? 'bg-yellow-500' : 'bg-gray-500'
+                      }`}>
+                        {convIsWithinWindow && <Check className="h-2.5 w-2.5 text-white" />}
+                        {convIsWaiting && <Clock className="h-2.5 w-2.5 text-white" />}
+                      </div>
                     </div>
 
                     {/* Contenido */}
@@ -533,7 +653,8 @@ export default function ConversacionesPage() {
                     </div>
                   </div>
                 </div>
-              ))}
+              );
+              })}
             </div>
           )}
         </ScrollArea>
@@ -562,10 +683,23 @@ export default function ConversacionesPage() {
                 </div>
               </div>
               <div className="flex items-center gap-4 text-[#AEBAC1]">
-                {!isWithinWindow && (
+                {/* Estado de la ventana de 24hs */}
+                {conversationStatus === 'active' && selectedConversation.conversation_window_expires_at && (
+                  <div className="px-2 py-1 bg-green-900/30 text-green-400 text-xs font-medium rounded flex items-center gap-1">
+                    <Clock className="h-3 w-3" />
+                    <CountdownTimer expiresAt={selectedConversation.conversation_window_expires_at} />
+                  </div>
+                )}
+                {conversationStatus === 'waiting' && (
+                  <div className="px-2 py-1 bg-yellow-900/30 text-yellow-400 text-xs font-medium rounded flex items-center gap-1 animate-pulse">
+                    <Clock className="h-3 w-3" />
+                    Esperando respuesta...
+                  </div>
+                )}
+                {conversationStatus === 'expired' && (
                   <div className="px-2 py-1 bg-red-900/30 text-red-400 text-xs font-medium rounded">
                     <AlertCircle className="h-3 w-3 inline mr-1" />
-                    Ventana expirada
+                    Sin actividad
                   </div>
                 )}
                 {/* Control del Bot */}
@@ -638,7 +772,7 @@ export default function ConversacionesPage() {
                     new Date(messages[index - 1].timestamp).toDateString() !== new Date(msg.timestamp).toDateString();
                   
                   return (
-                    <div key={msg.id}>
+                    <div key={`${msg.id}-${index}`}>
                       {showDate && (
                         <div className="flex justify-center mb-3 mt-3">
                           <div className="bg-[#182229] px-3 py-1 rounded-md shadow-sm">
@@ -696,12 +830,13 @@ export default function ConversacionesPage() {
 
             {/* Input de Respuesta */}
             <div className="px-4 py-3 bg-[#202C33] border-t border-[#2A3942] flex-shrink-0">
-              {isWithinWindow ? (
+              {conversationStatus === 'active' ? (
                 <div className="flex items-center gap-2">
                   <Input
                     value={replyText}
                     onChange={(e) => setReplyText(e.target.value)}
-                    placeholder="Escribe un mensaje"
+                    placeholder="Escribe un mensaje (gratis dentro de 24hs)"
+                    disabled={sending}
                     onKeyPress={(e) => {
                       if (e.key === "Enter" && !e.shiftKey) {
                         e.preventDefault();
@@ -712,10 +847,32 @@ export default function ConversacionesPage() {
                   />
                   <Button
                     onClick={sendReply}
-                    disabled={!replyText.trim()}
+                    disabled={!replyText.trim() || sending}
                     className="bg-[#00A884] hover:bg-[#06CF9C] disabled:opacity-50 disabled:cursor-not-allowed rounded-full h-10 w-10 p-0"
                   >
                     <Send className="h-5 w-5" />
+                  </Button>
+                </div>
+              ) : conversationStatus === 'waiting' ? (
+                <div className="space-y-3">
+                  <div className="text-center py-3 bg-[#182229] rounded-lg border border-yellow-900/30">
+                    <Clock className="h-6 w-6 mx-auto mb-2 text-yellow-400 animate-pulse" />
+                    <p className="text-yellow-400 font-medium text-sm">
+                      Esperando respuesta del cliente
+                    </p>
+                    <p className="text-xs text-[#8696A0] mt-1">
+                      Cuando el cliente responda, tendrás 24hs para chatear gratis
+                    </p>
+                  </div>
+                  <p className="text-xs text-center text-[#8696A0]">
+                    ¿El cliente no responde? Puedes enviar otra plantilla
+                  </p>
+                  <Button
+                    onClick={() => setShowTemplateModal(true)}
+                    variant="outline"
+                    className="w-full border-[#2A3942] text-[#AEBAC1] hover:bg-[#2A3942] hover:text-white"
+                  >
+                    Enviar Otra Plantilla ($0.047)
                   </Button>
                 </div>
               ) : (
@@ -723,17 +880,17 @@ export default function ConversacionesPage() {
                   <div className="text-center py-3 bg-[#182229] rounded-lg border border-red-900/30">
                     <AlertCircle className="h-6 w-6 mx-auto mb-2 text-red-400" />
                     <p className="text-red-400 font-medium text-sm">
-                      La ventana de 24hs expiró
+                      Sin conversación activa
                     </p>
                     <p className="text-xs text-[#8696A0] mt-1">
-                      Solo puedes usar templates aprobados ($0.047 por mensaje)
+                      Envía una plantilla para iniciar la conversación
                     </p>
                   </div>
                   <Button
                     onClick={() => setShowTemplateModal(true)}
                     className="w-full bg-[#00A884] hover:bg-[#00A884]/90 text-white"
                   >
-                    Enviar Plantilla Aprobada
+                    Enviar Plantilla ($0.047)
                   </Button>
                 </div>
               )}
@@ -804,24 +961,37 @@ export default function ConversacionesPage() {
                     <div className="bg-[#202C33] rounded-lg p-3 space-y-2">
                       <div className="flex items-center gap-2 text-[#8696A0]">
                         <Clock className="h-4 w-4" />
-                        <span className="text-xs font-medium">Ventana de 24hs</span>
+                        <span className="text-xs font-medium">Estado de Conversación</span>
                       </div>
                       <div className="pl-6">
-                        {isWithinWindow ? (
+                        {conversationStatus === 'active' ? (
                           <div className="text-sm">
-                            <p className="text-green-400 font-medium mb-1">✓ Activa</p>
+                            <p className="text-green-400 font-medium mb-1">✓ Ventana Activa</p>
                             <p className="text-[#8696A0] text-xs">
+                              Puedes enviar mensajes gratis
+                            </p>
+                            <p className="text-green-400/80 text-xs mt-1">
                               Expira {formatDistanceToNow(new Date(selectedConversation.conversation_window_expires_at!), {
                                 addSuffix: true,
                                 locale: es,
                               })}
                             </p>
                           </div>
+                        ) : conversationStatus === 'waiting' ? (
+                          <div className="text-sm">
+                            <p className="text-yellow-400 font-medium mb-1">⏳ Esperando Respuesta</p>
+                            <p className="text-[#8696A0] text-xs">
+                              Enviaste una plantilla, esperando que el cliente responda
+                            </p>
+                            <p className="text-yellow-400/80 text-xs mt-1">
+                              Cuando responda, tendrás 24hs para chatear gratis
+                            </p>
+                          </div>
                         ) : (
                           <div className="text-sm">
-                            <p className="text-red-400 font-medium mb-1">✗ Expirada</p>
+                            <p className="text-red-400 font-medium mb-1">✗ Sin Actividad</p>
                             <p className="text-[#8696A0] text-xs">
-                              Solo puedes usar templates aprobados
+                              Envía una plantilla para iniciar conversación
                             </p>
                           </div>
                         )}

@@ -273,4 +273,58 @@ export const whatsappChatApi = {
     );
     return data;
   },
+
+  // ========================================
+  // 🤖 GESTIÓN DE TEMPLATES DEL BOT
+  // ========================================
+
+  // Obtener todos los templates del bot
+  getBotTemplates: async () => {
+    const { data } = await api.get("/whatsapp-chat/bot-templates", {
+      headers: withAuth(),
+    });
+    return data as BotTemplate[];
+  },
+
+  // Actualizar un template del bot
+  updateBotTemplate: async (key: string, updates: Partial<BotTemplate>) => {
+    const { data } = await api.patch(
+      `/whatsapp-chat/bot-templates/${key}`,
+      updates,
+      {
+        headers: withAuth(),
+      }
+    );
+    return data as BotTemplate;
+  },
+
+  // Obtener todos los keyword triggers
+  getKeywordTriggers: async () => {
+    const { data } = await api.get("/whatsapp-chat/keyword-triggers", {
+      headers: withAuth(),
+    });
+    return data as KeywordTrigger[];
+  },
 };
+
+// Interfaces para Bot Templates
+export interface BotTemplate {
+  id: string;
+  key: string;
+  type: "text" | "buttons" | "list" | "location";
+  content: any;
+  description: string;
+  enabled: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface KeywordTrigger {
+  id: string;
+  keywords: string[];
+  template_key: string;
+  enabled: boolean;
+  priority: number;
+  case_sensitive: boolean;
+  exact_match: boolean;
+}
