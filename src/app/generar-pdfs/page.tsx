@@ -4,9 +4,10 @@ import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { FileText, Download, Loader2, ArrowLeft, Search, FileSpreadsheet } from 'lucide-react'
+import { FileText, Download, Loader2, Search, FileSpreadsheet } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { getClients } from '@/lib/api'
+import { PageHeader } from '@/components/PageHeader'
 
 type TipoPDF = 'instructivo' | 'intimacion' | 'ambos'
 
@@ -142,28 +143,12 @@ export default function GenerarPDFsPage() {
   return (
     <div className="container mx-auto p-6 max-w-7xl">
       {/* Header */}
-      <div className="mb-6">
-        <Button
-          variant="ghost"
-          onClick={() => router.push('/home')}
-          className="mb-4"
-        >
-          <ArrowLeft className="w-4 h-4 mr-2" />
-          Volver al inicio
-        </Button>
-
-        <div className="flex items-center gap-4 mb-2">
-          <div className="w-12 h-12 bg-purple-500 rounded-full flex items-center justify-center">
-            <FileSpreadsheet className="w-6 h-6 text-white" />
-          </div>
-          <div>
-            <h1 className="text-3xl font-bold">Generar PDFs sin Enviar</h1>
-            <p className="text-muted-foreground">
-              Busca clientes y genera PDFs de instructivos e intimaciones sin enviar por WhatsApp
-            </p>
-          </div>
-        </div>
-      </div>
+      <PageHeader
+        title="Generar PDFs sin Enviar"
+        description="Busca clientes y genera PDFs de instructivos e intimaciones sin enviar por WhatsApp"
+        icon={FileSpreadsheet}
+        breadcrumbs={[{ label: 'PDFs' }]}
+      />
 
       {/* Selección de tipo de PDF */}
       <Card className="mb-6">

@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { MessageCircle, Clock, CheckCheck, Check, Send, Archive, Search, AlertCircle, Home, Filter, Wifi, WifiOff, User, Calendar, DollarSign } from "lucide-react";
+import { MessageCircle, Clock, CheckCheck, Check, Send, Search, AlertCircle, Home, Filter, Wifi, WifiOff, User, Calendar, DollarSign, Bot, UserCheck, Power } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
 import { whatsappChatApi, Conversation, Message, WhatsAppTemplate } from "@/lib/api/whatsappChatApi";
@@ -30,6 +30,9 @@ export default function ConversacionesPage() {
   const [templates, setTemplates] = useState<WhatsAppTemplate[]>([]);
   const [selectedTemplate, setSelectedTemplate] = useState<WhatsAppTemplate | null>(null);
   const [loadingTemplates, setLoadingTemplates] = useState(false);
+  const [botEnabled, setBotEnabled] = useState(true);
+  const [assignedUserId, setAssignedUserId] = useState<string | null>(null);
+  const [loadingBotStatus, setLoadingBotStatus] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Cargar templates cuando se abre el modal
@@ -153,6 +156,9 @@ export default function ConversacionesPage() {
       const data = await whatsappChatApi.getMessages(conversation.id);
       setMessages(data);
       
+      // Cargar estado del bot para esta conversación
+      loadBotStatus(conversation.id);
+      
       // Marcar como leído
       if (conversation.unread_count > 0) {
         markAsRead(conversation.id);
@@ -160,6 +166,77 @@ export default function ConversacionesPage() {
     } catch (error) {
       console.error("Error cargando mensajes:", error);
       toast.error("Error al cargar mensajes");
+    }
+  };
+
+  // Cargar estado del bot para una conversación
+  const loadBotStatus = async (conversationId: string) => {
+    try {
+      setLoadingBotStatus(true);
+      const status = await whatsappChatApi.getConversationAssignment(conversationId);
+      setBotEnabled(status.botEnabled);
+      setAssignedUserId(status.assignedUserId);
+    } catch (error) {
+      console.error("Error cargando estado del bot:", error);
+      // Por defecto, asumir bot activo
+      setBotEnabled(true);
+      setAssignedUserId(null);
+    } finally {
+      setLoadingBotStatus(false);
+    }
+  };
+
+  // Tomar conversación (desactiva el bot)
+  const takeConversation = async () => {
+    if (!selectedConversation) return;
+    
+    try {
+      setLoadingBotStatus(true);
+      const result = await whatsappChatApi.assignConversation(selectedConversation.id);
+      setBotEnabled(false);
+      setAssignedUserId(userId);
+      toast.success("Conversación tomada. Bot desactivado.");
+    } catch (error) {
+      console.error("Error tomando conversación:", error);
+      toast.error("Error al tomar conversación");
+    } finally {
+      setLoadingBotStatus(false);
+    }
+  };
+
+  // Liberar conversación (reactiva el bot)
+  const releaseConversation = async () => {
+    if (!selectedConversation) return;
+    
+    try {
+      setLoadingBotStatus(true);
+      const result = await whatsappChatApi.releaseConversation(selectedConversation.id);
+      setBotEnabled(true);
+      setAssignedUserId(null);
+      toast.success("Conversación liberada. Bot reactivado.");
+    } catch (error) {
+      console.error("Error liberando conversación:", error);
+      toast.error("Error al liberar conversación");
+    } finally {
+      setLoadingBotStatus(false);
+    }
+  };
+
+  // Toggle bot on/off
+  const toggleBotStatus = async () => {
+    if (!selectedConversation) return;
+    
+    try {
+      setLoadingBotStatus(true);
+      const result = await whatsappChatApi.toggleBot(selectedConversation.id);
+      setBotEnabled(result.botEnabled);
+      setAssignedUserId(result.botEnabled ? null : userId);
+      toast.success(result.message);
+    } catch (error) {
+      console.error("Error alternando bot:", error);
+      toast.error("Error al cambiar estado del bot");
+    } finally {
+      setLoadingBotStatus(false);
     }
   };
 
@@ -241,20 +318,7 @@ export default function ConversacionesPage() {
     }
   };
 
-  const archiveConversation = async (conversationId: string) => {
-    try {
-      await whatsappChatApi.archiveConversation(conversationId);
-      setConversations((prev) => prev.filter((c) => c.id !== conversationId));
-      if (selectedConversation?.id === conversationId) {
-        setSelectedConversation(null);
-        setMessages([]);
-      }
-      toast.success("Conversación archivada");
-    } catch (error) {
-      console.error("Error archivando conversación:", error);
-      toast.error("Error al archivar conversación");
-    }
-  };
+
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -504,6 +568,49 @@ export default function ConversacionesPage() {
                     Ventana expirada
                   </div>
                 )}
+                {/* Control del Bot */}
+                <div className="flex items-center gap-1 mr-2 border-r border-[#2A3942] pr-3">
+                  <div 
+                    className={`flex items-center gap-1 px-2 py-1 rounded-md text-xs ${
+                      loadingBotStatus 
+                        ? "bg-[#2A3942] text-[#8696A0]" 
+                        : botEnabled 
+                          ? "bg-green-900/30 text-green-400" 
+                          : "bg-orange-900/30 text-orange-400"
+                    }`}
+                    title={botEnabled ? "Bot activo - responderá automáticamente" : "Bot pausado - respuestas manuales"}
+                  >
+                    <Bot className={`h-3.5 w-3.5 ${loadingBotStatus ? "animate-pulse" : ""}`} />
+                    <span>{loadingBotStatus ? "..." : botEnabled ? "Bot ON" : "Bot OFF"}</span>
+                  </div>
+                  
+                  {botEnabled ? (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={takeConversation}
+                      disabled={loadingBotStatus}
+                      className="text-xs h-7 px-2 text-[#AEBAC1] hover:text-white hover:bg-[#2A3942]"
+                      title="Tomar conversación (desactiva el bot)"
+                    >
+                      <UserCheck className="h-3.5 w-3.5 mr-1" />
+                      Tomar
+                    </Button>
+                  ) : (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={releaseConversation}
+                      disabled={loadingBotStatus}
+                      className="text-xs h-7 px-2 text-[#AEBAC1] hover:text-white hover:bg-[#2A3942]"
+                      title="Liberar conversación (reactiva el bot)"
+                    >
+                      <Power className="h-3.5 w-3.5 mr-1" />
+                      Liberar
+                    </Button>
+                  )}
+                </div>
+
                 <Button
                   variant="ghost"
                   size="icon"
@@ -513,10 +620,6 @@ export default function ConversacionesPage() {
                 >
                   <User className="h-5 w-5" />
                 </Button>
-                <Archive 
-                  className="h-5 w-5 cursor-pointer hover:text-white" 
-                  onClick={() => archiveConversation(selectedConversation.id)}
-                />
               </div>
             </div>
 

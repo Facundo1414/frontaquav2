@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Upload, Download, CheckCircle2, Loader2, FileSpreadsheet, AlertCircle, Copy, MessageSquare, Phone, CheckCheck, RefreshCw, Trash2, Edit3 } from "lucide-react"
+import { Upload, Download, CheckCircle2, Loader2, FileSpreadsheet, AlertCircle, Copy, MessageSquare, Phone, CheckCheck, RefreshCw, Trash2, Edit3, Check } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -13,6 +13,7 @@ import { toast } from 'sonner'
 import { getPhonesByUFs } from '@/lib/api'
 import { MessageVariantSelector } from '@/lib/whatsapp-anti-ban'
 import { AntiBanPanel } from './components/AntiBanPanel'
+import { PageHeader } from '@/components/PageHeader'
 
 interface PaymentPlanResult {
   uf: number
@@ -677,17 +678,17 @@ Se puede pagar por Mercado Pago, Rapipago y Pago facil
     return `Hola ${nombre}, te envío tu comprobante actualizado de la CUOTA PLAN DE PAGOS.\nPor favor, realiza el pago antes del vencimiento.\nSe puede pagar por Mercado Pago, Rapipago y Pago facil\n\n🌐 Cclip  •  Al servicio de Aguas Cordobesas.`
   }
 
-  // 🔄 Función para abrir WhatsApp reutilizando la misma pestaña
+  // 🔄 Función para abrir WhatsApp
+  // Nota: Siempre abrimos una nueva pestaña porque WhatsApp Web bloquea cambios de location.href
+  // por políticas de seguridad cross-origin. Esto funciona tanto con la app como con WhatsApp Web.
   const abrirWhatsApp = (waLink: string, uf: number) => {
-    // Intentar reutilizar la ventana existente
+    // Cerrar la pestaña anterior si existe y está abierta (para no acumular pestañas)
     if (whatsappWindowRef.current && !whatsappWindowRef.current.closed) {
-      // La ventana existe y está abierta - cambiar su ubicación
-      whatsappWindowRef.current.location.href = waLink
-      whatsappWindowRef.current.focus()
-    } else {
-      // Abrir nueva ventana y guardar referencia
-      whatsappWindowRef.current = window.open(waLink, 'whatsapp_window')
+      whatsappWindowRef.current.close()
     }
+    
+    // Abrir nueva pestaña - usar _blank para compatibilidad con WhatsApp Web
+    whatsappWindowRef.current = window.open(waLink, '_blank')
     
     // Marcar como enviado
     toggleEnviado(uf)
@@ -699,37 +700,32 @@ Se puede pagar por Mercado Pago, Rapipago y Pago facil
   }
 
   return (
-    <div className="container mx-auto py-8 px-4 max-w-6xl">
-      {/* Header */}
-      <div className="mb-8">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold mb-2 flex items-center gap-3">
-              <FileSpreadsheet className="w-8 h-8 text-blue-500" />
-              Verificar Planes de Pago
-            </h1>
-            <p className="text-muted-foreground">
-              Carga un archivo Excel con UFs y verifica automáticamente qué cuentas tienen planes de pago vigentes
-            </p>
-          </div>
-          {(results || stats) && (
+    <div className="container mx-auto py-4 px-4 max-w-6xl">
+      {/* Header con PageHeader */}
+      <PageHeader
+        title="Verificar Planes de Pago"
+        description="Verifica qué cuentas tienen planes de pago vigentes"
+        icon={Check}
+        breadcrumbs={[{ label: 'Verificar Planes' }]}
+        action={
+          (results || stats) ? (
             <Button
               variant="outline"
               size="sm"
               onClick={limpiarCache}
-              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+              className="text-rose-600 hover:text-rose-700 hover:bg-rose-50"
             >
               <RefreshCw className="w-4 h-4 mr-2" />
-              Limpiar y Empezar de Nuevo
+              Limpiar
             </Button>
-          )}
-        </div>
-      </div>
+          ) : undefined
+        }
+      />
 
       {/* Instrucciones */}
-      <Alert className="mb-6">
-        <AlertCircle className="h-4 w-4" />
-        <AlertDescription>
+      <Alert className="mb-6 bg-slate-50 border-slate-200">
+        <AlertCircle className="h-4 w-4 text-slate-500" />
+        <AlertDescription className="text-slate-600">
           <strong>Formato del Excel:</strong> Tu archivo debe tener una columna con el nombre 
           "unidad", "Cuenta_Nro", "UF", o similar. El sistema detectará automáticamente las cuentas.
         </AlertDescription>

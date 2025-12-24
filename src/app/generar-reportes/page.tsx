@@ -34,6 +34,7 @@ import {
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { RequiresPlan } from "@/components/subscription/RequiresPlan";
 import { Badge } from "@/components/ui/badge";
+import { PageHeader } from "@/components/PageHeader";
 
 interface Cliente {
   id: string;
@@ -141,17 +142,14 @@ export default function GenerarReportesPage() {
 
   return (
     <RequiresPlan plan="PRO">
-      <div className="container max-w-6xl mx-auto py-8 px-4 space-y-6">
+      <div className="container max-w-6xl mx-auto py-6 px-4 space-y-6">
         {/* Header */}
-        <div>
-          <h1 className="text-3xl font-bold flex items-center gap-2">
-            <FileText className="w-8 h-8" />
-            Generar Reportes de Deuda
-          </h1>
-          <p className="text-muted-foreground mt-2">
-            Busca un cliente por UF y genera reportes individuales en PDF
-          </p>
-        </div>
+        <PageHeader
+          title="Generar Reportes de Deuda"
+          description="Busca un cliente por UF y genera reportes individuales en PDF"
+          icon={FileText}
+          breadcrumbs={[{ label: 'Reportes' }]}
+        />
 
         {/* Buscador */}
         <Card>

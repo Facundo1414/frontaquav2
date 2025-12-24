@@ -1,7 +1,18 @@
 // context/ProximosVencerContext.tsx
 'use client'
-import { createContext, useContext, useState, ReactNode, useMemo } from 'react'
+import { createContext, useContext, useState, ReactNode, useMemo, useEffect, useCallback } from 'react'
 import { logger } from '@/lib/logger';
+
+// 🔑 Claves de localStorage
+const STORAGE_KEYS = {
+  ACTIVE_STEP: 'proximos_vencer_active_step',
+  FILTERED_DATA: 'proximos_vencer_filtered_data',
+  FILE_NAME_FILTERED: 'proximos_vencer_filename_filtered',
+  TIMESTAMP: 'proximos_vencer_timestamp',
+}
+
+// ⏰ Expiración de datos guardados (30 minutos)
+const DATA_EXPIRATION_MS = 30 * 60 * 1000;
 
 // Función helper para calcular días hasta fin del mes actual
 const calcularDiasHastaFinMesActual = (): number => {
@@ -46,6 +57,8 @@ interface ProximosVencerContextType {
   setDiasAnticipacion: (dias: number) => void
   fechaDesdeTexto: string // "Hoy"
   fechaHastaTexto: string // "Último día de [Mes Actual]"
+  // 🧹 Reset completo
+  resetProximosVencer: () => void
 }
 
 const ProximosVencerContext = createContext<ProximosVencerContextType | undefined>(undefined)
@@ -56,8 +69,57 @@ export const ProximosVencerProvider = ({ children }: { children: ReactNode }) =>
   const [activeStep, setActiveStepState] = useState(0)
   const [rawData, setRawDataState] = useState<any[]>([])
   const [processedData, setProcessedDataState] = useState<any[]>([])
-  const [fileNameFiltered, setFileNameFiltered] = useState<string | null>(null)
+  const [fileNameFiltered, setFileNameFilteredState] = useState<string | null>(null)
   const [processedFile, setProcessedFileState] = useState<Blob | null>(null)
+
+  // 🧹 Función para limpiar datos guardados
+  const clearStoredData = useCallback(() => {
+    if (typeof window === 'undefined') return
+    localStorage.removeItem(STORAGE_KEYS.ACTIVE_STEP)
+    localStorage.removeItem(STORAGE_KEYS.FILTERED_DATA)
+    localStorage.removeItem(STORAGE_KEYS.FILE_NAME_FILTERED)
+    localStorage.removeItem(STORAGE_KEYS.TIMESTAMP)
+  }, [])
+
+  // 🔄 Restaurar estado desde localStorage al montar
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    
+    try {
+      const timestamp = localStorage.getItem(STORAGE_KEYS.TIMESTAMP)
+      const now = Date.now()
+      
+      // Verificar si los datos no expiraron
+      if (timestamp && (now - parseInt(timestamp)) < DATA_EXPIRATION_MS) {
+        const savedStep = localStorage.getItem(STORAGE_KEYS.ACTIVE_STEP)
+        const savedFilteredData = localStorage.getItem(STORAGE_KEYS.FILTERED_DATA)
+        const savedFileName = localStorage.getItem(STORAGE_KEYS.FILE_NAME_FILTERED)
+        
+        if (savedStep) {
+          const step = parseInt(savedStep)
+          logger.log('🔄 [ProximosVencer] Restaurando activeStep:', step)
+          setActiveStepState(step)
+        }
+        
+        if (savedFilteredData) {
+          const data = JSON.parse(savedFilteredData)
+          logger.log('🔄 [ProximosVencer] Restaurando filteredData:', data?.length, 'filas')
+          setFilteredDataState(data)
+        }
+        
+        if (savedFileName) {
+          logger.log('🔄 [ProximosVencer] Restaurando fileName:', savedFileName)
+          setFileNameFilteredState(savedFileName)
+        }
+      } else {
+        // Datos expirados, limpiar
+        clearStoredData()
+      }
+    } catch (e) {
+      logger.error('Error restaurando estado de ProximosVencer:', e)
+      clearStoredData()
+    }
+  }, [clearStoredData])
   
   // Calcular automáticamente días hasta fin del mes actual
   const diasAnticipacion = useMemo(() => calcularDiasHastaFinMesActual(), [])
@@ -73,6 +135,30 @@ export const ProximosVencerProvider = ({ children }: { children: ReactNode }) =>
 
   const setFilteredData = (data: any[]) => {
     setFilteredDataState(data)
+    // 💾 Guardar en localStorage
+    if (typeof window !== 'undefined' && data.length > 0) {
+      try {
+        localStorage.setItem(STORAGE_KEYS.FILTERED_DATA, JSON.stringify(data))
+        localStorage.setItem(STORAGE_KEYS.TIMESTAMP, Date.now().toString())
+        logger.log('💾 [ProximosVencer] Guardado filteredData:', data.length, 'filas')
+      } catch (e) {
+        logger.error('Error guardando filteredData:', e)
+      }
+    }
+  }
+
+  const setFileNameFiltered = (filename: string | null) => {
+    setFileNameFilteredState(filename)
+    // 💾 Guardar en localStorage
+    if (typeof window !== 'undefined' && filename) {
+      try {
+        localStorage.setItem(STORAGE_KEYS.FILE_NAME_FILTERED, filename)
+        localStorage.setItem(STORAGE_KEYS.TIMESTAMP, Date.now().toString())
+        logger.log('💾 [ProximosVencer] Guardado fileName:', filename)
+      } catch (e) {
+        logger.error('Error guardando fileName:', e)
+      }
+    }
   }
 
   const setRawData = (data: any[]) => {
@@ -81,7 +167,36 @@ export const ProximosVencerProvider = ({ children }: { children: ReactNode }) =>
 
   const setActiveStep = (step: number) => {
     setActiveStepState(step)
+    // 💾 Guardar en localStorage (solo si > 0)
+    if (typeof window !== 'undefined') {
+      try {
+        if (step > 0) {
+          localStorage.setItem(STORAGE_KEYS.ACTIVE_STEP, step.toString())
+          localStorage.setItem(STORAGE_KEYS.TIMESTAMP, Date.now().toString())
+          logger.log('💾 [ProximosVencer] Guardado activeStep:', step)
+        } else {
+          // Si volvemos al paso 0, limpiar todo
+          clearStoredData()
+          logger.log('🧹 [ProximosVencer] Limpiado localStorage (paso 0)')
+        }
+      } catch (e) {
+        logger.error('Error guardando activeStep:', e)
+      }
+    }
   }
+
+  // 🧹 Reset completo del contexto
+  const resetProximosVencer = useCallback(() => {
+    logger.log('🧹 [ProximosVencer] Reset completo')
+    setFilteredDataState([])
+    setNotWhatsappData(null)
+    setActiveStepState(0)
+    setRawDataState([])
+    setProcessedDataState([])
+    setFileNameFilteredState(null)
+    setProcessedFileState(null)
+    clearStoredData()
+  }, [clearStoredData])
 
   // setDiasAnticipacion es solo para mantener compatibilidad, pero no se usa
   const setDiasAnticipacion = (_dias: number) => {
@@ -109,6 +224,7 @@ export const ProximosVencerProvider = ({ children }: { children: ReactNode }) =>
       setDiasAnticipacion,
       fechaDesdeTexto,
       fechaHastaTexto,
+      resetProximosVencer,
     }}>
       {children}
     </ProximosVencerContext.Provider>

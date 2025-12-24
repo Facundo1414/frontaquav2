@@ -3,7 +3,8 @@ import dynamic from 'next/dynamic'
 import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Upload, Map, Search, Download, CheckCircle2, Info, ChevronDown, ChevronUp, Users, Loader2 } from "lucide-react"
+import { Upload, Map, Search, Download, CheckCircle2, Info, ChevronDown, ChevronUp, Users, Loader2, Filter } from "lucide-react"
+import { PageHeader } from '@/components/PageHeader'
 import { getUniverseInfo, getNeighborhoodsWithCount } from '@/lib/api'
 import { PyseUsageBar } from '@/components/PyseUsageBar'
 import { PyseUsageWidget } from '../home/components/PyseUsageWidget'
@@ -140,22 +141,18 @@ export default function FiltrarClientesPage() {
 
   return (
     <div className="container mx-auto p-6 max-w-7xl">
-      {/* Header */}
-      <div className="mb-6">
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-3">
-            <h1 className="text-3xl font-bold text-gray-900">
-              Filtrar Clientes para PYSE
-            </h1>
-            <span className="px-3 py-1 bg-green-100 text-green-700 text-sm font-semibold rounded-full">
-              ✨ NUEVO FLUJO MEJORADO
-            </span>
-          </div>
-        </div>
-        <p className="text-gray-600 text-lg">
-          Procesa clientes directamente desde tu base de datos
-        </p>
-      </div>
+      {/* Header con PageHeader */}
+      <PageHeader
+        title="Filtrar Clientes para PYSE"
+        description="Procesa clientes directamente desde tu base de datos"
+        icon={Filter}
+        breadcrumbs={[{ label: 'Filtrar Clientes' }]}
+        action={
+          <span className="px-3 py-1 bg-green-100 text-green-700 text-sm font-semibold rounded-full">
+            ✨ NUEVO FLUJO MEJORADO
+          </span>
+        }
+      />
 
       {/* PYSE Usage Widget */}
       <div className="mb-6">

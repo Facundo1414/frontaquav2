@@ -47,8 +47,8 @@ import {
   Unlock,
   CreditCard,
   Loader2,
-  ArrowLeft,
 } from 'lucide-react';
+import { PageHeader } from '@/components/PageHeader';
 
 interface UserWithSubscription {
   user_id: string;
@@ -274,27 +274,22 @@ export default function AdminSubscriptionsPage() {
 
   return (
     <div className="container mx-auto p-6 space-y-6">
-      {/* Back Button */}
-      <Button
-        variant="ghost"
-        onClick={() => router.back()}
-        className="mb-4"
-      >
-        <ArrowLeft className="mr-2 h-4 w-4" />
-        Volver al Panel
-      </Button>
-
       {/* Header */}
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold">Gestión de Suscripciones</h1>
-          <p className="text-muted-foreground">Administra planes y pagos de usuarios</p>
-        </div>
-        <Button onClick={() => loadData(true)} disabled={isRefreshing} variant="outline">
-          <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
-          Actualizar
-        </Button>
-      </div>
+      <PageHeader
+        title="Gestión de Suscripciones"
+        description="Administra planes y pagos de usuarios"
+        icon={Crown}
+        breadcrumbs={[
+          { label: 'Admin', href: '/admin' },
+          { label: 'Suscripciones' }
+        ]}
+        action={
+          <Button onClick={() => loadData(true)} disabled={isRefreshing} variant="outline">
+            <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+            Actualizar
+          </Button>
+        }
+      />
 
       {/* Metrics Cards */}
       {metrics && (

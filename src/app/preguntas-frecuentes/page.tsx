@@ -9,10 +9,11 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion"
-import { ArrowLeft, HelpCircle, BookOpen, Video, FileQuestion, Phone, Play, CheckCircle2, AlertCircle, Info, Upload, Send, Download, Printer } from 'lucide-react'
+import { HelpCircle, BookOpen, Video, FileQuestion, Phone, Play, CheckCircle2, AlertCircle, Info, Upload, Send, Download, Printer } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useState, useRef, useEffect } from 'react'
 import { ButtonPreview } from '@/components/ButtonPreview'
+import { PageHeader } from '@/components/PageHeader'
 
 export default function PreguntasFrecuentesPage() {
   const router = useRouter()
@@ -36,114 +37,136 @@ export default function PreguntasFrecuentesPage() {
   const tutorials = [
     {
       id: 'enviar-deudas',
-      title: '📤 Enviar Notificaciones de Deuda por WhatsApp',
+      title: '📤 Enviar Comprobantes de Deuda por WhatsApp',
       difficulty: 'Fácil',
-      duration: '5 min',
-      description: 'Aprende a notificar a tus clientes sobre sus deudas pendientes de forma masiva',
+      duration: '8 min',
+      description: 'Envía notificaciones masivas de deuda con comprobantes PDF adjuntos via WhatsApp Cloud API',
       steps: [
         {
           number: 1,
-          title: 'Accede al módulo',
+          title: 'Accede al módulo SendDebts',
           description: 'Desde el menú principal, haz clic en "Enviar Deudas"',
-          details: 'Verás la pantalla principal donde podrás configurar el envío masivo de notificaciones.',
-          tip: 'Asegúrate de que WhatsApp esté conectado (verás un indicador verde en la parte superior)',
+          details: 'Verás un wizard de 3 pasos que te guiará por todo el proceso: Cargar Archivo → Enviar Mensajes → Descargar Resultados.',
+          tip: 'El sistema utiliza WhatsApp Cloud API oficial de Meta, no requiere tener el celular conectado',
           preview: <ButtonPreview label="Enviar Deudas" icon={Send} variant="default" />
         },
         {
           number: 2,
-          title: 'Selecciona el archivo Excel',
-          description: 'Haz clic en "Seleccionar archivo" y elige tu base de datos de clientes',
-          details: 'Para clientes con plan de pago activo, debes subir el archivo llamado "incumplidos" que contiene la información de cuotas vencidas. El archivo debe contener las columnas: UF, Nombre, Teléfono, y Deuda. El sistema detectará automáticamente el formato.',
-          tip: '⚠️ IMPORTANTE: Para planes de pago, usa el archivo "incumplidos". El sistema acepta archivos .xlsx y .xls. Tamaño máximo recomendado: 1000 clientes por envío',
+          title: 'Carga el archivo Excel',
+          description: 'Arrastra o selecciona tu archivo Excel con datos de clientes',
+          details: 'El archivo debe contener las columnas: unidad (UF), Cliente_01 (nombre), tel_uni y/o tel_clien (teléfonos). Columnas opcionales: tipo_plan, plan_num, barrio, totalDeuda, etc. Máximo 10,000 registros por archivo.',
+          tip: '⚠️ El sistema validará automáticamente el formato. Al menos uno de los teléfonos (tel_uni o tel_clien) debe ser válido (8-15 dígitos)',
           preview: <ButtonPreview label="Seleccionar archivo" icon={Upload} variant="outline" />
         },
         {
           number: 3,
-          title: 'Personaliza el mensaje (opcional)',
-          description: 'Modifica el texto del mensaje si lo deseas',
-          details: 'Puedes usar variables como {nombre}, {deuda}, {uf} para personalizar cada mensaje. El sistema reemplazará automáticamente estos valores con los datos de cada cliente.',
-          tip: 'Mantén el mensaje corto y profesional para evitar que sea marcado como spam'
+          title: 'Verificación automática de WhatsApp',
+          description: 'El sistema filtra clientes con WhatsApp válido',
+          details: 'Automáticamente se verifican los números y se separan en dos archivos: clientes CON WhatsApp (listos para envío) y clientes SIN WhatsApp (para gestión alternativa). Esta verificación usa caché inteligente (90% más rápido en cargas repetidas).',
+          tip: '💡 Los clientes sin WhatsApp se guardan en un archivo separado que podrás descargar al final'
         },
         {
           number: 4,
-          title: 'Configura las opciones de intimación',
-          description: 'Marca si deseas incluir texto de intimación legal',
-          details: 'La intimación es opcional. Si la activas, se agregará un texto legal al mensaje notificando acciones posteriores.',
-          tip: 'Usa la intimación solo cuando sea necesario, no en todos los envíos'
+          title: 'Revisa las opciones de envío',
+          description: 'El mensaje usa una plantilla oficial de Meta (NO editable)',
+          details: 'La plantilla incluye: saludo personalizado con nombre del cliente, información sobre el vencimiento, PDF del comprobante adjunto, y botón de respuesta. El texto está pre-aprobado por Meta y no puede modificarse.',
+          tip: '⚠️ IMPORTANTE: Las plantillas son fijas para cumplir con las políticas de WhatsApp Business API'
         },
         {
           number: 5,
-          title: 'Inicia el envío',
-          description: 'Haz clic en "Enviar mensajes" y monitorea el progreso',
-          details: 'Verás en tiempo real cuántos mensajes se enviaron exitosamente, cuántos fallaron, y el estado de cada cliente. El proceso puede pausarse en cualquier momento.',
-          tip: 'El sistema envía con delays automáticos para evitar bloqueos de WhatsApp (2-5 segundos entre mensajes)',
-          preview: <ButtonPreview label="Enviar mensajes →" icon={Send} variant="default" />
+          title: 'Opción de Intimación (si disponible)',
+          description: 'Activa la casilla "Incluir Intimación" si corresponde',
+          details: 'La intimación es un documento legal adicional que se genera SOLO si el cliente está cargado en la base de datos de Aqua con datos completos: dirección, barrio, manzana, lote (formato UF: unidad-distrito-zona-manzana-parcela). Sin estos datos, la opción no estará disponible.',
+          tip: '⚠️ REQUISITO: El cliente debe tener UF con 5 partes separadas por guión para generar intimación legal'
         },
         {
           number: 6,
-          title: 'Descarga el reporte',
-          description: 'Al finalizar, descarga el Excel con los resultados',
-          details: 'El archivo incluye columnas adicionales: "Estado del envío", "Hora de envío", "Error (si aplica)". Este reporte te permite hacer seguimiento y reenviar a clientes que no recibieron el mensaje.',
-          tip: 'Guarda este reporte en tu carpeta de archivos. También queda disponible en la sección "Archivos"',
-          preview: <ButtonPreview label="Descargar resultados" icon={Download} variant="default" />
+          title: 'Inicia el envío masivo',
+          description: 'Haz clic en "Enviar" y monitorea el progreso en tiempo real',
+          details: 'Verás: total de mensajes, enviados, exitosos, fallidos. El sistema genera un PDF de comprobante para cada cliente y lo envía por WhatsApp. Delays automáticos de 3-10 segundos entre mensajes para protección anti-ban.',
+          tip: 'El progreso se actualiza via WebSocket en tiempo real. Cuota diaria: 300 mensajes (excedente tiene cargo adicional)',
+          preview: <ButtonPreview label="Enviar mensajes →" icon={Send} variant="default" />
         },
         {
           number: 7,
-          title: 'Manejo de errores: Espacio Clientes caído',
-          description: 'Si Espacio Clientes está en mantenimiento o caído durante el envío',
-          details: 'Cuando Espacio Clientes no está disponible, en el archivo final la columna "motivo" indicará que no se pudo generar el comprobante de pago. En estos casos, puedes volver a enviar solo los clientes que tuvieron este error una vez que Espacio Clientes esté operativo nuevamente.',
-          tip: '💡 Filtrar el Excel final por la columna "motivo" para identificar rápidamente los clientes afectados y reenviarles el comprobante más tarde'
+          title: 'Descarga los resultados',
+          description: 'Obtén el Excel con el estado de cada envío',
+          details: 'Archivo "resultado-procesamiento.xlsx": incluye columna "motivo" que indica la razón si no se pudo enviar (sin WhatsApp, error de conexión, etc.). También disponible: archivo de clientes sin WhatsApp.',
+          tip: '💡 Filtra por la columna "motivo" para identificar clientes que necesitan reenvío o gestión alternativa',
+          preview: <ButtonPreview label="Descargar resultados" icon={Download} variant="default" />
+        },
+        {
+          number: 8,
+          title: 'Manejo de errores comunes',
+          description: 'Qué hacer si algo falla durante el proceso',
+          details: 'Si Espacio Clientes está caído: la columna "motivo" indicará "no se pudo generar comprobante", reenvía esos clientes más tarde. Si hay timeout: el sistema guarda respaldo automático en "Recuperar Archivos". Si WhatsApp falla: verifica las credenciales en Admin → WhatsApp.',
+          tip: '💡 Los archivos se guardan automáticamente cada 5 minutos como respaldo en caso de interrupción'
         }
       ]
     },
     {
       id: 'filtrar-clientes',
-      title: '🔍 Filtrar Clientes Aptos',
+      title: '🔍 Filtrar Clientes para PYSE',
       difficulty: 'Intermedio',
-      duration: '8 min',
-      description: 'Filtra clientes según criterios de deuda y genera reportes personalizados',
+      duration: '10 min',
+      description: 'Clasifica clientes en APTOS y NO APTOS según criterios de deuda para gestión de cortes',
       steps: [
         {
           number: 1,
-          title: 'Accede al filtrado',
+          title: 'Accede al módulo Filtrar Clientes',
           description: 'Desde el menú, selecciona "Filtrar Clientes"',
-          details: 'Este módulo te permite segmentar tu base de clientes según múltiples criterios de deuda y ubicación.',
-          tip: 'Ideal para planificar visitas domiciliarias o acciones de cobranza específicas'
+          details: 'Este módulo consulta la API de Aguas Cordobesas (PYSE) para verificar deudas en tiempo real y clasificar clientes según criterios específicos.',
+          tip: 'El sistema tiene límite de 500 consultas/hora a la API de Aguas Cordobesas'
         },
         {
           number: 2,
-          title: 'Selecciona los barrios',
-          description: 'Elige uno o varios barrios para procesar',
-          details: 'Puedes seleccionar todos los barrios o solo algunos específicos. La lista se carga automáticamente desde tu base de datos. Simplemente marca los barrios que quieres incluir en el análisis.',
-          tip: 'Trabaja por zonas para optimizar rutas de visitas. El sistema procesará todos los clientes de los barrios seleccionados según los demás filtros'
+          title: 'Configura los filtros de selección',
+          description: 'Usa los múltiples filtros disponibles para segmentar',
+          details: 'Filtros disponibles: Búsqueda por texto (titular, UF, barrio), Teléfono (todos/con teléfono/sin teléfono), Estado de notificación (Pendiente/Notificado/Visitado/Verificado), Barrios (selector múltiple).',
+          tip: 'Combina filtros para obtener listados más específicos. El contador muestra cuántos clientes coinciden'
         },
         {
           number: 3,
-          title: 'Configura el rango de clientes (opcional)',
-          description: 'Define qué clientes procesar de cada barrio seleccionado',
-          details: 'El "Rango de clientes por barrio" te permite procesar un subconjunto específico. Por ejemplo: si el barrio Las Flores tiene 500 clientes, puedes procesar solo del 1 al 200 (o dejar "Hasta" vacío para procesar desde 1 hasta el final). Si dejas ambos campos vacíos, se procesan TODOS los clientes del barrio.',
-          tip: '💡 Ejemplo práctico:\n\n• Día 1: Seleccionar "Las Flores" + Rango "Desde: (vacío) Hasta: 200" = Procesa las primeras 200 cuentas\n\n• Día 2 (Opción A): Seleccionar "Las Flores" + Estado "Pendiente" = Procesa solo las que NO se procesaron el día anterior\n\n• Día 2 (Opción B - MÁS RECOMENDADO): Seleccionar "Las Flores" + Rango "Desde: 201 Hasta: 400" = Procesa las siguientes 200 cuentas sin importar el estado'
+          title: 'Filtro por ubicación catastral (opcional)',
+          description: 'Filtra por Distrito → Zona → Manzanas',
+          details: 'Solo disponible si seleccionaste barrios. Permite filtrar por número catastral: primero elige Distrito, luego Zona, y finalmente las Manzanas específicas.',
+          tip: 'Útil para organizar visitas por sectores geográficos específicos'
         },
         {
           number: 4,
-          title: 'Ejecuta el filtrado',
-          description: 'Haz clic en "Procesar" y espera los resultados',
-          details: 'El sistema analizará tu base completa y clasificará clientes en APTOS y NO APTOS según los criterios definidos. Puedes usar filtros de estado de notificación (Pendiente, Notificado, Verificado, Visitado) para refinar tu búsqueda.',
-          tip: 'El proceso puede tomar varios minutos si tienes muchos clientes. El sistema consulta deudas en tiempo real desde Sylanus'
+          title: 'Configura el rango de clientes (opcional)',
+          description: 'Define "Desde" y "Hasta" para procesar en lotes',
+          details: 'Ejemplo: Si un barrio tiene 500 clientes, puedes procesar del 1 al 200 hoy, y del 201 al 400 mañana. Esto ayuda a distribuir el trabajo diario.',
+          tip: '💡 Día 1: Desde vacío, Hasta 200 = primeras 200 cuentas. Día 2: Desde 201, Hasta 400 = siguientes 200 cuentas'
         },
         {
           number: 5,
-          title: 'Descarga los archivos',
-          description: 'Obtén los Excel de clientes APTOS y NO APTOS',
-          details: 'APTOS: Clientes que cumplen todos los criterios (listos para acción). NO APTOS: Clientes que no califican (tienen plan de pago, menos comprobantes, etc.).',
-          tip: 'Revisa el archivo NO APTOS para identificar clientes con planes de pago activos'
+          title: 'Ejecuta el procesamiento',
+          description: 'Haz clic en "Procesar" y espera la verificación',
+          details: 'El sistema consulta a Aguas Cordobesas por cada cliente y clasifica según: APTOS = 3+ comprobantes vencidos Y sin plan de pago. NO APTOS = menos de 3 comprobantes O con plan de pago activo.',
+          tip: 'El progreso se muestra en tiempo real. Puede tomar varios minutos para lotes grandes (máx 25 consultas simultáneas)'
         },
         {
           number: 6,
-          title: 'Genera el Relevamiento para Visitas',
-          description: 'Si lo necesitas, descarga el archivo simplificado para campo',
-          details: 'Este archivo contiene solo 6 columnas (UF, Dirección, Teléfono, Deuda, Conexión, Observación) ideal para imprimir y llevar en visitas.',
-          tip: 'Imprime este archivo y completa las columnas "Conexión" y "Observación" durante las visitas'
+          title: 'Revisa las estadísticas',
+          description: 'Verás un resumen del procesamiento',
+          details: 'Total procesadas, cantidad APTOS, cantidad NO APTOS, errores, clientes con deuda válida, clientes con plan de pago, porcentaje de éxito.',
+          tip: 'Los clientes con errores de consulta pueden reintentarse más tarde'
+        },
+        {
+          number: 7,
+          title: 'Descarga los 3 archivos Excel',
+          description: 'Genera los reportes para cada clasificación',
+          details: '1) APTOS-[fecha].xlsx: UF, Comprobantes Vencidos, Total Deuda, Barrio. 2) NO-APTOS-[fecha].xlsx: incluye columna "Razón" del rechazo. 3) relevamiento-visitas-[fecha].xlsx: solo APTOS con 6 columnas para campo.',
+          tip: 'El relevamiento incluye columnas vacías "Conexión" y "Observación" para completar en las visitas',
+          preview: <ButtonPreview label="Descargar Archivos" icon={Download} variant="default" />
+        },
+        {
+          number: 8,
+          title: 'Usa el Relevamiento en campo',
+          description: 'Imprime el Excel simplificado para visitas domiciliarias',
+          details: 'Columnas del relevamiento: UF (8 chars), Dirección (calle + número + barrio), Teléfono, Total Deuda, Conexión (vacío), Observación (vacío). Diseñado para llevar impreso.',
+          tip: '💡 Imprime en formato horizontal (landscape) para mejor legibilidad. Completa Conexión y Observación durante la visita'
         }
       ]
     },
@@ -151,88 +174,170 @@ export default function PreguntasFrecuentesPage() {
       id: 'proximos-vencer',
       title: '⏰ Próximos a Vencer',
       difficulty: 'Fácil',
-      duration: '4 min',
-      description: 'Notifica a clientes sobre cuotas próximas a vencer para prevenir deudas',
+      duration: '6 min',
+      description: 'Envía recordatorios preventivos a clientes con cuotas próximas a vencer en el mes actual',
       steps: [
         {
           number: 1,
-          title: 'Accede al módulo',
+          title: 'Accede al módulo Próximos a Vencer',
           description: 'Haz clic en "Próximos a Vencer" desde el menú',
-          details: 'Esta función es preventiva: notifica antes del vencimiento para evitar que los clientes caigan en mora.',
-          tip: 'Úsala a principios o mediados de mes para mejores resultados'
+          details: 'Este módulo es PREVENTIVO: notifica ANTES del vencimiento para evitar que los clientes entren en mora. Usa el mismo wizard de 3 pasos que SendDebts.',
+          tip: 'Ideal para ejecutar a principios de mes o cuando se aproximan fechas de vencimiento masivas'
         },
         {
           number: 2,
-          title: 'Revisa el periodo calculado',
-          description: 'El sistema muestra automáticamente hasta fin de mes',
-          details: 'Por ejemplo: si hoy es 5 de noviembre, buscará cuotas que vencen del 5 al 30 de noviembre. Los días de anticipación se calculan automáticamente.',
-          tip: 'No necesitas configurar fechas manualmente, el sistema lo hace por ti'
+          title: 'Verifica el rango de fechas automático',
+          description: 'El sistema calcula automáticamente hasta fin de mes',
+          details: 'Ejemplo: Si hoy es 23 de diciembre, buscará cuotas que vencen hasta el 31 de diciembre (8 días de anticipación). Si es el último día del mes, automáticamente usa el mes siguiente.',
+          tip: '⚠️ No necesitas configurar fechas manualmente, el cálculo es automático'
         },
         {
           number: 3,
-          title: 'Selecciona el archivo Excel',
-          description: 'Carga tu base de datos de cuotas',
-          details: '⚠️ IMPORTANTE: Debes subir el archivo de Plan de pago llamado "incumplidos". El archivo debe incluir: UF, Nombre, Teléfono, Cuota, Vencimiento, Monto.',
-          tip: 'Asegúrate de que las fechas de vencimiento estén en formato correcto (DD/MM/YYYY)',
+          title: 'Carga el archivo Excel',
+          description: 'Sube el archivo con datos de planes de pago',
+          details: 'Columnas obligatorias: unidad (UF 6-8 dígitos), Cliente_01 (nombre, mín 3 chars), tel_uni o tel_clien (8-15 dígitos). Columnas opcionales: tipo_plan, plan_num, barrio, etc. Máximo 1,000 registros.',
+          tip: '⚠️ Al menos un teléfono debe ser válido para enviar el recordatorio',
           preview: <ButtonPreview label="Seleccionar archivo" icon={Upload} variant="outline" />
         },
         {
           number: 4,
-          title: 'Personaliza el mensaje recordatorio',
-          description: 'Modifica el texto del recordatorio si lo deseas',
-          details: 'Usa un tono amigable y preventivo. Variables disponibles: {nombre}, {cuota}, {vencimiento}, {monto}.',
-          tip: 'Mensaje sugerido: "Hola {nombre}, te recordamos que tu cuota {cuota} vence el {vencimiento}"'
+          title: 'Verificación automática',
+          description: 'El sistema filtra clientes con WhatsApp válido',
+          details: 'Igual que en SendDebts: se verifica cada número, se separan los que tienen WhatsApp de los que no. La verificación usa caché inteligente para mayor velocidad.',
+          tip: '💡 Los clientes sin WhatsApp se guardan en archivo separado para gestión alternativa'
         },
         {
           number: 5,
-          title: 'Inicia el envío',
-          description: 'Haz clic en "Enviar Recordatorios"',
-          details: 'El proceso es similar al envío de deudas: verás el progreso en tiempo real y se aplicarán delays automáticos.',
-          tip: 'Este tipo de mensaje tiene mejor recepción que las notificaciones de deuda'
+          title: 'Revisa la plantilla de recordatorio',
+          description: 'El mensaje usa una plantilla oficial de Meta (NO editable)',
+          details: 'Template "recordatorio_proximo_vencer": Saludo con nombre del cliente, aviso de vencimiento próximo, PDF del comprobante adjunto, botón para consultas. La variable {{1}} se reemplaza por el nombre del cliente.',
+          tip: '⚠️ IMPORTANTE: Las plantillas son fijas, aprobadas por Meta, y no pueden modificarse'
         },
         {
           number: 6,
-          title: 'Descarga el reporte',
-          description: 'Obtén el Excel con los resultados del envío',
-          details: 'El reporte incluye qué clientes fueron notificados exitosamente y cuáles tuvieron errores.',
-          tip: 'Estos recordatorios pueden reducir significativamente la morosidad'
+          title: 'Inicia el envío de recordatorios',
+          description: 'Haz clic en "Enviar" y monitorea el progreso',
+          details: 'El sistema genera PDFs y envía vía WhatsApp Cloud API. Delays automáticos de 3-10 segundos entre mensajes. Progreso en tiempo real via WebSocket.',
+          tip: 'Los recordatorios tienen mejor recepción que las notificaciones de deuda. Úsalos como primera línea de prevención',
+          preview: <ButtonPreview label="Enviar Recordatorios →" icon={Send} variant="default" />
+        },
+        {
+          number: 7,
+          title: 'Descarga los resultados',
+          description: 'Obtén el Excel con el estado de cada envío',
+          details: 'Archivo con todos los clientes procesados. Columna "motivo" indica fallos: "Sin WhatsApp válido", "Error de conexión", "Límite de envíos alcanzado", etc.',
+          tip: '💡 Estos recordatorios pueden reducir significativamente la morosidad si se envían con suficiente anticipación',
+          preview: <ButtonPreview label="Descargar resultados" icon={Download} variant="default" />
         }
       ]
     },
     {
       id: 'archivos',
-      title: '📁 Gestión de Archivos',
+      title: '📁 Recuperar Archivos',
       difficulty: 'Fácil',
       duration: '3 min',
-      description: 'Accede y descarga todos los archivos generados por el sistema',
+      description: 'Accede a respaldos, resultados y archivos generados automáticamente por el sistema',
       steps: [
         {
           number: 1,
-          title: 'Accede a la sección Archivos',
+          title: 'Accede a Recuperar Archivos',
           description: 'Haz clic en "Archivos" desde el menú lateral',
-          details: 'Aquí se almacenan automáticamente todos los Excel y PDFs generados por cualquier módulo del sistema.',
-          tip: 'Los archivos se organizan por fecha de creación'
+          details: 'Aquí se guardan automáticamente: respaldos de universos cargados, archivos guardados cuando un proceso se interrumpe, backups automáticos de datos importantes.',
+          tip: 'Los archivos se clasifican automáticamente por origen según el nombre'
         },
         {
           number: 2,
-          title: 'Navega por la lista',
-          description: 'Explora los archivos ordenados cronológicamente',
-          details: 'Cada archivo muestra: nombre descriptivo, fecha de creación, tamaño, y tipo (Excel, PDF).',
-          tip: 'Usa el buscador para encontrar archivos específicos rápidamente'
+          title: 'Usa los filtros para encontrar archivos',
+          description: 'Filtra por origen, fecha o tipo de archivo',
+          details: 'Filtros disponibles: Por Origen (Sin WhatsApp, Resultado, Filtrado, Original, Otro), Por Fecha (Hoy, Última semana, Último mes), Por Tipo (extensión del archivo), Búsqueda por nombre.',
+          tip: '💡 El filtro por origen detecta automáticamente archivos como "not-whatsapp", "resultado", "filtered", etc.'
         },
         {
           number: 3,
-          title: 'Descarga lo que necesites',
-          description: 'Haz clic en el botón de descarga de cualquier archivo',
-          details: 'Los archivos se descargan instantáneamente a tu carpeta de descargas predeterminada.',
-          tip: 'Puedes descargar el mismo archivo múltiples veces si lo necesitas'
+          title: 'Revisa la información de cada archivo',
+          description: 'Cada archivo muestra nombre, tamaño y fecha',
+          details: 'Información visible: nombre completo del archivo, tamaño formateado (KB, MB), fecha y hora de creación en zona horaria Argentina.',
+          tip: 'Los archivos más recientes aparecen primero por defecto'
         },
         {
           number: 4,
-          title: 'Elimina archivos antiguos (opcional)',
+          title: 'Descarga los archivos que necesites',
+          description: 'Haz clic en el botón de descarga',
+          details: 'El archivo se descarga instantáneamente con su nombre original. Puedes descargar el mismo archivo múltiples veces si lo necesitas.',
+          tip: 'Útil para recuperar archivos de procesos interrumpidos o para acceder a resultados anteriores',
+          preview: <ButtonPreview label="Descargar" icon={Download} variant="outline" />
+        },
+        {
+          number: 5,
+          title: 'Elimina archivos antiguos (con cuidado)',
           description: 'Libera espacio eliminando archivos que ya no necesites',
-          details: 'Solo elimina archivos de los que ya tengas respaldo local. La eliminación es permanente.',
-          tip: 'Mantén al menos los archivos del último mes para seguimiento'
+          details: 'Haz clic en el ícono de papelera roja. Se mostrará confirmación "¿Eliminar?" con botones Sí/No. La eliminación es PERMANENTE.',
+          tip: '⚠️ Solo elimina archivos de los que ya tengas respaldo local. Mantén al menos los archivos del último mes'
+        }
+      ]
+    },
+    {
+      id: 'conversaciones',
+      title: '💬 Centro de Conversaciones WhatsApp',
+      difficulty: 'Fácil',
+      duration: '5 min',
+      description: 'Gestiona las respuestas de clientes en tiempo real con interfaz estilo WhatsApp',
+      steps: [
+        {
+          number: 1,
+          title: 'Accede al Centro de Conversaciones',
+          description: 'Haz clic en "Conversaciones" desde el menú lateral',
+          details: 'Verás una interfaz similar a WhatsApp Web con 3 paneles: lista de conversaciones (izquierda), chat (centro), y datos del cliente (derecha, opcional).',
+          tip: 'Las conversaciones se actualizan en tiempo real via WebSocket'
+        },
+        {
+          number: 2,
+          title: 'Explora la lista de conversaciones',
+          description: 'El panel izquierdo muestra todas las conversaciones activas',
+          details: 'Cada conversación muestra: nombre del cliente, preview del último mensaje (50 chars), tiempo relativo ("hace 5 min"), estado de lectura (✓✓ azul si fue leído), y contador de mensajes no leídos.',
+          tip: 'Las conversaciones con mensajes sin leer muestran un badge verde con el número'
+        },
+        {
+          number: 3,
+          title: 'Usa los filtros para encontrar conversaciones',
+          description: 'Filtra por estado o busca por nombre/teléfono',
+          details: 'Filtros disponibles: Todas, No leídos, Activas (ventana 24hs vigente), Expiradas (ventana 24hs vencida). La búsqueda funciona por nombre del cliente o número de teléfono.',
+          tip: '💡 Usa el filtro "No leídos" para atender primero las conversaciones pendientes'
+        },
+        {
+          number: 4,
+          title: 'Selecciona una conversación para responder',
+          description: 'Haz clic en una conversación para ver el historial completo',
+          details: 'El panel central muestra el chat completo con burbujas estilo WhatsApp. Mensajes entrantes en gris, salientes en verde. Los mensajes se marcan automáticamente como leídos.',
+          tip: 'Los estados de mensaje: 🕐 Pendiente, ✓ Enviado, ✓✓ Entregado, ✓✓ azul Leído'
+        },
+        {
+          number: 5,
+          title: 'Responde dentro de la ventana de 24 horas (GRATIS)',
+          description: 'Si la ventana está activa, escribe y envía mensajes libremente',
+          details: 'Escribe tu mensaje en el campo de texto y presiona Enter o el botón enviar. Mientras la ventana de 24hs esté activa, puedes enviar mensajes de texto libre SIN COSTO adicional.',
+          tip: '⚠️ La ventana de 24hs se reinicia cada vez que el cliente te escribe'
+        },
+        {
+          number: 6,
+          title: 'Responde fuera de la ventana de 24 horas (PAGO)',
+          description: 'Si la ventana expiró, solo puedes enviar plantillas aprobadas',
+          details: 'Verás un aviso de "Ventana expirada". Para responder, debes seleccionar una plantilla pre-aprobada por Meta. Cada plantilla tiene un costo de ~$0.047 USD.',
+          tip: '💰 Las plantillas tienen costo porque inician una nueva conversación con Meta'
+        },
+        {
+          number: 7,
+          title: 'Controla el Bot automático',
+          description: 'Decide si el bot responde o tomas el control manual',
+          details: 'Estados: Bot ON (verde) = respuestas automáticas, Bot OFF (naranja) = atención manual. Usa "Tomar" para desactivar el bot y atender personalmente. Usa "Liberar" para reactivar el bot.',
+          tip: '💡 Toma el control cuando el cliente necesita atención personalizada que el bot no puede resolver'
+        },
+        {
+          number: 8,
+          title: 'Consulta los datos del cliente',
+          description: 'Abre el panel de información del cliente',
+          details: 'Haz clic en el ícono de usuario en el header del chat. Verás: nombre, teléfono, número de cuenta, última deuda enviada, estado de la ventana 24hs, y última actividad.',
+          tip: 'Útil para tener contexto del cliente mientras respondes'
         }
       ]
     }
@@ -267,60 +372,46 @@ export default function PreguntasFrecuentesPage() {
         }
       `}</style>
 
-      {/* Header */}
-      <div className="mb-6 no-print">
-        <Button
-          variant="ghost"
-          onClick={() => router.push('/home')}
-          className="mb-4"
-        >
-          <ArrowLeft className="w-4 h-4 mr-2" />
-          Volver al inicio
-        </Button>
-
-        <div className="flex items-center gap-4 mb-2">
-          <div className="w-12 h-12 bg-purple-500 rounded-full flex items-center justify-center">
-            <HelpCircle className="w-6 h-6 text-white" />
-          </div>
-          <div>
-            <h1 className="text-3xl font-bold">Centro de Ayuda</h1>
-            <p className="text-muted-foreground">
-              Guía completa para usar el sistema de gestión de deudas
-            </p>
-          </div>
-        </div>
+      {/* Header con PageHeader */}
+      <div className="no-print">
+        <PageHeader
+          title="Centro de Ayuda"
+          description="Guía completa para usar el sistema de gestión"
+          icon={HelpCircle}
+          breadcrumbs={[{ label: 'FAQ' }]}
+        />
       </div>
 
       {/* View Selector Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8 no-print">
         <Card 
-          className={`cursor-pointer hover:shadow-lg transition-all ${activeView === 'tutorials' ? 'ring-2 ring-blue-500' : ''}`}
+          className={`cursor-pointer hover:shadow-lg transition-all ${activeView === 'tutorials' ? 'ring-2 ring-cyan-500 bg-cyan-50/50' : ''}`}
           onClick={() => {
             setActiveView('tutorials')
             setActiveTutorial(null)
           }}
         >
           <CardContent className="p-6 text-center">
-            <BookOpen className="w-8 h-8 text-blue-600 mx-auto mb-3" />
+            <BookOpen className="w-8 h-8 text-cyan-600 mx-auto mb-3" />
             <h3 className="font-semibold mb-2">Tutoriales Paso a Paso</h3>
-            <p className="text-sm text-gray-600">Guías visuales para cada función</p>
+            <p className="text-sm text-muted-foreground">Guías visuales para cada función</p>
           </CardContent>
         </Card>
 
         <Card 
-          className={`cursor-pointer hover:shadow-lg transition-all ${activeView === 'faq' ? 'ring-2 ring-green-500' : ''}`}
+          className={`cursor-pointer hover:shadow-lg transition-all ${activeView === 'faq' ? 'ring-2 ring-emerald-500 bg-emerald-50/50' : ''}`}
           onClick={() => setActiveView('faq')}
         >
           <CardContent className="p-6 text-center">
-            <FileQuestion className="w-8 h-8 text-green-600 mx-auto mb-3" />
+            <FileQuestion className="w-8 h-8 text-emerald-600 mx-auto mb-3" />
             <h3 className="font-semibold mb-2">Preguntas Frecuentes</h3>
-            <p className="text-sm text-gray-600">Respuestas a dudas comunes</p>
+            <p className="text-sm text-muted-foreground">Respuestas a dudas comunes</p>
           </CardContent>
         </Card>
 
         <Card className="cursor-pointer hover:shadow-lg transition-shadow opacity-60">
           <CardContent className="p-6 text-center">
-            <Video className="w-8 h-8 text-red-600 mx-auto mb-3" />
+            <Video className="w-8 h-8 text-rose-600 mx-auto mb-3" />
             <h3 className="font-semibold mb-2">Video Tutoriales</h3>
             <p className="text-sm text-gray-600">Próximamente disponibles</p>
           </CardContent>
@@ -338,51 +429,53 @@ export default function PreguntasFrecuentesPage() {
           <section className="mb-8">
             <h2 className="text-2xl font-semibold mb-4 text-purple-900 flex items-center gap-2">
               <span className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center text-purple-700 font-bold">1</span>
-              Enviar Deudas por WhatsApp
+              Enviar Comprobantes de Deuda por WhatsApp
             </h2>
             
             <Accordion type="single" collapsible className="w-full">
               <AccordionItem value="item-1">
-                <AccordionTrigger>¿Qué es &quot;Enviar Deudas&quot;?</AccordionTrigger>
+                <AccordionTrigger>¿Qué es &quot;Enviar Deudas&quot; (SendDebts)?</AccordionTrigger>
                 <AccordionContent>
                   <p className="text-gray-700 mb-3">
-                    Es la función principal del sistema que te permite notificar automáticamente a tus clientes 
-                    sobre sus deudas pendientes mediante WhatsApp.
+                    Es el módulo principal para enviar notificaciones masivas de deuda con comprobantes PDF adjuntos 
+                    mediante WhatsApp Cloud API oficial de Meta.
                   </p>
                   <div className="bg-blue-50 p-4 rounded-lg">
-                    <p className="font-semibold text-blue-900 mb-2">¿Cuándo usarlo?</p>
+                    <p className="font-semibold text-blue-900 mb-2">Características principales:</p>
                     <ul className="list-disc list-inside text-sm text-gray-700 space-y-1">
-                      <li>Cuando necesites enviar comprobantes de deuda masivamente</li>
-                      <li>Para recordar a clientes sobre deudas vencidas o próximas a vencer</li>
-                      <li>Envío automatizado con seguimiento en tiempo real</li>
+                      <li>Envío masivo de hasta 10,000 clientes por archivo</li>
+                      <li>Generación automática de PDF de comprobante para cada cliente</li>
+                      <li>Plantillas oficiales de Meta (NO editables)</li>
+                      <li>Verificación inteligente de WhatsApp con caché</li>
+                      <li>Progreso en tiempo real via WebSocket</li>
                     </ul>
                   </div>
                 </AccordionContent>
               </AccordionItem>
 
               <AccordionItem value="item-2">
-                <AccordionTrigger>¿Cómo funciona el proceso?</AccordionTrigger>
+                <AccordionTrigger>¿Cómo funciona el proceso (3 pasos)?</AccordionTrigger>
                 <AccordionContent>
                   <div className="space-y-3">
                     <div className="flex items-start gap-3">
                       <span className="w-6 h-6 bg-blue-500 text-white rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0">1</span>
                       <div>
-                        <p className="font-medium">Subir archivo Excel</p>
-                        <p className="text-sm text-gray-600">Usa el template con las columnas requeridas (UF, titular, teléfono, etc.)</p>
+                        <p className="font-medium">Cargar Archivo</p>
+                        <p className="text-sm text-gray-600">Sube Excel con columnas: unidad, Cliente_01, tel_uni/tel_clien. El sistema filtra automáticamente clientes con WhatsApp válido.</p>
                       </div>
                     </div>
                     <div className="flex items-start gap-3">
                       <span className="w-6 h-6 bg-blue-500 text-white rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0">2</span>
                       <div>
-                        <p className="font-medium">Personalizar mensaje</p>
-                        <p className="text-sm text-gray-600">Edita el texto que se enviará con el PDF adjunto</p>
+                        <p className="font-medium">Enviar Mensajes</p>
+                        <p className="text-sm text-gray-600">Se generan PDFs y se envían por WhatsApp con plantilla fija. Opcionalmente incluir intimación legal.</p>
                       </div>
                     </div>
                     <div className="flex items-start gap-3">
                       <span className="w-6 h-6 bg-blue-500 text-white rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0">3</span>
                       <div>
-                        <p className="font-medium">Enviar y seguir</p>
-                        <p className="text-sm text-gray-600">El sistema envía automáticamente y genera un Excel con los resultados</p>
+                        <p className="font-medium">Descargar Resultados</p>
+                        <p className="text-sm text-gray-600">Obtén Excel con estado de cada envío (columna &quot;motivo&quot; indica fallos) y archivo de clientes sin WhatsApp.</p>
                       </div>
                     </div>
                   </div>
@@ -390,15 +483,75 @@ export default function PreguntasFrecuentesPage() {
               </AccordionItem>
 
               <AccordionItem value="item-3">
+                <AccordionTrigger>¿Puedo personalizar el mensaje?</AccordionTrigger>
+                <AccordionContent>
+                  <p className="text-gray-700 mb-3">
+                    <strong>NO.</strong> Los mensajes usan plantillas oficiales de Meta que están pre-aprobadas y no pueden modificarse.
+                    Esto es un requisito de WhatsApp Business API para garantizar la calidad y evitar spam.
+                  </p>
+                  <div className="bg-amber-50 p-4 rounded-lg border border-amber-200">
+                    <p className="font-semibold text-amber-900 mb-2">⚠️ Plantilla fija incluye:</p>
+                    <ul className="list-disc list-inside text-sm text-gray-700 space-y-1">
+                      <li>Saludo personalizado con nombre del cliente</li>
+                      <li>Información sobre el vencimiento de la cuota</li>
+                      <li>PDF del comprobante adjunto</li>
+                      <li>Botón de respuesta para consultas</li>
+                    </ul>
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+
+              <AccordionItem value="item-4">
+                <AccordionTrigger>¿Qué es la opción de Intimación?</AccordionTrigger>
+                <AccordionContent>
+                  <p className="text-gray-700 mb-3">
+                    La intimación es un documento legal adicional que se puede adjuntar al envío.
+                    <strong> Solo está disponible si el cliente cumple requisitos específicos.</strong>
+                  </p>
+                  <div className="bg-red-50 p-4 rounded-lg border border-red-200">
+                    <p className="font-semibold text-red-900 mb-2">⚠️ Requisitos para Intimación:</p>
+                    <ul className="list-disc list-inside text-sm text-gray-700 space-y-1">
+                      <li>Cliente cargado en base de datos de Aqua</li>
+                      <li>Datos completos: dirección, barrio, manzana, lote</li>
+                      <li>UF con formato válido: <code>unidad-distrito-zona-manzana-parcela</code></li>
+                      <li>Plan de pago vencido (no aplica a próximos a vencer)</li>
+                    </ul>
+                  </div>
+                  <p className="text-sm text-gray-600 mt-3">
+                    💡 Si el cliente no tiene estos datos completos, la opción de intimación no estará disponible.
+                  </p>
+                </AccordionContent>
+              </AccordionItem>
+
+              <AccordionItem value="item-5">
                 <AccordionTrigger>¿Qué pasa si un cliente no tiene WhatsApp?</AccordionTrigger>
                 <AccordionContent>
                   <p className="text-gray-700 mb-3">
-                    El sistema automáticamente detecta clientes sin WhatsApp y los separa en un archivo aparte 
-                    llamado <strong>&quot;sin-whatsapp.xlsx&quot;</strong> que puedes descargar al finalizar.
+                    El sistema verifica automáticamente cada número y separa los clientes en dos archivos:
                   </p>
-                  <p className="text-sm text-gray-600">
-                    💡 <strong>Tip:</strong> Usa ese archivo para contactar a esos clientes por otro medio (correo, teléfono, correo postal).
+                  <ul className="list-disc list-inside text-gray-700 space-y-2 ml-4">
+                    <li><strong>clients-with-whatsapp-xxx.xlsx:</strong> Clientes con WhatsApp válido (se procesan)</li>
+                    <li><strong>not-whatsapp-xxx.xlsx:</strong> Clientes sin WhatsApp (para gestión alternativa)</li>
+                  </ul>
+                  <p className="text-sm text-gray-600 mt-3">
+                    💡 La verificación usa caché inteligente: si ya verificaste un número antes, se usa el resultado guardado (90% más rápido).
                   </p>
+                </AccordionContent>
+              </AccordionItem>
+
+              <AccordionItem value="item-6">
+                <AccordionTrigger>¿Cuál es el límite de envíos?</AccordionTrigger>
+                <AccordionContent>
+                  <p className="text-gray-700 mb-3">
+                    El sistema tiene una cuota diaria de <strong>300 mensajes</strong>. Si necesitas enviar más:
+                  </p>
+                  <div className="bg-amber-50 p-4 rounded-lg border border-amber-200">
+                    <p className="font-semibold text-amber-900 mb-2">💰 Cargos por exceso:</p>
+                    <p className="text-sm text-gray-700">
+                      Cada mensaje adicional sobre la cuota diaria tiene un cargo de <strong>$30 por mensaje</strong>.
+                      El sistema te avisará antes de proceder.
+                    </p>
+                  </div>
                 </AccordionContent>
               </AccordionItem>
             </Accordion>
@@ -416,43 +569,70 @@ export default function PreguntasFrecuentesPage() {
                 <AccordionTrigger>¿Qué es el filtrado de clientes y para qué sirve?</AccordionTrigger>
                 <AccordionContent>
                   <p className="text-gray-700 mb-3">
-                    Esta función te permite filtrar y clasificar clientes según su estado de deuda:
+                    Este módulo consulta la API de Aguas Cordobesas (PYSE) en tiempo real para clasificar clientes según su estado de deuda:
                   </p>
                   <ul className="list-disc list-inside text-gray-700 space-y-2 ml-4">
-                    <li>Identificar automáticamente clientes <strong>APTOS</strong> para corte (3+ comprobantes vencidos, sin plan de pago)</li>
-                    <li>Separar clientes <strong>NO APTOS</strong> (menos de 3 comprobantes o con plan activo)</li>
-                    <li>Generar archivos Excel listos para procesos de gestión de cobranzas</li>
+                    <li><strong>APTOS:</strong> 3 o más comprobantes vencidos Y sin plan de pago activo</li>
+                    <li><strong>NO APTOS:</strong> Menos de 3 comprobantes O con plan de pago activo</li>
                   </ul>
+                  <div className="bg-blue-50 p-4 rounded-lg mt-3">
+                    <p className="text-sm text-gray-600">
+                      ⚠️ <strong>Límite:</strong> 500 consultas/hora a la API de Aguas Cordobesas
+                    </p>
+                  </div>
                 </AccordionContent>
               </AccordionItem>
 
               <AccordionItem value="pyse-2">
-                <AccordionTrigger>¿Cómo uso los filtros avanzados?</AccordionTrigger>
+                <AccordionTrigger>¿Qué filtros puedo usar?</AccordionTrigger>
                 <AccordionContent>
                   <div className="space-y-3">
                     <div className="bg-green-50 p-4 rounded-lg border border-green-200">
                       <p className="font-semibold text-green-900 mb-2">📊 Filtros Disponibles:</p>
                       <ul className="list-disc list-inside text-sm text-gray-700 space-y-1">
-                        <li><strong>Por barrio:</strong> Selecciona uno o múltiples barrios</li>
-                        <li><strong>Límite por barrio:</strong> Procesa máximo N clientes por barrio (útil para trabajo diario)</li>
-                        <li><strong>Offset por barrio:</strong> Salta las primeras N cuentas de cada barrio (para continuar al día siguiente)</li>
-                        <li><strong>Comprobantes vencidos:</strong> Filtrar por cantidad mínima y máxima de comprobantes vencidos</li>
-                        <li><strong>Deuda total:</strong> Filtrar por montos mínimos y máximos de deuda</li>
+                        <li><strong>Búsqueda:</strong> Por titular, UF o barrio</li>
+                        <li><strong>Teléfono:</strong> Todos / Solo con teléfono / Solo sin teléfono</li>
+                        <li><strong>Estado:</strong> Pendiente / Notificado / Visitado / Verificado</li>
+                        <li><strong>Barrios:</strong> Selector múltiple</li>
+                        <li><strong>Catastral:</strong> Distrito → Zona → Manzanas</li>
+                        <li><strong>Rango:</strong> Desde N hasta M clientes por barrio</li>
                       </ul>
                     </div>
                     <p className="text-sm text-gray-600">
-                      💡 <strong>Ejemplo práctico:</strong> Hoy procesas 100 clientes del barrio &quot;Centro&quot; (offset=0, límite=100). 
-                      Mañana procesas los siguientes 100 (offset=100, límite=100).
+                      💡 <strong>Ejemplo:</strong> Procesar clientes 1-200 del barrio &quot;Centro&quot; hoy, y 201-400 mañana.
                     </p>
                   </div>
                 </AccordionContent>
               </AccordionItem>
 
               <AccordionItem value="pyse-3">
+                <AccordionTrigger>¿Qué archivos genera el proceso?</AccordionTrigger>
+                <AccordionContent>
+                  <p className="text-gray-700 mb-3">
+                    Se generan <strong>3 archivos Excel</strong>:
+                  </p>
+                  <div className="space-y-3">
+                    <div className="bg-green-50 p-3 rounded border border-green-200">
+                      <p className="font-semibold text-green-900">1. APTOS-[fecha].xlsx</p>
+                      <p className="text-sm text-gray-600">UF, Comprobantes Vencidos, Total Deuda, Barrio, Tiene Plan Pago</p>
+                    </div>
+                    <div className="bg-red-50 p-3 rounded border border-red-200">
+                      <p className="font-semibold text-red-900">2. NO-APTOS-[fecha].xlsx</p>
+                      <p className="text-sm text-gray-600">Igual que APTOS + columna &quot;Razón&quot; del rechazo</p>
+                    </div>
+                    <div className="bg-blue-50 p-3 rounded border border-blue-200">
+                      <p className="font-semibold text-blue-900">3. relevamiento-visitas-[fecha].xlsx</p>
+                      <p className="text-sm text-gray-600">Solo APTOS con 6 columnas: UF, Dirección, Teléfono, Deuda, Conexión (vacío), Observación (vacío)</p>
+                    </div>
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+
+              <AccordionItem value="pyse-4">
                 <AccordionTrigger>¿Qué es el &quot;Relevamiento para Visitas&quot;?</AccordionTrigger>
                 <AccordionContent>
                   <p className="text-gray-700 mb-3">
-                    Es un Excel simplificado con 6 columnas diseñado para trabajo en campo:
+                    Es un Excel simplificado con <strong>solo clientes APTOS</strong>, diseñado para imprimir y llevar a campo:
                   </p>
                   <div className="bg-blue-50 p-4 rounded-lg">
                     <table className="w-full text-sm">
@@ -463,17 +643,17 @@ export default function PreguntasFrecuentesPage() {
                         </tr>
                       </thead>
                       <tbody>
-                        <tr><td className="p-2">UF</td><td className="p-2">Unidad de facturación (identificador único)</td></tr>
-                        <tr><td className="p-2">Dirección</td><td className="p-2">Calle + Barrio del cliente</td></tr>
+                        <tr><td className="p-2">UF</td><td className="p-2">Unidad de facturación (8 chars)</td></tr>
+                        <tr><td className="p-2">Dirección</td><td className="p-2">Calle + Número + Barrio</td></tr>
                         <tr><td className="p-2">Teléfono</td><td className="p-2">Para contacto directo</td></tr>
                         <tr><td className="p-2">Total Deuda</td><td className="p-2">Monto adeudado</td></tr>
-                        <tr><td className="p-2">Conexión</td><td className="p-2">(Vacío) Para completar en campo</td></tr>
-                        <tr><td className="p-2">Observación</td><td className="p-2">(Vacío) Para notas del operador</td></tr>
+                        <tr><td className="p-2">Conexión</td><td className="p-2"><strong>(Vacío)</strong> Para completar en campo</td></tr>
+                        <tr><td className="p-2">Observación</td><td className="p-2"><strong>(Vacío)</strong> Para notas del operador</td></tr>
                       </tbody>
                     </table>
                   </div>
                   <p className="text-sm text-gray-600 mt-3">
-                    ✅ Ideal para imprimirlo y llevarlo en las visitas domiciliarias.
+                    💡 Imprime en formato horizontal (landscape) para mejor legibilidad.
                   </p>
                 </AccordionContent>
               </AccordionItem>
@@ -492,84 +672,329 @@ export default function PreguntasFrecuentesPage() {
                 <AccordionTrigger>¿Qué es &quot;Próximos a Vencer&quot;?</AccordionTrigger>
                 <AccordionContent>
                   <p className="text-gray-700 mb-3">
-                    Es un recordatorio automático para clientes con <strong>planes de pago</strong> cuyas cuotas 
-                    están próximas a vencer (dentro del mes actual).
+                    Es un módulo <strong>preventivo</strong> para enviar recordatorios a clientes con cuotas 
+                    próximas a vencer dentro del mes actual. Usa el mismo flujo de 3 pasos que SendDebts.
                   </p>
                   <div className="bg-amber-50 p-4 rounded-lg border border-amber-200">
                     <p className="font-semibold text-amber-900 mb-2">🎯 Objetivo:</p>
                     <p className="text-sm text-gray-600">
-                      💡 <strong>Ejemplo práctico:</strong> Hoy procesas 100 clientes del barrio &quot;Centro&quot; (offset=0, límite=100). 
-                      antes de la fecha de vencimiento.
+                      Notificar ANTES del vencimiento para evitar que los clientes entren en mora. 
+                      Estos recordatorios tienen mejor recepción que las notificaciones de deuda.
                     </p>
                   </div>
                 </AccordionContent>
               </AccordionItem>
 
               <AccordionItem value="prox-2">
-                <AccordionTrigger>¿Cómo configuro los días de anticipación?</AccordionTrigger>
+                <AccordionTrigger>¿Cómo se calculan los días de anticipación?</AccordionTrigger>
                 <AccordionContent>
                   <p className="text-gray-700 mb-3">
-                    El sistema calcula automáticamente hasta el <strong>final del mes actual</strong>. Por ejemplo:
+                    El sistema calcula <strong>automáticamente</strong> hasta el final del mes actual:
                   </p>
                   <ul className="list-disc list-inside text-gray-700 space-y-2 ml-4">
-                    <li>Si hoy es 5 de noviembre → busca cuotas que vencen hasta el 30 de noviembre</li>
-                    <li>Los días de anticipación se muestran en la interfaz</li>
-                    <li>No necesitas configurar manualmente las fechas</li>
+                    <li>Si hoy es 23 de diciembre → busca cuotas que vencen hasta el 31 de diciembre (8 días)</li>
+                    <li>Si es el último día del mes → automáticamente usa el mes siguiente</li>
+                    <li>No necesitas configurar fechas manualmente</li>
                   </ul>
-                </AccordionContent>
-              </AccordionItem>
-            </Accordion>
-          </section>
-
-          {/* Sección 4: WhatsApp */}
-          <section className="mb-8">
-            <h2 className="text-2xl font-semibold mb-4 text-emerald-900 flex items-center gap-2">
-              <span className="w-8 h-8 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-700 font-bold">4</span>
-              Conexión de WhatsApp
-            </h2>
-            
-            <Accordion type="single" collapsible className="w-full">
-              <AccordionItem value="wa-1">
-                <AccordionTrigger>¿Por qué no puedo enviar mensajes?</AccordionTrigger>
-                <AccordionContent>
-                  <p className="text-gray-700 mb-3">
-                    Verifica que:
-                  </p>
-                  <ul className="list-disc list-inside text-gray-700 space-y-2 ml-4">
-                    <li>✅ La sesión de WhatsApp esté iniciada (ícono en el navbar debe estar verde)</li>
-                    <li>✅ El QR haya sido escaneado con tu celular</li>
-                    <li>✅ El celular tenga conexión a internet</li>
-                    <li>✅ No hay mensaje de &quot;Sincronizando...&quot; (espera a que termine)</li>
-                  </ul>
-                  <div className="bg-red-50 p-3 rounded-lg border border-red-200 mt-3">
-                    <p className="text-sm text-red-900">
-                      ⚠️ <strong>Si el problema persiste:</strong> Cierra la sesión y vuelve a escanear el QR.
+                  <div className="bg-blue-50 p-3 rounded-lg border border-blue-200 mt-3">
+                    <p className="text-sm text-blue-900">
+                      💡 El rango de fechas se muestra en la interfaz: &quot;Hoy&quot; hasta &quot;Último día del mes&quot;
                     </p>
                   </div>
                 </AccordionContent>
               </AccordionItem>
 
-              <AccordionItem value="wa-2">
-                <AccordionTrigger>¿El QR no se regenera?</AccordionTrigger>
+              <AccordionItem value="prox-3">
+                <AccordionTrigger>¿Qué archivo Excel necesito?</AccordionTrigger>
                 <AccordionContent>
                   <p className="text-gray-700 mb-3">
-                    El QR se regenera automáticamente cada 60 segundos si no fue escaneado. Si no aparece:
+                    Columnas obligatorias del archivo:
                   </p>
-                  <ol className="list-decimal list-inside text-gray-700 space-y-2 ml-4">
-                    <li>Recarga la página</li>
-                    <li>Cierra sesión de WhatsApp</li>
-                    <li>Vuelve a iniciar sesión</li>
-                    <li>Si el problema persiste, contacta a soporte</li>
-                  </ol>
+                  <div className="bg-amber-50 p-4 rounded-lg border border-amber-200">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b border-amber-200">
+                          <th className="text-left p-2">Columna</th>
+                          <th className="text-left p-2">Requisitos</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr><td className="p-2 font-semibold">unidad</td><td className="p-2">UF de 6-8 dígitos, único, mayor a 0</td></tr>
+                        <tr><td className="p-2 font-semibold">Cliente_01</td><td className="p-2">Nombre del cliente (mín 3 caracteres)</td></tr>
+                        <tr><td className="p-2 font-semibold">tel_uni o tel_clien</td><td className="p-2">Al menos uno válido (8-15 dígitos)</td></tr>
+                      </tbody>
+                    </table>
+                  </div>
+                  <p className="text-sm text-gray-600 mt-3">
+                    ⚠️ Máximo 1,000 registros por archivo. El sistema validará el formato automáticamente.
+                  </p>
+                </AccordionContent>
+              </AccordionItem>
+
+              <AccordionItem value="prox-4">
+                <AccordionTrigger>¿Puedo personalizar el mensaje?</AccordionTrigger>
+                <AccordionContent>
+                  <p className="text-gray-700 mb-3">
+                    <strong>NO.</strong> Al igual que SendDebts, los mensajes usan plantillas oficiales de Meta.
+                  </p>
+                  <div className="bg-amber-50 p-4 rounded-lg border border-amber-200">
+                    <p className="font-semibold text-amber-900 mb-2">📋 Template &quot;recordatorio_proximo_vencer&quot;:</p>
+                    <ul className="list-disc list-inside text-sm text-gray-700 space-y-1">
+                      <li>Saludo con nombre del cliente (variable)</li>
+                      <li>Aviso de vencimiento próximo</li>
+                      <li>PDF del comprobante adjunto</li>
+                      <li>Botón de respuesta para consultas</li>
+                    </ul>
+                  </div>
                 </AccordionContent>
               </AccordionItem>
             </Accordion>
           </section>
 
-          {/* Sección 5: Recuperar Archivos */}
+          {/* Sección 4: WhatsApp Cloud API */}
+          <section className="mb-8">
+            <h2 className="text-2xl font-semibold mb-4 text-emerald-900 flex items-center gap-2">
+              <span className="w-8 h-8 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-700 font-bold">4</span>
+              WhatsApp Business Cloud API
+            </h2>
+            
+            <Accordion type="single" collapsible className="w-full">
+              <AccordionItem value="wa-1">
+                <AccordionTrigger>¿Cómo funciona WhatsApp Cloud API?</AccordionTrigger>
+                <AccordionContent>
+                  <p className="text-gray-700 mb-3">
+                    Aqua utiliza la <strong>API oficial de WhatsApp Business</strong> de Meta. A diferencia del método anterior (QR), 
+                    esta integración es completamente oficial, segura y no requiere tener el celular conectado.
+                  </p>
+                  <div className="bg-emerald-50 p-4 rounded-lg border border-emerald-200">
+                    <p className="font-semibold text-emerald-900 mb-2">✅ Ventajas de Cloud API:</p>
+                    <ul className="list-disc list-inside text-sm text-gray-700 space-y-1">
+                      <li>No necesitas escanear QR ni tener el celular conectado</li>
+                      <li>Envío de mensajes 100% oficial y sin riesgo de bloqueos</li>
+                      <li>Uso de plantillas (templates) aprobadas por Meta</li>
+                      <li>1,000 conversaciones gratuitas por mes</li>
+                      <li>Mayor velocidad y confiabilidad de envío</li>
+                    </ul>
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+
+              <AccordionItem value="wa-2">
+                <AccordionTrigger>¿Cómo configuro WhatsApp Cloud API?</AccordionTrigger>
+                <AccordionContent>
+                  <p className="text-gray-700 mb-3">
+                    La configuración requiere crear una cuenta en Meta Business y obtener credenciales:
+                  </p>
+                  <ol className="list-decimal list-inside text-gray-700 space-y-2 ml-4">
+                    <li><strong>Phone Number ID:</strong> Identificador de tu número de WhatsApp Business</li>
+                    <li><strong>Access Token:</strong> Token de acceso permanente (generado en Meta)</li>
+                    <li><strong>Business Account ID:</strong> ID de tu cuenta de negocio en Meta</li>
+                  </ol>
+                  <div className="bg-blue-50 p-3 rounded-lg border border-blue-200 mt-3">
+                    <p className="text-sm text-blue-900">
+                      📖 <strong>Documentación:</strong> Consulta la guía oficial en <a href="https://developers.facebook.com/docs/whatsapp" target="_blank" rel="noopener noreferrer" className="underline">developers.facebook.com/docs/whatsapp</a>
+                    </p>
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+
+              <AccordionItem value="wa-3">
+                <AccordionTrigger>¿Cuánto cuesta usar WhatsApp Cloud API?</AccordionTrigger>
+                <AccordionContent>
+                  <p className="text-gray-700 mb-3">
+                    Meta ofrece <strong>1,000 conversaciones gratuitas por mes</strong>. Después se cobra por conversación:
+                  </p>
+                  <div className="bg-amber-50 p-4 rounded-lg border border-amber-200">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b border-amber-200">
+                          <th className="text-left p-2">Tipo</th>
+                          <th className="text-left p-2">Costo aproximado (Argentina)</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr><td className="p-2">Primeras 1,000 conversaciones</td><td className="p-2 text-green-700 font-semibold">GRATIS</td></tr>
+                        <tr><td className="p-2">Conversación de utilidad (templates)</td><td className="p-2">~$0.008 USD</td></tr>
+                        <tr><td className="p-2">Conversación de marketing</td><td className="p-2">~$0.025 USD</td></tr>
+                      </tbody>
+                    </table>
+                  </div>
+                  <p className="text-sm text-gray-600 mt-3">
+                    💡 <strong>Tip:</strong> Puedes monitorear tu uso en la sección <strong>WhatsApp → Uso</strong>
+                  </p>
+                </AccordionContent>
+              </AccordionItem>
+
+              <AccordionItem value="wa-4">
+                <AccordionTrigger>¿Qué son las plantillas (templates) de WhatsApp?</AccordionTrigger>
+                <AccordionContent>
+                  <p className="text-gray-700 mb-3">
+                    Los templates son mensajes pre-aprobados por Meta que puedes usar para iniciar conversaciones. 
+                    Se usan para enviar comprobantes, recordatorios de pago y notificaciones.
+                  </p>
+                  <div className="bg-purple-50 p-4 rounded-lg border border-purple-200">
+                    <p className="font-semibold text-purple-900 mb-2">📋 Templates disponibles en Aqua:</p>
+                    <ul className="list-disc list-inside text-sm text-gray-700 space-y-1">
+                      <li><strong>comprobante_personal_v3:</strong> Envío de comprobante de deuda con PDF</li>
+                      <li><strong>recordatorio_pago_v3:</strong> Recordatorio de cuotas próximas a vencer</li>
+                      <li><strong>intimacion_v1:</strong> Notificación de intimación formal</li>
+                    </ul>
+                  </div>
+                  <p className="text-sm text-gray-600 mt-3">
+                    ⚠️ Los templates deben estar aprobados por Meta antes de poder usarlos.
+                  </p>
+                </AccordionContent>
+              </AccordionItem>
+
+              <AccordionItem value="wa-5">
+                <AccordionTrigger>¿Por qué no puedo enviar mensajes?</AccordionTrigger>
+                <AccordionContent>
+                  <p className="text-gray-700 mb-3">
+                    Verifica los siguientes puntos:
+                  </p>
+                  <ul className="list-disc list-inside text-gray-700 space-y-2 ml-4">
+                    <li>✅ Las credenciales estén correctamente configuradas (Admin → WhatsApp)</li>
+                    <li>✅ El Access Token no haya expirado</li>
+                    <li>✅ Los templates estén aprobados por Meta</li>
+                    <li>✅ El número destino tenga WhatsApp activo</li>
+                    <li>✅ No hayas excedido los límites de envío de Meta</li>
+                  </ul>
+                  <div className="bg-red-50 p-3 rounded-lg border border-red-200 mt-3">
+                    <p className="text-sm text-red-900">
+                      ⚠️ <strong>Si el problema persiste:</strong> Verifica las credenciales en Admin → WhatsApp → Configuración y contacta a soporte.
+                    </p>
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+
+              <AccordionItem value="wa-6">
+                <AccordionTrigger>¿Cómo veo mi consumo de conversaciones?</AccordionTrigger>
+                <AccordionContent>
+                  <p className="text-gray-700 mb-3">
+                    Puedes monitorear tu uso en tiempo real desde la sección <strong>WhatsApp → Uso</strong>:
+                  </p>
+                  <ul className="list-disc list-inside text-gray-700 space-y-2 ml-4">
+                    <li>📊 Conversaciones del mes actual</li>
+                    <li>🆓 Conversaciones gratuitas restantes (de 1,000)</li>
+                    <li>💰 Costo acumulado si superaste el free tier</li>
+                    <li>📈 Proyección mensual basada en tu historial</li>
+                    <li>🎯 Distribución por tipo de mensaje</li>
+                  </ul>
+                  <div className="bg-blue-50 p-3 rounded-lg border border-blue-200 mt-3">
+                    <p className="text-sm text-blue-900">
+                      💡 <strong>Indicador en navbar:</strong> Verás un badge de color (verde/amarillo/rojo) que indica tu consumo actual.
+                    </p>
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
+          </section>
+
+          {/* Sección 5: Conversaciones */}
+          <section className="mb-8">
+            <h2 className="text-2xl font-semibold mb-4 text-blue-900 flex items-center gap-2">
+              <span className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center text-blue-700 font-bold">5</span>
+              Centro de Conversaciones
+            </h2>
+            
+            <Accordion type="single" collapsible className="w-full">
+              <AccordionItem value="conv-1">
+                <AccordionTrigger>¿Qué es el Centro de Conversaciones?</AccordionTrigger>
+                <AccordionContent>
+                  <p className="text-gray-700 mb-3">
+                    Es una interfaz estilo WhatsApp Web para gestionar las respuestas de clientes en tiempo real.
+                    Aquí ves todos los mensajes que los clientes envían después de recibir sus comprobantes.
+                  </p>
+                  <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                    <p className="font-semibold text-blue-900 mb-2">📱 Características:</p>
+                    <ul className="list-disc list-inside text-sm text-gray-700 space-y-1">
+                      <li>Chat en tiempo real con actualizaciones via WebSocket</li>
+                      <li>Control del bot automático (activar/desactivar)</li>
+                      <li>Gestión de la ventana de 24 horas de WhatsApp</li>
+                      <li>Panel de información del cliente</li>
+                    </ul>
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+
+              <AccordionItem value="conv-2">
+                <AccordionTrigger>¿Qué es la &quot;Ventana de 24 horas&quot;?</AccordionTrigger>
+                <AccordionContent>
+                  <p className="text-gray-700 mb-3">
+                    Es una regla de WhatsApp Business API: cuando un cliente te escribe, tienes 24 horas para responder 
+                    con mensajes de texto libre <strong>SIN COSTO adicional</strong>.
+                  </p>
+                  <div className="space-y-3">
+                    <div className="bg-green-50 p-3 rounded border border-green-200">
+                      <p className="font-semibold text-green-900">✅ Dentro de las 24hs:</p>
+                      <p className="text-sm text-gray-600">Puedes enviar mensajes de texto libre GRATIS</p>
+                    </div>
+                    <div className="bg-amber-50 p-3 rounded border border-amber-200">
+                      <p className="font-semibold text-amber-900">⚠️ Después de las 24hs:</p>
+                      <p className="text-sm text-gray-600">Solo puedes enviar plantillas aprobadas (~$0.047 USD cada una)</p>
+                    </div>
+                  </div>
+                  <p className="text-sm text-gray-600 mt-3">
+                    💡 La ventana se reinicia cada vez que el cliente te escribe un nuevo mensaje.
+                  </p>
+                </AccordionContent>
+              </AccordionItem>
+
+              <AccordionItem value="conv-3">
+                <AccordionTrigger>¿Cómo funciona el Bot automático?</AccordionTrigger>
+                <AccordionContent>
+                  <p className="text-gray-700 mb-3">
+                    El bot responde automáticamente a mensajes comunes de los clientes. Puedes controlarlo:
+                  </p>
+                  <div className="space-y-3">
+                    <div className="bg-green-50 p-3 rounded border border-green-200">
+                      <p className="font-semibold text-green-900">🟢 Bot ON (verde):</p>
+                      <p className="text-sm text-gray-600">El bot responde automáticamente las consultas comunes</p>
+                    </div>
+                    <div className="bg-amber-50 p-3 rounded border border-amber-200">
+                      <p className="font-semibold text-amber-900">🟠 Bot OFF (naranja):</p>
+                      <p className="text-sm text-gray-600">Atención manual - tú respondes directamente</p>
+                    </div>
+                  </div>
+                  <p className="text-sm text-gray-600 mt-3">
+                    💡 Usa <strong>&quot;Tomar&quot;</strong> para desactivar el bot y atender personalmente. 
+                    Usa <strong>&quot;Liberar&quot;</strong> para reactivar el bot.
+                  </p>
+                </AccordionContent>
+              </AccordionItem>
+
+              <AccordionItem value="conv-4">
+                <AccordionTrigger>¿Qué significan los estados de los mensajes?</AccordionTrigger>
+                <AccordionContent>
+                  <p className="text-gray-700 mb-3">
+                    Los íconos de check indican el estado de entrega del mensaje:
+                  </p>
+                  <div className="bg-blue-50 p-4 rounded-lg">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b border-blue-200">
+                          <th className="text-left p-2">Ícono</th>
+                          <th className="text-left p-2">Estado</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr><td className="p-2">🕐</td><td className="p-2">Pendiente de envío</td></tr>
+                        <tr><td className="p-2">✓</td><td className="p-2">Enviado al servidor</td></tr>
+                        <tr><td className="p-2">✓✓</td><td className="p-2">Entregado al cliente</td></tr>
+                        <tr><td className="p-2">✓✓ <span className="text-blue-500">azul</span></td><td className="p-2">Leído por el cliente</td></tr>
+                        <tr><td className="p-2">⚠️</td><td className="p-2">Error en el envío</td></tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
+          </section>
+
+          {/* Sección 6: Recuperar Archivos */}
           <section className="mb-8">
             <h2 className="text-2xl font-semibold mb-4 text-indigo-900 flex items-center gap-2">
-              <span className="w-8 h-8 bg-indigo-100 rounded-full flex items-center justify-center text-indigo-700 font-bold">5</span>
+              <span className="w-8 h-8 bg-indigo-100 rounded-full flex items-center justify-center text-indigo-700 font-bold">6</span>
               Recuperar Archivos
             </h2>
             

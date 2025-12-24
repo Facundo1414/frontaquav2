@@ -200,12 +200,12 @@ export const WhatsappSessionModal: React.FC<WhatsappSessionModalProps> = ({ open
       // 🔧 FIX: Persistir QR válido en ref
       lastValidQr.current = qr
       
-      // ✅ Verificar si el QR ya viene en formato data URL (Baileys)
+      // ✅ Verificar si el QR ya viene en formato data URL (WhatsApp Cloud API)
       if (qr.startsWith('data:image/')) {
         // QR ya está en formato base64, usar directamente
         setQrImage(qr)
       } else {
-        // QR es string raw, necesita conversión (Puppeteer legacy)
+        // QR es string raw, necesita conversión
         generateQRCode(qr)
           .then((img: string) => { 
             if (active) {

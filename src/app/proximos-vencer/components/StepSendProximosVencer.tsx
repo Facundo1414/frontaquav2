@@ -8,7 +8,22 @@ import { Loader2 } from 'lucide-react'
 import { ProgressCard } from '@/app/senddebts/components/ProgressCard'
 import { useProgressWebSocket } from '@/hooks/useProgressWebSocket'
 import { useGlobalContext } from '@/app/providers/context/GlobalContext'
+import { SendConfirmationModal } from '@/components/whatsapp/SendConfirmationModal'
+import { useBrowserNotification } from '@/hooks/useBrowserNotification'
+import { useJobRecovery } from '@/hooks/useJobRecovery'
+import { useJobProgress } from '@/hooks/useJobProgress'
 import { logger } from '@/lib/logger';
+
+// 📋 Plantilla de Meta para modo SYSTEM (Cloud API) - Próximos a Vencer
+const SYSTEM_TEMPLATE_PREVIEW_PROXIMOS = `Hola {{1}}, te informamos que tu cuota del plan de pagos vence en los próximos días.
+
+📄 Adjuntamos tu comprobante con el detalle completo e información de medios de pago disponibles.
+
+Para consultas sobre tu cuenta, puedes responder este mensaje.
+Cclip • Al servicio de Aguas Cordobesas.
+
+━━━━━━━━━━━━━━━━━━━━
+💬 Tengo consultas`
 
 export default function StepSendProximosVencer() {
   const {
@@ -24,11 +39,22 @@ export default function StepSendProximosVencer() {
     fechaDesdeTexto,
     fechaHastaTexto,
     filteredData,
+    resetProximosVencer,
   } = useProximosVencerContext()
   const { accessToken } = useGlobalContext()
   
   // Extraer userId del token JWT (sub claim)
   const userId = accessToken ? JSON.parse(atob(accessToken.split('.')[1])).sub : undefined
+
+  // 🔍 Detectar modo de WhatsApp (system = Cloud API, personal = cuenta propia)
+  const [isSystemMode, setIsSystemMode] = useState(true) // Default a system (más seguro)
+  
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const mode = localStorage.getItem('whatsapp_mode') || 'system'
+      setIsSystemMode(mode === 'system')
+    }
+  }, [])
 
   const [message, setMessage] = useState('');
 
@@ -50,12 +76,48 @@ export default function StepSendProximosVencer() {
   const [waitingForResults, setWaitingForResults] = useState(false)
   const [pollingAttempts, setPollingAttempts] = useState(0)
   const [estimatedTime, setEstimatedTime] = useState<string>('')
+  const [showConfirmModal, setShowConfirmModal] = useState(false)
   const [sendStats, setSendStats] = useState({
     total: 0,
     completed: 0,
     failed: 0,
     pending: 0,
   })
+
+  // 🔔 Hook para notificaciones del navegador
+  const { notifyProcessComplete, requestPermission } = useBrowserNotification()
+
+  // 🔄 Hook para detectar jobs activos al montar (recuperación)
+  const { latestJob, hasActiveJobs } = useJobRecovery({ jobType: 'proximos_vencer' })
+
+  // Solicitar permiso de notificaciones al montar
+  useEffect(() => {
+    requestPermission()
+  }, [requestPermission])
+
+  // 🔄 Efecto para recuperar estado de job activo
+  useEffect(() => {
+    if (latestJob && hasActiveJobs && !jobId) {
+      logger.log('🔄 Recuperando job activo (próximos):', latestJob.jobId, 'status:', latestJob.status)
+      setJobId(latestJob.jobId)
+      setLoading(true)
+      
+      // Restaurar stats si están disponibles
+      if (latestJob.processedItems !== undefined && latestJob.totalItems !== undefined) {
+        setSendStats({
+          total: latestJob.totalItems,
+          completed: latestJob.processedItems,
+          failed: 0,
+          pending: latestJob.totalItems - latestJob.processedItems,
+        })
+      }
+      
+      // Si está en progreso, activar estado de espera
+      if (latestJob.status === 'processing') {
+        setStatus(`⏳ Procesando... ${latestJob.progress || 0}%`)
+      }
+    }
+  }, [latestJob, hasActiveJobs, jobId])
 
   useEffect(() => {
     // Inicializar stats cuando se monta el componente
@@ -77,6 +139,31 @@ export default function StepSendProximosVencer() {
     eventType: 'pdf', // Escuchar eventos PDF (no PYSE)
     userId: userId,   // Filtrar solo eventos de este usuario
   })
+
+  // 🔌 Hook de progreso del job principal (backend)
+  const { progress: jobProgress } = useJobProgress(jobId)
+
+  // Efecto para actualizar UI con progreso del job principal
+  useEffect(() => {
+    if (jobProgress && jobProgress.jobId === jobId) {
+      logger.log('📊 Job progress del backend (próximos):', jobProgress)
+      
+      if (jobProgress.status === 'completed') {
+        logger.log('✅ Job completado según backend')
+        setStatus('✅ Proceso completado')
+        // Esperar un momento y avanzar al paso de descarga
+        setTimeout(() => {
+          setActiveStep(2)
+          setLoading(false)
+        }, 1500)
+      } else if (jobProgress.status === 'error') {
+        setStatus(`❌ Error: ${jobProgress.message || 'Error desconocido'}`)
+        setLoading(false)
+      } else if (jobProgress.status === 'processing') {
+        setStatus(`⏳ Procesando... ${jobProgress.progress}%`)
+      }
+    }
+  }, [jobProgress, jobId, setActiveStep])
 
   // Calcular progreso general y stats actuales
   const overallProgress = wsProgress?.percentage || 0
@@ -140,6 +227,16 @@ export default function StepSendProximosVencer() {
           setLoading(false)
           setWaitingForResults(false)
           setStatus('✅ Proceso completado. Pasando a descarga...')
+          
+          // 🔔 Enviar notificación del navegador
+          notifyProcessComplete({
+            processName: 'Próximos a Vencer',
+            totalSent: currentStats.total,
+            successful: currentStats.completed,
+            failed: currentStats.failed,
+            onClick: () => window.focus(),
+          })
+          
           setTimeout(() => {
             setActiveStep(2)
           }, 1000)
@@ -149,6 +246,16 @@ export default function StepSendProximosVencer() {
           setLoading(false)
           setWaitingForResults(false)
           setStatus('⚠️ Notificaciones enviadas. Descargá el archivo desde respaldos.')
+          
+          // 🔔 Notificación aunque haya timeout
+          notifyProcessComplete({
+            processName: 'Próximos a Vencer',
+            totalSent: currentStats.total,
+            successful: currentStats.completed,
+            failed: currentStats.failed,
+            onClick: () => window.focus(),
+          })
+          
           setTimeout(() => {
             setActiveStep(2)
           }, 1000)
@@ -181,7 +288,8 @@ export default function StepSendProximosVencer() {
     }
   }, [wsError, loading])
 
-  const handleSend = async () => {
+  // Abrir modal de confirmación
+  const handleOpenConfirmation = () => {
     if (!fileNameFiltered) {
       setStatus("No hay archivo filtrado para enviar.")
       return
@@ -192,12 +300,31 @@ export default function StepSendProximosVencer() {
       setStatus("Error: No se pueden procesar próximos a vencer porque no hay días válidos restantes en el mes. Por favor, intenta mañana.")
       return
     }
+    
+    setShowConfirmModal(true)
+  }
+
+  // Ejecutar envío real (llamado desde el modal)
+  const handleConfirmedSend = async () => {
+    setShowConfirmModal(false)
 
     setLoading(true)
     setStatus(null)
 
     try {
       const result = await sendAndScrapeProximosVencer(fileNameFiltered, message, diasAnticipacion)
+      
+      // 🚨 Si el archivo temporal ya no existe, resetear y volver al paso 0
+      if (result.fileNotFound) {
+        logger.warn('⚠️ Archivo temporal expirado, reseteando estado...')
+        setStatus(result.message)
+        setLoading(false)
+        // Esperar un momento para que el usuario vea el mensaje
+        setTimeout(() => {
+          resetProximosVencer()
+        }, 3000)
+        return
+      }
       
       // 🎯 Backend siempre devuelve jobId para tracking en tiempo real
       if (result.jobId) {
@@ -319,19 +446,57 @@ export default function StepSendProximosVencer() {
           </div>
         )}
 
-        <div className="space-y-1.5">
-          <label htmlFor="message" className="block text-sm font-medium">
-            Mensaje (editable - usa ${'{clientName}'} para personalizar)
-          </label>
-          <textarea
-            id="message"
-            rows={4}
-            className="w-full p-2 border rounded resize-none text-sm"
-            value={message}
-            onChange={(e) => setMessage(e.target.value)}
-            disabled={loading}
-          />
-        </div>
+        {/* Mensaje - Comportamiento diferente según modo */}
+        {isSystemMode ? (
+          // 🔒 Modo SYSTEM: Plantilla fija de Meta (no editable)
+          <div className="space-y-3">
+            <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-lg">
+              <div className="flex items-start gap-2">
+                <span className="text-emerald-600 text-lg">🔒</span>
+                <div className="flex-1">
+                  <h4 className="font-semibold text-sm text-emerald-900 mb-1">
+                    Plantilla de Meta (WhatsApp Cloud API)
+                  </h4>
+                  <p className="text-xs text-emerald-700">
+                    Se usará la plantilla pre-aprobada por Meta. El texto no es editable para cumplir con las políticas de WhatsApp Business.
+                  </p>
+                </div>
+              </div>
+            </div>
+            
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <label className="flex items-center gap-2 text-sm font-semibold text-gray-900">
+                  📋 Vista previa del mensaje
+                </label>
+                <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-emerald-100 text-emerald-700">
+                  🔒 Plantilla Meta
+                </span>
+              </div>
+              <div className="w-full p-3 border-2 border-emerald-200 rounded-lg bg-emerald-50/50 text-gray-700 text-sm whitespace-pre-wrap">
+                {SYSTEM_TEMPLATE_PREVIEW_PROXIMOS.replace('{{1}}', '{{nombre del cliente}}')}
+              </div>
+              <p className="text-xs text-emerald-600 mt-2">
+                ✅ El nombre del cliente se insertará automáticamente desde el Excel
+              </p>
+            </div>
+          </div>
+        ) : (
+          // ✏️ Modo PERSONAL: Mensaje editable
+          <div className="space-y-1.5">
+            <label htmlFor="message" className="block text-sm font-medium">
+              Mensaje (editable - usa ${'{clientName}'} para personalizar)
+            </label>
+            <textarea
+              id="message"
+              rows={4}
+              className="w-full p-2 border rounded resize-none text-sm"
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              disabled={loading}
+            />
+          </div>
+        )}
       </div>
 
       {/* Botones */}
@@ -355,7 +520,7 @@ export default function StepSendProximosVencer() {
               Cancelar todo
             </Button>
             <Button
-              onClick={handleSend}
+              onClick={handleOpenConfirmation}
               disabled={loading}
               className=""
             >
@@ -364,6 +529,20 @@ export default function StepSendProximosVencer() {
           </div>
         </div>
       </div>
+
+      {/* Modal de Confirmación */}
+      <SendConfirmationModal
+        isOpen={showConfirmModal}
+        onClose={() => setShowConfirmModal(false)}
+        onConfirm={handleConfirmedSend}
+        isLoading={loading}
+        totalClients={sendStats.total}
+        messagePreview={SYSTEM_TEMPLATE_PREVIEW_PROXIMOS}
+        quotaRemaining={300}
+        dailyQuota={300}
+        includesAttachment={true}
+        processType="proximos-vencer"
+      />
     </motion.div>
   )
 }

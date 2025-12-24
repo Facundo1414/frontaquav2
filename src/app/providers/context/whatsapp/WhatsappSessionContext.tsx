@@ -88,7 +88,7 @@ export const WhatsappSessionProvider: React.FC<{ children: React.ReactNode }> = 
     if (!shouldEnableWhatsapp || !userId) return;
 
     const verifyBackendState = async () => {
-      logger.log('🔍 Admin detectado - Verificando estado real en Baileys Worker...');
+      logger.log('🔍 Admin detectado - Verificando estado real en WhatsApp Cloud Worker...');
       
       try {
         const state = await simpleWaState();
@@ -115,7 +115,7 @@ export const WhatsappSessionProvider: React.FC<{ children: React.ReactNode }> = 
         console.error('❌ Error verificando estado del backend:', error);
         // Si hay error 500, probablemente no hay sesión
         if (error?.response?.status === 500) {
-          logger.log('🧹 Baileys Worker indica no hay sesión (500), limpiando estado');
+          logger.log('🧹 Worker indica no hay sesión (500), limpiando estado');
           sessionStorage.removeItem('whatsapp_v2_snapshot');
           updateFromStatus({ state: 'none' });
         }

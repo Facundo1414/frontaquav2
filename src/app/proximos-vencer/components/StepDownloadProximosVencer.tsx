@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { Button } from '@/components/ui/button'
 import { getFileByName, listResultBackups } from '@/lib/api'
-import { Loader2, Home, Download } from 'lucide-react'
+import { Loader2, Home, Download, RotateCcw, MessageCircle } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { logger } from '@/lib/logger';
 
@@ -13,13 +13,7 @@ export default function StepDownloadProximosVencer() {
   const {
     processedFile,
     notWhatsappData,
-    setRawData,
-    setProcessedData,
-    setFilteredData,
-    setActiveStep,
-    setFileNameFiltered,
-    setProcessedFile,
-    setNotWhatsappData,
+    resetProximosVencer,
   } = useProximosVencerContext()  
 
   const [loadingResults, setLoadingResults] = useState(false)
@@ -119,13 +113,13 @@ export default function StepDownloadProximosVencer() {
   }
 
     const handleResetAndGoHome = () => {
-    setRawData([])
-    setProcessedData([])
-    setFilteredData([])
-    setFileNameFiltered("")
-    setProcessedFile(null)
-    setNotWhatsappData("")
+    // No resetear para permitir descargar archivos después
     router.push('/home')
+  }
+
+  // 🔄 Reiniciar proceso desde paso 1
+  const handleRestartProcess = () => {
+    resetProximosVencer()
   }
 
   return (
@@ -223,9 +217,38 @@ export default function StepDownloadProximosVencer() {
         </div>
       </div>
       
-      {/* Botón Volver a Home */}
-      <div className="flex justify-center pt-4">
-        <Button variant="outline" onClick={handleResetAndGoHome}>
+      {/* � Banner de Conversaciones */}
+      <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-lg p-4">
+        <div className="flex items-start gap-3">
+          <div className="bg-green-100 p-2 rounded-full">
+            <MessageCircle className="w-5 h-5 text-green-600" />
+          </div>
+          <div className="flex-1">
+            <h4 className="font-semibold text-green-800 text-sm">¿Los clientes respondieron?</h4>
+            <p className="text-sm text-green-700 mt-1">
+              Los clientes que respondan aparecerán en la <strong>página de Conversaciones</strong>. 
+              Revisá las respuestas y hablá con ellos si es necesario.
+            </p>
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => router.push('/conversaciones')}
+              className="mt-3 bg-green-100 hover:bg-green-200 border-green-300 text-green-800"
+            >
+              <MessageCircle className="w-4 h-4 mr-2" />
+              Ver Conversaciones
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      {/* �🔹 Botones de navegación */}
+      <div className="flex justify-center gap-4 pt-4">
+        <Button variant="outline" onClick={handleRestartProcess} className='bg-blue-100 hover:bg-blue-200'>
+          <RotateCcw className="w-4 h-4 mr-2" />
+          Nuevo proceso
+        </Button>
+        <Button variant="outline" onClick={handleResetAndGoHome} className='bg-green-400'>
           <Home className="w-4 h-4 mr-2" />
           Volver al inicio
         </Button>

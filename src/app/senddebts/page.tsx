@@ -4,7 +4,8 @@ import { Suspense, useState } from 'react'
 import { SendDebtsProvider, useSendDebtsContext } from '../providers/context/SendDebtsContext'
 import { SendDebtsGuard } from './components/SendDebtsGuard'
 import { Card, CardContent } from '@/components/ui/card'
-import { Loader2 } from 'lucide-react'
+import { Loader2, Send } from 'lucide-react'
+import { PageHeader } from '@/components/PageHeader'
 import { StepIndicator, Step } from './components/StepIndicator'
 import { JobRecoveryNotification } from '@/components/JobRecoveryNotification'
 import {
@@ -90,12 +91,14 @@ function Content() {
   const { activeStep, setActiveStep } = useSendDebtsContext()
   const [showRecoveryNotification, setShowRecoveryNotification] = useState(true)
 
-  const handleRecoverJob = (jobId: string, progress: number) => {
-    // Determinar paso según progreso
-    if (progress >= 66) {
-      setActiveStep(2) // Download
-    } else if (progress >= 33) {
-      setActiveStep(1) // Send
+  const handleRecoverJob = (jobId: string, progress: number, status?: string) => {
+    // Si el job está completado, ir directo al paso de descarga (paso 2)
+    if (status === 'completed' || progress >= 100) {
+      setActiveStep(2) // Download/Resultados
+    } else if (progress >= 50) {
+      setActiveStep(1) // Send - en progreso
+    } else {
+      setActiveStep(1) // Send - iniciando
     }
     setShowRecoveryNotification(false)
   }
@@ -112,6 +115,14 @@ function Content() {
 
   return (
     <div className="min-h-screen px-6 py-4 space-y-4 max-w-[1600px] mx-auto">
+      {/* Header con PageHeader */}
+      <PageHeader
+        title="Enviar Deudas por WhatsApp"
+        description="Envía notificaciones masivas de deuda a tus clientes"
+        icon={Send}
+        breadcrumbs={[{ label: 'SendDebts' }]}
+      />
+
       {/* Notificación de recuperación */}
       {showRecoveryNotification && (
         <JobRecoveryNotification

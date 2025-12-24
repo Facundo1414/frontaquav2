@@ -71,9 +71,9 @@ export function WhatsappModeSelector({ onModeChange, onConnectClick }: WhatsappM
     if (newMode === 'personal' && mode !== 'personal') {
       const confirmed = window.confirm(
         '⚠️ ADVERTENCIA DE RIESGO\n\n' +
-        'El uso intensivo de WhatsApp Web.js con tu número personal puede resultar en el baneo de tu cuenta de WhatsApp.\n\n' +
-        '🚫 Riesgo de baneo si se envían más de 50 mensajes por hora\n\n' +
-        'El sistema WhatsApp (modo prepago) es la opción recomendada para evitar cualquier riesgo.\n\n' +
+        'El uso intensivo de WhatsApp con tu número personal puede resultar en el baneo de tu cuenta.\n\n' +
+        '🚫 Riesgo de baneo si se envían demasiados mensajes\n\n' +
+        'El sistema WhatsApp Cloud API (modo prepago) es la opción recomendada para evitar cualquier riesgo.\n\n' +
         '¿Aceptás los riesgos y querés continuar con el modo personal?'
       )
       

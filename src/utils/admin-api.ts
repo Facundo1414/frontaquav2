@@ -10,10 +10,9 @@
  * // Dashboard
  * const dashboard = await adminAPI.getDashboard();
  *
- * // Baileys
- * await adminAPI.baileys.enable();
- * const metrics = await adminAPI.baileys.getMetrics();
- * await adminAPI.baileys.addBetaUser(userId, 'admin', 'Testing');
+ * // WhatsApp System
+ * const status = await adminAPI.whatsappSystem.getStatus();
+ * await adminAPI.whatsappSystem.activate();
  * ```
  */
 
@@ -82,105 +81,7 @@ export const adminAPI = {
   },
 
   /**
-   * Baileys Worker Management
-   */
-  baileys: {
-    // Status
-    async getStatus() {
-      return adminFetch("/admin/baileys/status");
-    },
-
-    // Feature Flags
-    async enable() {
-      return adminFetch("/admin/baileys/enable", { method: "POST" });
-    },
-
-    async disable() {
-      return adminFetch("/admin/baileys/disable", { method: "POST" });
-    },
-
-    async toggle() {
-      return adminFetch("/admin/baileys/toggle", { method: "POST" });
-    },
-
-    // Beta Users
-    async getBetaUsers() {
-      return adminFetch("/admin/baileys/beta-users");
-    },
-
-    async addBetaUser(userId: string, enabledBy: string, notes?: string) {
-      return adminFetch("/admin/baileys/beta-users", {
-        method: "POST",
-        body: { userId, enabledBy, notes },
-      });
-    },
-
-    async removeBetaUser(userId: string) {
-      return adminFetch(`/admin/baileys/beta-users/${userId}`, {
-        method: "DELETE",
-      });
-    },
-
-    async checkBetaUser(userId: string) {
-      return adminFetch(`/admin/baileys/beta-users/${userId}/check`);
-    },
-
-    async clearBetaUsers() {
-      return adminFetch("/admin/baileys/beta-users", { method: "DELETE" });
-    },
-
-    // Rollout
-    async getRollout() {
-      return adminFetch("/admin/baileys/rollout");
-    },
-
-    async setRollout(percentage: number) {
-      if (percentage < 0 || percentage > 100) {
-        throw new Error("Percentage must be between 0 and 100");
-      }
-      return adminFetch("/admin/baileys/rollout", {
-        method: "POST",
-        body: { percentage },
-      });
-    },
-
-    async shouldUseBaileys(userId: string) {
-      return adminFetch(`/admin/baileys/should-use/${userId}`);
-    },
-
-    // Metrics
-    async getMetrics() {
-      return adminFetch("/admin/baileys/metrics");
-    },
-
-    async getWorkerMetrics(workerType: "puppeteer" | "baileys") {
-      return adminFetch(`/admin/baileys/metrics/${workerType}`);
-    },
-
-    // Emergency
-    async emergencyRollback(reason: string) {
-      return adminFetch("/admin/baileys/emergency-rollback", {
-        method: "POST",
-        body: { reason },
-      });
-    },
-
-    async getRollbackInfo() {
-      return adminFetch("/admin/baileys/rollback-info");
-    },
-
-    async clearRollback() {
-      return adminFetch("/admin/baileys/clear-rollback", { method: "POST" });
-    },
-
-    // Maintenance
-    async cleanupMetrics() {
-      return adminFetch("/admin/baileys/cleanup", { method: "POST" });
-    },
-  },
-
-  /**
-   * WhatsApp System Control (Prepago - Baileys)
+   * WhatsApp System Control (Cloud API)
    */
   whatsappSystem: {
     async getStatus() {
@@ -217,6 +118,60 @@ export const adminAPI = {
       return adminFetch("/admin/whatsapp/working-hours/disable", {
         method: "POST",
       });
+    },
+  },
+
+  /**
+   * 📢 Admin Broadcast - Notificaciones a usuarios
+   */
+  broadcast: {
+    /**
+     * Envía una notificación a TODOS los usuarios conectados
+     */
+    async sendToAll(notification: {
+      type: "info" | "warning" | "success" | "error";
+      title: string;
+      message: string;
+      duration?: number;
+      dismissible?: boolean;
+      action?: {
+        label: string;
+        url?: string;
+      };
+    }) {
+      return adminFetch("/admin/broadcast", {
+        method: "POST",
+        body: notification,
+      });
+    },
+
+    /**
+     * Envía una notificación a usuarios específicos
+     */
+    async sendToUsers(
+      userIds: string[],
+      notification: {
+        type: "info" | "warning" | "success" | "error";
+        title: string;
+        message: string;
+        duration?: number;
+        dismissible?: boolean;
+      }
+    ) {
+      return adminFetch("/admin/notify-users", {
+        method: "POST",
+        body: {
+          userIds,
+          ...notification,
+        },
+      });
+    },
+
+    /**
+     * Obtiene estadísticas de conexiones WebSocket
+     */
+    async getStats() {
+      return adminFetch("/admin/broadcast/stats");
     },
   },
 };
@@ -256,49 +211,26 @@ export function useAdminPanel() {
 /**
  * Tipos de respuesta
  */
-export interface BetaUser {
-  userId: string;
-  enabledAt: number;
-  enabledBy: string;
-  notes?: string;
-}
-
-export interface MetricsData {
-  comparison: {
-    puppeteer: WorkerMetrics;
-    baileys: WorkerMetrics;
-    improvement: {
-      successRate: number;
-      averageDuration: number;
-      errorRate: number;
-    };
+export interface WhatsAppSystemStatus {
+  ready: boolean;
+  authenticated: boolean;
+  phone: string | null;
+  qr: string | null;
+  active: boolean;
+  workingHoursEnabled?: boolean;
+  stats?: {
+    messagesToday: number;
+    maxPerDay: number;
+    isWorkingHours: boolean;
+    percentageUsed: number;
   };
-  currentErrorRate: number;
-}
-
-export interface WorkerMetrics {
-  totalRequests: number;
-  successCount: number;
-  errorCount: number;
-  successRate: number;
-  averageDuration: number;
-  p95Duration: number;
-  p99Duration: number;
-  errorsByType: Record<string, number>;
 }
 
 export interface SystemStatus {
-  baileys: {
-    enabled: boolean;
-    rolloutPercentage: number;
-    betaUsersCount: number;
-  };
-  emergencyRollback: {
+  whatsapp: {
+    ready: boolean;
+    authenticated: boolean;
     active: boolean;
-    info: {
-      timestamp: number;
-      reason: string;
-    } | null;
   };
   redis: {
     connected: boolean;
@@ -313,19 +245,19 @@ import { useAdminPanel } from '@/utils/admin-api';
 
 export function AdminDashboard() {
   const { loading, error, execute, api } = useAdminPanel();
-  const [metrics, setMetrics] = useState<MetricsData | null>(null);
+  const [status, setStatus] = useState<WhatsAppSystemStatus | null>(null);
 
   useEffect(() => {
     execute(async () => {
-      const data = await api.baileys.getMetrics();
-      setMetrics(data);
+      const data = await api.whatsappSystem.getStatus();
+      setStatus(data);
     });
   }, []);
 
-  const handleEnable = () => {
+  const handleActivate = () => {
     execute(async () => {
-      await api.baileys.enable();
-      alert('Baileys habilitado!');
+      await api.whatsappSystem.activate();
+      alert('WhatsApp activado!');
     });
   };
 
@@ -335,8 +267,7 @@ export function AdminDashboard() {
   return (
     <div>
       <h1>Admin Panel</h1>
-      <button onClick={handleEnable}>Habilitar Baileys</button>
-      {metrics && <MetricsChart data={metrics} />}
+      <button onClick={handleActivate}>Activar WhatsApp</button>
     </div>
   );
 }

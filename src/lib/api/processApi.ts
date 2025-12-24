@@ -13,6 +13,7 @@ export const sendAndScrape = async (
   file?: Blob;
   jobId?: string;
   overQuotaCount?: number;
+  fileNotFound?: boolean;
 }> => {
   const token = getAccessToken();
 
@@ -68,9 +69,44 @@ export const sendAndScrape = async (
     console.error("❌ Error completo en sendAndScrape:", error);
     console.error("❌ Error response:", error?.response);
     console.error("❌ Error response data:", error?.response?.data);
-    const errorMessage =
-      error?.response?.data?.message || "❌ Error en el procesamiento";
-    return { message: errorMessage };
+
+    // Intentar leer el mensaje de error del blob si es necesario
+    let errorMessage = "❌ Error en el procesamiento";
+    let fileNotFound = false;
+
+    try {
+      if (error?.response?.data instanceof Blob) {
+        const text = await error.response.data.text();
+        try {
+          const json = JSON.parse(text);
+          errorMessage = json.message || json.error || errorMessage;
+        } catch {
+          errorMessage = text || errorMessage;
+        }
+      } else if (error?.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error?.response?.data?.error) {
+        errorMessage = error.response.data.error;
+      }
+    } catch (parseError) {
+      console.error("Error parsing error response:", parseError);
+    }
+
+    // Detectar si el archivo temporal ya no existe
+    if (
+      errorMessage.toLowerCase().includes("archivo no encontrado") ||
+      errorMessage.toLowerCase().includes("file not found") ||
+      errorMessage.includes("ENOENT")
+    ) {
+      fileNotFound = true;
+      errorMessage =
+        "⚠️ El archivo temporal expiró. Por favor, vuelve a cargar el archivo.";
+    }
+
+    return {
+      message: errorMessage,
+      fileNotFound,
+    };
   }
 };
 
@@ -131,7 +167,12 @@ export const sendAndScrapeProximosVencer = async (
   fileName: string,
   message: string,
   diasAnticipacion: number
-): Promise<{ message: string; file?: Blob; jobId?: string }> => {
+): Promise<{
+  message: string;
+  file?: Blob;
+  jobId?: string;
+  fileNotFound?: boolean;
+}> => {
   const token = getAccessToken();
 
   try {
@@ -174,11 +215,46 @@ export const sendAndScrapeProximosVencer = async (
     };
   } catch (error: any) {
     console.error("Error en sendAndScrapeProximosVencer:", error);
-    const errorMessage =
-      error?.response?.data?.message ||
-      error?.message ||
-      "❌ Error en el procesamiento";
-    return { message: errorMessage };
+
+    // Intentar leer el mensaje de error del blob si es necesario
+    let errorMessage = "❌ Error en el procesamiento";
+    let fileNotFound = false;
+
+    try {
+      if (error?.response?.data instanceof Blob) {
+        const text = await error.response.data.text();
+        try {
+          const json = JSON.parse(text);
+          errorMessage = json.message || json.error || errorMessage;
+        } catch {
+          errorMessage = text || errorMessage;
+        }
+      } else if (error?.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error?.response?.data?.error) {
+        errorMessage = error.response.data.error;
+      } else if (error?.message) {
+        errorMessage = error.message;
+      }
+    } catch (parseError) {
+      console.error("Error parsing error response:", parseError);
+    }
+
+    // Detectar si el archivo temporal ya no existe
+    if (
+      errorMessage.toLowerCase().includes("archivo no encontrado") ||
+      errorMessage.toLowerCase().includes("file not found") ||
+      errorMessage.includes("ENOENT")
+    ) {
+      fileNotFound = true;
+      errorMessage =
+        "⚠️ El archivo temporal expiró. Por favor, vuelve a cargar el archivo.";
+    }
+
+    return {
+      message: errorMessage,
+      fileNotFound,
+    };
   }
 };
 

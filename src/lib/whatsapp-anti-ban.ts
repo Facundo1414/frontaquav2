@@ -2,7 +2,9 @@
  * 🛡️ UTILIDADES ANTI-BAN WHATSAPP
  *
  * Sistema de protección para operadores humanos que envían mensajes
- * manualmente desde WhatsApp Web, con el objetivo de evitar bloqueos.
+ * manualmente, con el objetivo de evitar bloqueos.
+ *
+ * Nota: Ahora usamos WhatsApp Cloud API (Meta Business API) para envíos automatizados.
  */
 
 export interface MessageVariant {

@@ -3,7 +3,8 @@ import dynamic from 'next/dynamic'
 import { useState } from 'react'
 import { ProximosVencerProvider, useProximosVencerContext } from '../providers/context/ProximosVencerContext'
 import { Card, CardContent } from '@/components/ui/card'
-import { AlertCircle, Loader2 } from 'lucide-react'
+import { AlertCircle, Loader2, Clock } from 'lucide-react'
+import { PageHeader } from '@/components/PageHeader'
 import { JobRecoveryNotification } from '@/components/JobRecoveryNotification'
 
 // 🚀 Lazy load de componentes pesados
@@ -68,18 +69,28 @@ function Content() {
   const { activeStep, setActiveStep } = useProximosVencerContext()
   const [showRecoveryNotification, setShowRecoveryNotification] = useState(true)
 
-  const handleRecoverJob = (jobId: string, progress: number) => {
-    // Determinar paso según progreso
-    if (progress >= 66) {
-      setActiveStep(2) // Download
-    } else if (progress >= 33) {
-      setActiveStep(1) // Send
+  const handleRecoverJob = (jobId: string, progress: number, status?: string) => {
+    // Si el job está completado, ir directo al paso de descarga (paso 2)
+    if (status === 'completed' || progress >= 100) {
+      setActiveStep(2) // Download/Resultados
+    } else if (progress >= 50) {
+      setActiveStep(1) // Send - en progreso
+    } else {
+      setActiveStep(1) // Send - iniciando
     }
     setShowRecoveryNotification(false)
   }
 
   return (
     <div className="min-h-screen px-6 py-4 space-y-4 max-w-[1600px] mx-auto">
+      {/* Header con PageHeader */}
+      <PageHeader
+        title="Próximos a Vencer"
+        description="Notifica a clientes con cuotas próximas a vencer"
+        icon={Clock}
+        breadcrumbs={[{ label: 'Próximos a Vencer' }]}
+      />
+
       {/* Notificación de recuperación */}
       {showRecoveryNotification && (
         <JobRecoveryNotification

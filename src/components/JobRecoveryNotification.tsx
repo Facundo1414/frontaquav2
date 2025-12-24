@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 
 interface JobRecoveryNotificationProps {
   jobType: 'senddebts' | 'proximos_vencer';
-  onRecover: (jobId: string, progress: number) => void;
+  onRecover: (jobId: string, progress: number, status?: string) => void;
   onDismiss: () => void;
 }
 
@@ -19,14 +19,21 @@ export function JobRecoveryNotification({
   const { activeJobs, hasActiveJobs, isChecking, latestJob } = useJobRecovery({ jobType });
   const [dismissed, setDismissed] = useState(false);
 
+  // Si el job está completado, automáticamente navegar a resultados
   useEffect(() => {
-    // Si ya se completó, no mostrar
-    if (latestJob?.status === 'completed') {
+    if (latestJob?.status === 'completed' && !dismissed) {
+      // Auto-recuperar al paso de resultados
+      onRecover(latestJob.jobId, 100, 'completed');
       setDismissed(true);
     }
-  }, [latestJob]);
+  }, [latestJob, dismissed, onRecover]);
 
   if (!hasActiveJobs || dismissed || isChecking) {
+    return null;
+  }
+
+  // No mostrar si ya está completado (se manejó arriba)
+  if (latestJob?.status === 'completed') {
     return null;
   }
 
@@ -35,7 +42,7 @@ export function JobRecoveryNotification({
   const isPending = job.status === 'pending';
 
   const handleRecover = () => {
-    onRecover(job.jobId, job.progress || 0);
+    onRecover(job.jobId, job.progress || 0, job.status);
     setDismissed(true);
   };
 

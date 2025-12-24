@@ -5,6 +5,9 @@ import { useRouter } from 'next/navigation'
 import { useGlobalContext } from '@/app/providers/context/GlobalContext'
 import { adminAPI } from '@/utils/admin-api'
 import { toast } from 'sonner'
+import { PageHeader } from '@/components/PageHeader'
+import { Settings } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 
 // Leer ADMIN_UID desde variables de entorno
 const ADMIN_UID = process.env.NEXT_PUBLIC_ADMIN_UID || ''
@@ -48,7 +51,7 @@ export default function AdminDashboard() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-blue-600 mx-auto mb-4"></div>
+          <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-slate-600 mx-auto mb-4"></div>
           <p className="text-gray-900 text-lg font-medium">Cargando panel de administración...</p>
         </div>
       </div>
@@ -56,28 +59,14 @@ export default function AdminDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header con mismo estilo que home */}
-      <div className="relative flex justify-between items-center bg-white shadow-md rounded-lg p-6 mb-6 mx-6 mt-6">
-        <div 
-          className="absolute inset-0 rounded-lg opacity-10"
-          style={{ backgroundImage: "url('/bg_topEspacioClientes.jpg')", backgroundSize: 'cover', backgroundPosition: 'center' }}
-        />
-        <div className="relative z-10">
-          <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
-            ⚙️ Panel de Administración
-          </h1>
-          <p className="text-gray-600 mt-1">
-            Bienvenido, <span className="text-blue-600 font-semibold">{usernameGlobal}</span>
-          </p>
-        </div>
-        <button
-          onClick={() => router.push('/home')}
-          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors duration-200 flex items-center gap-2 relative z-10"
-        >
-          ← Volver al inicio
-        </button>
-      </div>
+    <div className="min-h-screen bg-background p-6">
+      {/* Header con PageHeader */}
+      <PageHeader
+        title="Panel de Administración"
+        description={`Bienvenido, ${usernameGlobal}`}
+        icon={Settings}
+        breadcrumbs={[{ label: 'Admin' }]}
+      />
 
       {/* Dashboard Content - Ancho completo */}
       <main className="px-6 pb-10">
@@ -85,6 +74,27 @@ export default function AdminDashboard() {
         <div className="mb-8">
           <h2 className="text-2xl font-bold text-gray-900 mb-4">🛠️ Administración del Sistema</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Broadcast Notifications Card - NUEVO */}
+            <div 
+              onClick={() => router.push('/admin/broadcast')}
+              className="bg-white rounded-lg shadow-md p-6 border border-gray-200 hover:shadow-lg hover:border-purple-400 transition-all duration-200 cursor-pointer group"
+            >
+              <div className="flex items-start justify-between mb-4">
+                <div className="bg-purple-100 p-3 rounded-lg group-hover:bg-purple-200 transition-colors">
+                  <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
+                  </svg>
+                </div>
+                <span className="text-gray-400 group-hover:text-purple-600 transition-colors">→</span>
+              </div>
+              <h3 className="text-xl font-semibold text-gray-900 mb-2 group-hover:text-purple-600 transition-colors">
+                📢 Notificaciones Broadcast
+              </h3>
+              <p className="text-gray-600 text-sm">
+                Envía avisos en tiempo real a todos los usuarios conectados
+              </p>
+            </div>
+
             {/* Tutorial Documentation Card */}
             <div 
               onClick={() => router.push('/admin/tutorial')}

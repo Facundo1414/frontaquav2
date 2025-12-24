@@ -10,15 +10,14 @@
  *
  * **Importante:** Asegúrate de tener <WhatsAppUnifiedProvider> en tu árbol de componentes.
  *
- * **Sistema Centralizado (whatsapp-worker en puerto 3002):**
+ * **Sistema Centralizado (WhatsApp Cloud API):**
  * - Todos los usuarios usan este sistema
- * - Polling HTTP cada 30s a /wa/state (un solo polling para toda la app)
+ * - Usa la API oficial de Meta (WhatsApp Business API)
  * - Límite: 300 mensajes/día por usuario
  * - Horario: 9-16hs
  *
  * **Admin con cuenta propia (opcional):**
  * - Puede elegir usar su propia cuenta WhatsApp
- * - También usa whatsapp-web.js
  * - Sin límites de 300 msg/día
  */
 

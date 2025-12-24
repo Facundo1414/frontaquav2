@@ -369,6 +369,7 @@ export default function AdminTutorialPage() {
                       <li>• Gestión de clientes y deudas</li>
                       <li>• Endpoints REST para frontend</li>
                       <li>• Integración con PYSE (Aguas Cordobesas)</li>
+                      <li>• WebSocket para progreso en tiempo real</li>
                     </ul>
                   </div>
                   <div className="bg-green-50 p-4 rounded-lg border border-green-200">
@@ -376,12 +377,12 @@ export default function AdminTutorialPage() {
                     <ul className="text-sm space-y-1 text-gray-700">
                       <li>• Interfaz de usuario (Next.js + React)</li>
                       <li>• Dashboard de admin y usuarios</li>
+                      <li>• Centro de Conversaciones WhatsApp</li>
                       <li>• Visualización de métricas en tiempo real</li>
-                      <li>• Gestión de configuración</li>
                     </ul>
                   </div>
                   <div className="bg-purple-50 p-4 rounded-lg border border-purple-200">
-                    <p className="font-semibold mb-2">📄 Comprobante Worker (Puerto 3010)</p>
+                    <p className="font-semibold mb-2">📄 Comprobante Worker (Puerto 3004)</p>
                     <ul className="text-sm space-y-1 text-gray-700">
                       <li>• Generación de PDFs de comprobantes</li>
                       <li>• Consultas al sistema PYSE</li>
@@ -390,12 +391,13 @@ export default function AdminTutorialPage() {
                     </ul>
                   </div>
                   <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
-                    <p className="font-semibold mb-2">💬 WhatsApp Worker (Puerto 3020)</p>
+                    <p className="font-semibold mb-2">💬 WhatsApp Cloud Worker (Puerto 3012)</p>
                     <ul className="text-sm space-y-1 text-gray-700">
-                      <li>• Gestión de sesiones Baileys (Admin)</li>
-                      <li>• Envío de mensajes masivos</li>
+                      <li>• Integración con WhatsApp Cloud API de Meta</li>
+                      <li>• Envío de mensajes con plantillas oficiales</li>
                       <li>• Verificación de números válidos</li>
-                      <li>• Tracking de envíos</li>
+                      <li>• Bot de respuestas automáticas</li>
+                      <li>• Gestión de ventana de 24 horas</li>
                     </ul>
                   </div>
                 </div>
@@ -435,7 +437,7 @@ export default function AdminTutorialPage() {
                     <AlertDescription className="text-yellow-900 text-sm">
                       <strong>⚠️ Límites PYSE:</strong> Ambos planes (BASE y PRO) tienen los mismos límites de consultas PYSE: 1000/día y 600/hora. La diferencia principal del plan PRO es el acceso a WhatsApp Cloud API oficial.
                       <br />
-                      <strong>Admin:</strong> Como administrador, tu cuenta no tiene límites de consultas PYSE y usas el sistema Baileys (no Cloud API) para envíos de WhatsApp sin costo.
+                      <strong>Admin:</strong> Como administrador, tu cuenta no tiene límites de consultas PYSE. Todos los envíos de WhatsApp usan Cloud API oficial de Meta.
                     </AlertDescription>
                   </Alert>
 
@@ -459,43 +461,62 @@ export default function AdminTutorialPage() {
                   <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
                     <p className="font-semibold mb-2">1️⃣ Filtrar Clientes PYSE</p>
                     <ol className="list-decimal ml-5 space-y-1 text-sm text-gray-700">
-                      <li>Usuario sube archivo Excel con cuentas</li>
-                      <li>Sistema verifica deudas en PYSE (Aguas Cordobesas)</li>
-                      <li>Genera 2 archivos:
+                      <li>Usuario selecciona filtros (barrios, estado, rango, catastral)</li>
+                      <li>Sistema consulta API de Aguas Cordobesas en tiempo real</li>
+                      <li>Clasifica clientes según criterios:
                         <ul className="list-disc ml-5 mt-1">
-                          <li>✅ Aptos: Clientes CON deuda</li>
-                          <li>❌ Descartados: Clientes SIN deuda</li>
+                          <li>✅ APTOS: 3+ comprobantes vencidos Y sin plan de pago</li>
+                          <li>❌ NO APTOS: {'<'}3 comprobantes O con plan activo</li>
                         </ul>
                       </li>
-                      <li>Usuario descarga los archivos filtrados</li>
+                      <li>Genera 3 archivos: APTOS, NO APTOS, Relevamiento para visitas</li>
                     </ol>
+                    <p className="text-xs text-gray-600 mt-2">⚠️ Límite: 500 consultas/hora a API de Aguas Cordobesas</p>
                   </div>
 
                   <div className="bg-green-50 p-4 rounded-lg border border-green-200">
                     <p className="font-semibold mb-2">2️⃣ Envío de Deudas (Send Debts)</p>
                     <ol className="list-decimal ml-5 space-y-1 text-sm text-gray-700">
-                      <li>Usuario sube archivo Excel con clientes</li>
-                      <li>Selecciona opciones (INTIMACIÓN, Tipo comprobante, etc.)</li>
-                      <li>Sistema verifica números de WhatsApp válidos</li>
-                      <li>Genera PDF de comprobante (1-3 páginas según deuda)</li>
-                      <li>Envía mensaje + PDF por WhatsApp</li>
-                      <li>Usuario ve progreso en tiempo real y descarga reporte</li>
+                      <li>Usuario sube archivo Excel con clientes (máx 10,000)</li>
+                      <li>Sistema filtra automáticamente clientes con WhatsApp válido</li>
+                      <li>Opcionalmente activa INTIMACIÓN (requiere datos catastrales)</li>
+                      <li>Genera PDF de comprobante para cada cliente</li>
+                      <li>Envía mensaje con plantilla oficial de Meta + PDF adjunto</li>
+                      <li>Progreso en tiempo real via WebSocket</li>
+                      <li>Descarga reporte con columna "motivo" para errores</li>
                     </ol>
+                    <p className="text-xs text-gray-600 mt-2">⚠️ Las plantillas son fijas (NO editables) - aprobadas por Meta</p>
                   </div>
 
                   <div className="bg-purple-50 p-4 rounded-lg border border-purple-200">
                     <p className="font-semibold mb-2">3️⃣ Próximos a Vencer</p>
                     <ol className="list-decimal ml-5 space-y-1 text-sm text-gray-700">
-                      <li>Usuario sube archivo Excel con clientes</li>
-                      <li>Sistema detecta planes de pago próximos a vencer</li>
-                      <li>Genera comprobante con cuota + consumo (si aplica)</li>
-                      <li>Envía recordatorio preventivo por WhatsApp</li>
-                      <li>Usuario descarga reporte con resultados</li>
+                      <li>Usuario sube archivo Excel con planes de pago (máx 1,000)</li>
+                      <li>Sistema calcula automáticamente días hasta fin de mes</li>
+                      <li>Filtra clientes con WhatsApp válido</li>
+                      <li>Genera comprobante preventivo con cuota próxima</li>
+                      <li>Envía recordatorio con plantilla oficial de Meta</li>
+                      <li>Descarga reporte con estado de cada envío</li>
                     </ol>
+                    <p className="text-xs text-gray-600 mt-2">💡 Ideal para principios de mes - reduce morosidad</p>
+                  </div>
+
+                  <div className="bg-cyan-50 p-4 rounded-lg border border-cyan-200">
+                    <p className="font-semibold mb-2">4️⃣ Centro de Conversaciones (Chat WhatsApp)</p>
+                    <ol className="list-decimal ml-5 space-y-1 text-sm text-gray-700">
+                      <li>Acceder a <code className="bg-cyan-100 px-1 rounded">/conversaciones</code></li>
+                      <li>Ver todas las conversaciones activas en tiempo real</li>
+                      <li>Seleccionar una conversación para ver historial completo</li>
+                      <li>Responder mensajes (gratis si cliente escribió en últimas 24h)</li>
+                      <li>Usar Bot ON/OFF para activar respuestas automáticas</li>
+                      <li>Ver estado de ventana 24h (verde=abierta, gris=cerrada)</li>
+                      <li>Buscar conversaciones por número o nombre</li>
+                    </ol>
+                    <p className="text-xs text-gray-600 mt-2">💬 WebSocket en tiempo real - actualización instantánea de mensajes</p>
                   </div>
 
                   <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
-                    <p className="font-semibold mb-2">4️⃣ Gestión de Base de Datos de Clientes</p>
+                    <p className="font-semibold mb-2">5️⃣ Gestión de Base de Datos de Clientes</p>
                     <ol className="list-decimal ml-5 space-y-1 text-sm text-gray-700">
                       <li>Importar clientes desde Excel (22 columnas)</li>
                       <li>Buscar clientes por cuenta, nombre, teléfono</li>
@@ -547,6 +568,26 @@ export default function AdminTutorialPage() {
                       <li>Revisa las métricas en <code className="bg-blue-100 px-1 rounded">/admin/supabase</code></li>
                       <li>Verifica el uso de storage y database</li>
                       <li>Considera reducir concurrencia si hay muchos procesos paralelos</li>
+                    </ol>
+                  </div>
+
+                  <div className="bg-cyan-50 p-4 rounded-lg border border-cyan-200">
+                    <p className="font-semibold mb-2 text-cyan-900">💬 Conversaciones - Mensaje no se envía</p>
+                    <ol className="list-decimal ml-5 space-y-1 text-sm text-gray-700">
+                      <li>Verifica que la ventana de 24 horas esté abierta (indicador verde)</li>
+                      <li>Si la ventana está cerrada, necesitas enviar una plantilla (desde SendDebts)</li>
+                      <li>Revisa que el Bot esté en estado correcto (ON para automático, OFF para manual)</li>
+                      <li>Las respuestas manuales son gratis solo si el cliente escribió en las últimas 24h</li>
+                    </ol>
+                  </div>
+
+                  <div className="bg-purple-50 p-4 rounded-lg border border-purple-200">
+                    <p className="font-semibold mb-2 text-purple-900">🤖 Bot no responde a clientes</p>
+                    <ol className="list-decimal ml-5 space-y-1 text-sm text-gray-700">
+                      <li>Verifica que el Bot esté en ON en la conversación</li>
+                      <li>El bot solo responde a mensajes de clientes (no a tus propios mensajes)</li>
+                      <li>Revisa que el WhatsApp Cloud Worker esté activo (Puerto 3012)</li>
+                      <li>Verifica la configuración del webhook en <code className="bg-purple-100 px-1 rounded">/whatsapp/config</code></li>
                     </ol>
                   </div>
                 </div>
@@ -633,6 +674,7 @@ export default function AdminTutorialPage() {
                       <li>• <code className="bg-green-100 px-1 rounded">/filtro</code> - Filtrar clientes PYSE</li>
                       <li>• <code className="bg-green-100 px-1 rounded">/senddebts</code> - Envío de deudas</li>
                       <li>• <code className="bg-green-100 px-1 rounded">/proximos-vencer</code> - Envío preventivo</li>
+                      <li>• <code className="bg-green-100 px-1 rounded">/conversaciones</code> - Chat WhatsApp</li>
                       <li>• <code className="bg-green-100 px-1 rounded">/clientes-database</code> - Base de datos</li>
                       <li>• <code className="bg-green-100 px-1 rounded">/whatsapp/config</code> - Config WhatsApp</li>
                     </ul>

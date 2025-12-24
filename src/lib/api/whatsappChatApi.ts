@@ -137,4 +137,140 @@ export const whatsappChatApi = {
     );
     return data;
   },
+
+  // ========================================
+  // 🤖 CONTROL DEL BOT
+  // ========================================
+
+  // Obtener estado de asignación de una conversación
+  getConversationAssignment: async (conversationId: string) => {
+    const { data } = await api.get(
+      `/whatsapp-chat/conversations/${conversationId}/assignment`,
+      {
+        headers: withAuth(),
+      }
+    );
+    return data as {
+      botEnabled: boolean;
+      assignedUserId: string | null;
+      assignedAt: string | null;
+      assignmentNote: string | null;
+    };
+  },
+
+  // Asignar conversación a un asesor (desactiva el bot)
+  assignConversation: async (conversationId: string, note?: string) => {
+    const { data } = await api.post(
+      `/whatsapp-chat/conversations/${conversationId}/assign`,
+      { note },
+      {
+        headers: withAuth(),
+      }
+    );
+    return data as { success: boolean; message: string };
+  },
+
+  // Liberar conversación (reactiva el bot)
+  releaseConversation: async (conversationId: string) => {
+    const { data } = await api.post(
+      `/whatsapp-chat/conversations/${conversationId}/release`,
+      {},
+      {
+        headers: withAuth(),
+      }
+    );
+    return data as { success: boolean; message: string };
+  },
+
+  // Alternar estado del bot (toggle)
+  toggleBot: async (conversationId: string) => {
+    const { data } = await api.post(
+      `/whatsapp-chat/conversations/${conversationId}/toggle-bot`,
+      {},
+      {
+        headers: withAuth(),
+      }
+    );
+    return data as { botEnabled: boolean; message: string };
+  },
+
+  // ========================================
+  // 📨 MENSAJES INTERACTIVOS
+  // ========================================
+
+  // Enviar botones de respuesta rápida
+  sendReplyButtons: async (
+    conversationId: string,
+    payload: {
+      bodyText: string;
+      buttons: Array<{ id: string; title: string }>;
+      headerText?: string;
+      footerText?: string;
+    }
+  ) => {
+    const { data } = await api.post(
+      `/whatsapp-chat/conversations/${conversationId}/send-buttons`,
+      payload,
+      {
+        headers: withAuth(),
+      }
+    );
+    return data;
+  },
+
+  // Enviar lista interactiva
+  sendListMessage: async (
+    conversationId: string,
+    payload: {
+      bodyText: string;
+      buttonText: string;
+      sections: Array<{
+        title: string;
+        rows: Array<{ id: string; title: string; description?: string }>;
+      }>;
+      headerText?: string;
+      footerText?: string;
+    }
+  ) => {
+    const { data } = await api.post(
+      `/whatsapp-chat/conversations/${conversationId}/send-list`,
+      payload,
+      {
+        headers: withAuth(),
+      }
+    );
+    return data;
+  },
+
+  // Enviar ubicación
+  sendLocation: async (
+    conversationId: string,
+    payload: {
+      latitude: number;
+      longitude: number;
+      name: string;
+      address: string;
+    }
+  ) => {
+    const { data } = await api.post(
+      `/whatsapp-chat/conversations/${conversationId}/send-location`,
+      payload,
+      {
+        headers: withAuth(),
+      }
+    );
+    return data;
+  },
+
+  // Mostrar indicador de escribiendo
+  showTyping: async (conversationId: string) => {
+    const { data } = await api.post(
+      `/whatsapp-chat/conversations/${conversationId}/typing`,
+      {},
+      {
+        headers: withAuth(),
+      }
+    );
+    return data;
+  },
 };

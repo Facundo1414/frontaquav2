@@ -71,11 +71,11 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex">
-      {/* Sidebar lateral con fondo gradiente animado */}
+      {/* Sidebar lateral con fondo gradiente profesional */}
       <motion.div
-        className="hidden md:flex flex-col justify-center items-center w-1/3 p-8 text-white"
+        className="hidden md:flex flex-col justify-center items-center w-1/3 p-8 text-white relative"
         style={{
-          background: 'linear-gradient(135deg, #1e3a8a, #2563eb, #3b82f6)',
+          background: 'linear-gradient(135deg, #1e293b, #334155, #475569)',
           backgroundSize: '400% 400%',
           animation: 'gradientShift 15s ease infinite',
         }}
@@ -110,20 +110,20 @@ export default function LoginPage() {
 
         {/* Aviso de Horario de Servicio */}
         <motion.div
-          className="mt-8 bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-white/20 max-w-sm"
+          className="mt-8 bg-white/10 backdrop-blur-sm rounded-xl p-5 border border-white/10 max-w-sm"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.9, duration: 1 }}
         >
           <div className="flex items-center gap-2 mb-2">
-            <Clock className="w-5 h-5 text-yellow-300" />
+            <Clock className="w-5 h-5 text-cyan-300" />
             <h4 className="font-semibold text-white">Horario de Servicio</h4>
           </div>
           <p className="text-sm text-white/90">
-            Los servicios están disponibles de <strong>Lunes a Viernes</strong> de <strong>8:00 a 16:00 hs</strong>
+            Disponible <strong>Lunes a Viernes</strong> de <strong>8:00 a 16:00 hs</strong>
           </p>
-          <p className="text-xs text-white/75 mt-2">
-            Fuera de este horario, no se podrá ingresar al sistema.
+          <p className="text-xs text-white/60 mt-2">
+            Fuera de este horario, el acceso puede estar restringido.
           </p>
         </motion.div>
 
@@ -141,13 +141,12 @@ export default function LoginPage() {
 
       {/* Formulario login */}
       <div
-        className="flex-1 flex items-center justify-center bg-cover bg-center relative"
-        style={{ backgroundImage: 'url(/bg_topEspacioClientes.jpg)' }}
+        className="flex-1 flex items-center justify-center bg-gradient-to-br from-slate-100 to-slate-200 relative"
       >
-        <div className="absolute inset-0 bg-black opacity-50 z-0" />
-        <Card className="relative z-10 max-w-md w-full p-6 mx-4">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_120%,rgba(100,116,139,0.1),transparent)]" />
+        <Card className="relative z-10 max-w-md w-full p-6 mx-4 shadow-card border-slate-200/50">
           <CardHeader>
-            <CardTitle className="text-center text-2xl font-semibold">
+            <CardTitle className="text-center text-2xl font-semibold text-slate-800">
               Iniciar Sesión
             </CardTitle>
           </CardHeader>

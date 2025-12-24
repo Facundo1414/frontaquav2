@@ -9,6 +9,7 @@ import { getUserFiles, downloadUserFile, deleteUserFile } from "@/lib/api/compro
 import { EmptyState } from "@/components/EmptyState"
 import { getUserFriendlyError } from '@/utils/errorMessages'
 import { toast } from 'sonner'
+import { PageHeader } from '@/components/PageHeader'
 
 interface UserFile {
   name: string
@@ -205,30 +206,26 @@ export function RecuperarArchivos() {
 
   return (
     <div className="container mx-auto p-6 max-w-6xl">
+      <PageHeader
+        title="Recuperar Archivos"
+        description="Archivos guardados durante la ejecución de Send Debts o procesos anteriores"
+        icon={FileArchive}
+        breadcrumbs={[{ label: 'Archivos' }]}
+        action={
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={loadFiles}
+            disabled={loading}
+          >
+            <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+            Actualizar
+          </Button>
+        }
+      />
+
       <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="flex items-center gap-2 text-2xl">
-                <FileText className="h-6 w-6" />
-                Recuperar Archivos de Respaldo
-              </CardTitle>
-              <p className="text-sm text-gray-600 mt-2">
-                Archivos guardados durante la ejecución de Send Debts o procesos anteriores
-              </p>
-            </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={loadFiles}
-              disabled={loading}
-            >
-              <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-              Actualizar
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent>
+        <CardContent className="pt-6">
           {/* Info Banner */}
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
             <div className="flex items-start gap-3">

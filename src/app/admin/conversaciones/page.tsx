@@ -22,7 +22,6 @@ import {
   TrendingUp,
   AlertCircle,
   CheckCircle,
-  ArrowLeft,
 } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
@@ -30,6 +29,7 @@ import { whatsappChatApi, Conversation } from "@/lib/api/whatsappChatApi";
 import { toast } from "sonner";
 import api from "@/lib/api/axiosInstance";
 import { getAccessToken } from "@/utils/authToken";
+import { PageHeader } from "@/components/PageHeader";
 
 interface UserData {
   id: string;
@@ -176,23 +176,15 @@ export default function AdminConversacionesPage() {
   return (
     <div className="p-6 space-y-6 bg-gray-50 min-h-screen">
       {/* Header */}
-      <div>
-        <Button
-          variant="ghost"
-          onClick={() => router.push('/admin')}
-          className="mb-4"
-        >
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Volver al Panel
-        </Button>
-        <h1 className="text-3xl font-bold flex items-center gap-3 text-gray-900">
-          <MessageCircle className="h-8 w-8 text-blue-600" />
-          Monitoreo de Conversaciones - Admin
-        </h1>
-        <p className="text-gray-600 mt-1">
-          Vista en tiempo real de todas las conversaciones de WhatsApp
-        </p>
-      </div>
+      <PageHeader
+        title="Monitoreo de Conversaciones"
+        description="Vista en tiempo real de todas las conversaciones de WhatsApp"
+        icon={MessageCircle}
+        breadcrumbs={[
+          { label: 'Admin', href: '/admin' },
+          { label: 'Conversaciones' }
+        ]}
+      />
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">

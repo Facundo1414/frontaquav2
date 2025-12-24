@@ -1,11 +1,12 @@
 'use client';
 import dynamic from 'next/dynamic';
 import { useState, useEffect } from 'react';
-import { Upload, Database, FileSpreadsheet, Users, ArrowLeft, CheckCircle, XCircle, AlertCircle, Search, Filter, Phone, MapPin, DollarSign, Calendar, Edit2, Save, X, Eye, Check, MessageSquare, Loader2, Download } from 'lucide-react';
+import { Upload, Database, FileSpreadsheet, Users, CheckCircle, XCircle, AlertCircle, Search, Filter, Phone, MapPin, DollarSign, Calendar, Edit2, Save, X, Eye, Check, MessageSquare, Loader2, Download } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { importPYSEClients, importDeudasClients, importPhones, getClients, updateClient, previewPYSEImport, previewDeudasImport } from '@/lib/api';
 import * as XLSX from 'xlsx';
 import { logger } from '@/lib/logger';
+import { PageHeader } from '@/components/PageHeader';
 
 // 🚀 Lazy load del componente de vista paginada (pesado)
 const PaginatedClientsView = dynamic(() => import('./components/PaginatedClientsView').then(mod => ({ default: mod.PaginatedClientsView })), {
@@ -1017,29 +1018,12 @@ export default function ClientesDatabasePage() {
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 p-6">
       <div className="w-full mx-auto">
         {/* Header */}
-        <div className="mb-8">
-          <button
-            onClick={() => router.push('/home')}
-            className="flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white mb-4 transition-colors"
-          >
-            <ArrowLeft className="w-5 h-5" />
-            Volver al inicio
-          </button>
-          
-          <div className="flex items-center gap-4">
-            <div className="p-4 bg-teal-500 rounded-2xl shadow-lg">
-              <Database className="w-8 h-8 text-white" />
-            </div>
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-                Base de Datos de Clientes
-              </h1>
-              <p className="text-gray-600 dark:text-gray-400 mt-1">
-                Importa y gestiona tu universo de clientes desde archivos Excel
-              </p>
-            </div>
-          </div>
-        </div>
+        <PageHeader
+          title="Base de Datos de Clientes"
+          description="Importa y gestiona tu universo de clientes desde archivos Excel"
+          icon={Database}
+          breadcrumbs={[{ label: 'Clientes' }]}
+        />
 
         {/* Tabs */}
         <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden">

@@ -6,6 +6,7 @@ import { GlobalProvider } from '@/app/providers/context/GlobalContext'
 import { WhatsAppUnifiedProvider } from '@/app/providers/context/WhatsAppUnifiedContext'
 import { SubscriptionProvider } from '@/context/SubscriptionContext'
 import { WebSocketProvider } from '@/components/WebSocketProvider'
+import { AdminBroadcastListener } from '@/components/AdminBroadcastListener'
 import { QueryProvider } from '@/lib/react-query'
 import PrivateLayout from './PrivateLayout'
 
@@ -40,6 +41,8 @@ export default function RootLayout({
             <WhatsAppUnifiedProvider>
               <SubscriptionProvider>
                 <WebSocketProvider>
+                  {/* Listener global de notificaciones del admin */}
+                  <AdminBroadcastListener />
                   {/* PrivateLayout decidirá si aplica wrappers (providers) según la ruta */}
                   <PrivateLayout>
                     {children}
