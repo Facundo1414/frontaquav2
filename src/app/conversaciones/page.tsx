@@ -275,6 +275,14 @@ export default function ConversacionesPage() {
       const result = await whatsappChatApi.assignConversation(selectedConversation.id);
       setBotEnabled(false);
       setAssignedUserId(userId);
+      
+      // Refrescar la conversación para obtener la nueva ventana de 24hs
+      const updatedConversations = await whatsappChatApi.getConversations();
+      const updatedConv = updatedConversations.find(c => c.id === selectedConversation.id);
+      if (updatedConv) {
+        setSelectedConversation(updatedConv);
+      }
+      
       toast.success("Conversación tomada. Bot desactivado.");
     } catch (error) {
       console.error("Error tomando conversación:", error);
